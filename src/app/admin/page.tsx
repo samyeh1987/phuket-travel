@@ -1,3 +1,5 @@
+'use client';
+
 import { LayoutDashboard, Anchor, Sailboat, Ticket, ShoppingBag, TrendingUp, Users, Clock } from 'lucide-react';
 
 const stats = [

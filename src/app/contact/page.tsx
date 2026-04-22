@@ -1,3 +1,5 @@
+'use client';
+
 import Image from 'next/image';
 import { MessageCircle, Mail, Phone, MapPin, Clock } from 'lucide-react';
 

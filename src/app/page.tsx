@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { Sailboat, Anchor, Ticket, Palmtree, Sparkles, Users, Camera } from 'lucide-react';
