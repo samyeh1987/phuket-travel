@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { Boat, Anchor, Ticket, Palmtree, Sparkles, Users, Utensils, Camera } from 'lucide-react';
+import { Sailboat, Anchor, Ticket, Palmtree, Sparkles, Users, Utensils, Camera } from 'lucide-react';
 
 const services = [
   {
@@ -20,7 +20,7 @@ const services = [
   {
     title: '跳岛一日游',
     description: '皇帝岛/皮皮岛/斯米兰',
-    icon: <Boat className="w-8 h-8" />,
+    icon: <Sailboat className="w-8 h-8" />,
     href: '/island-tour',
     color: 'bg-gradient-to-br from-cyan-500 to-cyan-600',
   },

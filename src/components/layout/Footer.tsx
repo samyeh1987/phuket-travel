@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Boat, MessageCircle, Mail, Phone } from 'lucide-react';
+import { Sailboat, MessageCircle, Mail } from 'lucide-react';
 
 const footerLinks = {
   服务: [
@@ -23,7 +23,7 @@ export function Footer() {
           {/* Brand */}
           <div className="col-span-1 md:col-span-2">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <Boat className="w-8 h-8 text-ocean-400" />
+              <Sailboat className="w-8 h-8 text-ocean-400" />
               <span className="text-2xl font-bold text-white">泰嗨了</span>
             </Link>
             <p className="text-gray-400 mb-6 max-w-md">

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Menu, X, Boat, MessageCircle } from 'lucide-react';
+import { Menu, X, Sailboat, MessageCircle } from 'lucide-react';
 
 const navItems = [
   { label: '首页', href: '/' },
@@ -21,7 +21,7 @@ export function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
-            <Boat className="w-8 h-8 text-ocean-500" />
+            <Sailboat className="w-8 h-8 text-ocean-500" />
             <span className="text-xl font-bold text-gray-900">泰嗨了</span>
           </Link>
 
