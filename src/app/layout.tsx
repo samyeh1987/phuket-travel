@@ -1,11 +1,10 @@
 import type { Metadata } from 'next';
-import { Inter, Noto_Sans_SC } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import './globals.css';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
-const notoSansSC = Noto_Sans_SC({ subsets: ['latin'], variable: '--font-sans-sc' });
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: '泰嗨了 - 普吉旅行',
@@ -19,7 +18,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh-CN">
-      <body className={`${inter.variable} ${notoSansSC.variable} font-sans antialiased`}>
+      <body className={`${inter.className} antialiased`}>
         <Navbar />
         <main className="min-h-screen">{children}</main>
         <Footer />
