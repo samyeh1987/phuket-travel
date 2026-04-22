@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>泰嗨了 - 普吉旅行</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ocean: {
+              50: '#ecfeff',
+              100: '#cffafe',
+              200: '#a5f3fc',
+              300: '#67e8f9',
+              400: '#22d3ee',
+              500: '#0ea5e9',
+              600: '#0891b2',
+              700: '#0e7490',
+            },
+            coral: '#FF6B6B',
+            gold: '#FFD93D',
+          },
+          fontFamily: {
+            sans: ['Noto Sans SC', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * { font-family: 'Noto Sans SC', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+    body { background: #f8fafc; }
+    .page { display: none; }
+    .page.active { display: block; }
+    .tab-bar { box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
+    .card-shadow { box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+    .btn-primary { background: linear-gradient(135deg, #0891b2 0%, #0ea5e9 100%); }
+    .gradient-bg { background: linear-gradient(135deg, #0891b2 0%, #0ea5e9 50%, #22d3ee 100%); }
+    .floating-btn { box-shadow: 0 4px 20px rgba(14, 165, 233, 0.4); }
+    input, select { font-size: 16px !important; }
+  </style>
+</head>
+<body class="pb-20">
+
+  <!-- Mobile Container -->
+  <div class="max-w-md mx-auto bg-white min-h-screen relative">
+    
+    <!-- ========== Status Bar (Fake) ========== -->
+    <div class="bg-white px-4 py-2 flex justify-between text-xs text-gray-500 border-b">
+      <span>9:41</span>
+      <div class="flex gap-1">
+        <span>📶</span><span>🔋</span>
+      </div>
+    </div>
+
+    <main class="pb-24">
+    
+    <!-- ========== PAGE: Home ========== -->
+    <div id="page-home" class="page active">
+      <!-- Hero -->
+      <div class="relative h-[280px] overflow-hidden">
+        <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80" alt="普吉岛" class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"></div>
+        <div class="absolute bottom-0 left-0 right-0 p-5 text-white">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-3xl">🌊</span>
+            <h1 class="text-2xl font-bold">泰嗨了</h1>
+          </div>
+          <p class="text-white/90 text-sm">普吉旅行专家 · 高端定制</p>
+        </div>
+        <!-- Floating CTA -->
+        <button onclick="showPage('custom')" class="absolute top-4 right-4 px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-full text-sm font-medium border border-white/30">
+          定制旅行
+        </button>
+      </div>
+
+      <!-- Quick Tags -->
+      <div class="px-4 py-3 flex gap-2 overflow-x-auto scrollbar-hide">
+        <span class="px-3 py-1.5 bg-ocean-50 text-ocean-700 rounded-full text-xs font-medium whitespace-nowrap">🏝️ 跳岛</span>
+        <span class="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-full text-xs font-medium whitespace-nowrap">🤿 深潜</span>
+        <span class="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-full text-xs font-medium whitespace-nowrap">🎭 秀场</span>
+        <span class="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-full text-xs font-medium whitespace-nowrap">🚗 包车</span>
+      </div>
+
+      <!-- Services Grid -->
+      <div class="px-4 py-4">
+        <h2 class="text-lg font-bold text-gray-900 mb-3">热门服务</h2>
+        <div class="grid grid-cols-2 gap-3">
+          <!-- Custom Trip -->
+          <div onclick="showPage('custom')" class="bg-gradient-to-br from-ocean-500 to-ocean-600 rounded-2xl p-4 text-white cursor-pointer active:scale-95 transition-transform">
+            <div class="text-3xl mb-2">✨</div>
+            <h3 class="font-bold mb-1">定制旅行</h3>
+            <p class="text-white/80 text-xs">专属定制行程</p>
+          </div>
+          <!-- Diving -->
+          <div onclick="showPage('diving')" class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 text-white cursor-pointer active:scale-95 transition-transform">
+            <div class="text-3xl mb-2">🤿</div>
+            <h3 class="font-bold mb-1">深潜体验</h3>
+            <p class="text-white/80 text-xs">探索海底世界</p>
+          </div>
+          <!-- Island -->
+          <div onclick="showPage('island')" class="bg-gradient-to-br from-cyan-500 to-teal-500 rounded-2xl p-4 text-white cursor-pointer active:scale-95 transition-transform">
+            <div class="text-3xl mb-2">🏝️</div>
+            <h3 class="font-bold mb-1">跳岛一日游</h3>
+            <p class="text-white/80 text-xs">皇帝岛/皮皮岛/斯米兰</p>
+          </div>
+          <!-- Show -->
+          <div onclick="showPage('show')" class="bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl p-4 text-white cursor-pointer active:scale-95 transition-transform">
+            <div class="text-3xl mb-2">🎭</div>
+            <h3 class="font-bold mb-1">秀场表演</h3>
+            <p class="text-white/80 text-xs">天皇秀/西蒙秀</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Featured Islands -->
+      <div class="px-4 py-4">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="text-lg font-bold text-gray-900">🔥 热门岛屿</h2>
+          <button onclick="showPage('island')" class="text-ocean-600 text-sm">查看全部</button>
+        </div>
+        <div class="space-y-3">
+          <div onclick="showPage('island-detail')" class="relative h-36 rounded-2xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform">
+            <img src="https://images.unsplash.com/photo-1559128010-7c1ad6e1b6a5?w=600&q=80" class="w-full h-full object-cover">
+            <div class="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent"></div>
+            <div class="absolute bottom-3 left-4 text-white">
+              <h3 class="font-bold text-lg">🏝️ 皇帝岛</h3>
+              <p class="text-white/80 text-xs">水质清澈 · 浮潜胜地</p>
+            </div>
+            <div class="absolute top-3 right-3 bg-ocean-500 text-white px-2 py-1 rounded-full text-xs font-medium">
+              ¥480起
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div onclick="showPage('island-detail')" class="relative h-28 rounded-2xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform">
+              <img src="https://images.unsplash.com/photo-1504214208698-ea1916a2195a?w=400&q=80" class="w-full h-full object-cover">
+              <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+              <div class="absolute bottom-2 left-3 text-white">
+                <p class="font-bold text-sm">🏝️ 皮皮岛</p>
+                <p class="text-white/70 text-xs">¥580起</p>
+              </div>
+            </div>
+            <div onclick="showPage('island-detail')" class="relative h-28 rounded-2xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform">
+              <img src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&q=80" class="w-full h-full object-cover">
+              <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+              <div class="absolute bottom-2 left-3 text-white">
+                <p class="font-bold text-sm">🏝️ 斯米兰</p>
+                <p class="text-white/70 text-xs">¥980起</p>
+              </div>
+              <div class="absolute top-2 right-2 bg-red-500 text-white px-1.5 py-0.5 rounded text-[10px] font-bold">
+                限时
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contact Banner -->
+      <div class="px-4 py-4">
+        <div class="gradient-bg rounded-2xl p-4 text-white">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center text-2xl">
+              💬
+            </div>
+            <div class="flex-1">
+              <p class="font-bold">有问题？联系客服</p>
+              <p class="text-white/80 text-sm">24小时在线回复</p>
+            </div>
+            <button class="px-4 py-2 bg-white text-ocean-600 rounded-full text-sm font-medium">
+              咨询
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== PAGE: Custom Trip ========== -->
+    <div id="page-custom" class="page">
+      <!-- Header -->
+      <div class="sticky top-0 bg-white z-10 border-b">
+        <div class="flex items-center gap-3 px-4 py-3">
+          <button onclick="showPage('home')" class="text-gray-600">←</button>
+          <h1 class="text-lg font-bold text-gray-900">定制旅行</h1>
+        </div>
+      </div>
+
+      <div class="px-4 py-5 space-y-5">
+        <!-- Date -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">🎯 出发日期</label>
+          <input type="date" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-ocean-500 focus:border-ocean-500">
+        </div>
+
+        <!-- Duration -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">📅 行程天数</label>
+          <div class="grid grid-cols-4 gap-2">
+            <button class="px-2 py-2.5 bg-ocean-500 text-white rounded-xl text-sm font-medium">3天</button>
+            <button class="px-2 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm">4天</button>
+            <button class="px-2 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm">5天</button>
+            <button class="px-2 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm">7天</button>
+          </div>
+        </div>
+
+        <!-- Budget -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">💰 人均预算</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button class="px-2 py-2 bg-gray-100 text-gray-700 rounded-xl text-xs">3000以下</button>
+            <button class="px-2 py-2 bg-gray-100 text-gray-700 rounded-xl text-xs">3000-4000</button>
+            <button class="px-2 py-2 bg-ocean-500 text-white rounded-xl text-xs font-medium">4000-5000</button>
+            <button class="px-2 py-2 bg-gray-100 text-gray-700 rounded-xl text-xs">5000-6000</button>
+            <button class="px-2 py-2 bg-gray-100 text-gray-700 rounded-xl text-xs col-span-2">7000以上</button>
+          </div>
+        </div>
+
+        <!-- Travelers -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">👥 出行人数</label>
+          <div class="flex items-center gap-4 bg-gray-50 p-3 rounded-xl">
+            <button onclick="changeCount('travelers', -1)" class="w-10 h-10 bg-white rounded-full border flex items-center justify-center text-gray-600 active:bg-gray-100">-</button>
+            <span id="travelers-count" class="text-xl font-bold w-8 text-center">2</span>
+            <button onclick="changeCount('travelers', 1)" class="w-10 h-10 bg-white rounded-full border flex items-center justify-center text-gray-600 active:bg-gray-100">+</button>
+            <span class="text-gray-500 text-sm ml-2">人</span>
+          </div>
+        </div>
+
+        <!-- Crowd Type -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">🎯 人群类型</label>
+          <div class="flex flex-wrap gap-2">
+            <button class="px-4 py-2 bg-ocean-50 border-2 border-ocean-500 text-ocean-700 rounded-full text-sm font-medium">👫 情侣</button>
+            <button class="px-4 py-2 bg-gray-100 border-2 border-gray-200 text-gray-700 rounded-full text-sm">👭 闺蜜</button>
+            <button class="px-4 py-2 bg-gray-100 border-2 border-gray-200 text-gray-700 rounded-full text-sm">👨‍👩‍👧 家庭</button>
+            <button class="px-4 py-2 bg-gray-100 border-2 border-gray-200 text-gray-700 rounded-full text-sm">🤿 潜水</button>
+            <button class="px-4 py-2 bg-gray-100 border-2 border-gray-200 text-gray-700 rounded-full text-sm">🍺 兄弟</button>
+          </div>
+        </div>
+
+        <!-- Interests -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">❤️ 喜好（可多选）</label>
+          <div class="flex flex-wrap gap-2">
+            <button class="interest-btn px-3 py-2 bg-gray-100 border-2 border-gray-200 text-gray-700 rounded-full text-xs selected:bg-red-50 selected:border-red-400 selected:text-red-600">🎭 秀场</button>
+            <button class="interest-btn px-3 py-2 bg-ocean-50 border-2 border-ocean-500 text-ocean-700 rounded-full text-xs font-medium selected:bg-red-50 selected:border-red-400 selected:text-red-600">🏝️ 跳岛</button>
+            <button class="interest-btn px-3 py-2 bg-gray-100 border-2 border-gray-200 text-gray-700 rounded-full text-xs selected:bg-red-50 selected:border-red-400 selected:text-red-600">🌙 夜生活</button>
+            <button class="interest-btn px-3 py-2 bg-gray-100 border-2 border-gray-200 text-gray-700 rounded-full text-xs selected:bg-red-50 selected:border-red-400 selected:text-red-600">🍜 美食</button>
+            <button class="interest-btn px-3 py-2 bg-gray-100 border-2 border-gray-200 text-gray-700 rounded-full text-xs selected:bg-red-50 selected:border-red-400 selected:text-red-600">📸 出片</button>
+            <button class="interest-btn px-3 py-2 bg-gray-100 border-2 border-gray-200 text-gray-700 rounded-full text-xs selected:bg-red-50 selected:border-red-400 selected:text-red-600">🤿 深潜</button>
+            <button class="interest-btn px-3 py-2 bg-gray-100 border-2 border-gray-200 text-gray-700 rounded-full text-xs selected:bg-red-50 selected:border-red-400 selected:text-red-600">🎣 海钓</button>
+            <button class="interest-btn px-3 py-2 bg-gray-100 border-2 border-gray-200 text-gray-700 rounded-full text-xs selected:bg-red-50 selected:border-red-400 selected:text-red-600">🎉 轰趴</button>
+            <button class="interest-btn px-3 py-2 bg-gray-100 border-2 border-gray-200 text-gray-700 rounded-full text-xs selected:bg-red-50 selected:border-red-400 selected:text-red-600">🔫 射击</button>
+          </div>
+        </div>
+
+        <!-- Contact -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">📱 联系方式</label>
+          <input type="tel" placeholder="手机/微信/WhatsApp" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl">
+        </div>
+      </div>
+
+      <!-- Bottom CTA -->
+      <div class="fixed bottom-20 left-0 right-0 max-w-md mx-auto px-4">
+        <button onclick="showPage('home')" class="w-full py-4 btn-primary text-white rounded-2xl font-bold text-lg floating-btn">
+          开始定制 ✨
+        </button>
+      </div>
+    </div>
+
+    <!-- ========== PAGE: Diving ========== -->
+    <div id="page-diving" class="page">
+      <!-- Header -->
+      <div class="sticky top-0 bg-white z-10 border-b">
+        <div class="flex items-center gap-3 px-4 py-3">
+          <button onclick="showPage('home')" class="text-gray-600">←</button>
+          <h1 class="text-lg font-bold text-gray-900">深潜体验</h1>
+        </div>
+      </div>
+
+      <div class="px-4 py-5 space-y-4">
+        <!-- Type Cards -->
+        <div class="grid grid-cols-2 gap-3 mb-4">
+          <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 text-white cursor-pointer active:scale-95 transition-transform">
+            <div class="text-3xl mb-2">🏊</div>
+            <h3 class="font-bold">体验深潜</h3>
+            <p class="text-white/80 text-xs mt-1">无需证书</p>
+            <p class="text-white/90 text-sm mt-2 font-medium">¥680起</p>
+          </div>
+          <div onclick="showPage('cert-list')" class="bg-gray-100 rounded-2xl p-4 cursor-pointer active:scale-95 transition-transform">
+            <div class="text-3xl mb-2">📜</div>
+            <h3 class="font-bold text-gray-900">潜水考证</h3>
+            <p class="text-gray-500 text-xs mt-1">PADI国际证</p>
+            <p class="text-ocean-600 text-sm mt-2 font-medium">¥1800起</p>
+          </div>
+        </div>
+
+        <!-- Packages -->
+        <h3 class="text-base font-bold text-gray-900 mt-6 mb-3">🔥 热门考证课程</h3>
+        
+        <div class="bg-white border border-gray-200 rounded-2xl p-4">
+          <div class="flex gap-3">
+            <div class="w-20 h-20 bg-blue-100 rounded-xl flex items-center justify-center text-3xl">
+              🤿
+            </div>
+            <div class="flex-1">
+              <h4 class="font-bold text-gray-900">水肺OW考证</h4>
+              <p class="text-gray-500 text-xs mt-0.5">PADI开放水域 · 3-4天</p>
+              <div class="flex items-center justify-between mt-2">
+                <span class="text-xl font-bold text-ocean-600">¥2,800</span>
+                <button onclick="showPage('booking-form')" class="px-4 py-1.5 bg-ocean-500 text-white rounded-full text-sm">预订</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white border border-gray-200 rounded-2xl p-4">
+          <div class="flex gap-3">
+            <div class="w-20 h-20 bg-cyan-100 rounded-xl flex items-center justify-center text-3xl">
+              🏊
+            </div>
+            <div class="flex-1">
+              <h4 class="font-bold text-gray-900">水肺AOW考证</h4>
+              <p class="text-gray-500 text-xs mt-0.5">PADI进阶 · 2-3天</p>
+              <div class="flex items-center justify-between mt-2">
+                <span class="text-xl font-bold text-ocean-600">¥2,200</span>
+                <button onclick="showPage('booking-form')" class="px-4 py-1.5 bg-ocean-500 text-white rounded-full text-sm">预订</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white border border-gray-200 rounded-2xl p-4">
+          <div class="flex gap-3">
+            <div class="w-20 h-20 bg-teal-100 rounded-xl flex items-center justify-center text-3xl">
+              🐟
+            </div>
+            <div class="flex-1">
+              <h4 class="font-bold text-gray-900">自由潜2星</h4>
+              <p class="text-gray-500 text-xs mt-0.5">PADI自由潜 · 2天课程</p>
+              <div class="flex items-center justify-between mt-2">
+                <span class="text-xl font-bold text-ocean-600">¥1,800</span>
+                <button onclick="showPage('booking-form')" class="px-4 py-1.5 bg-ocean-500 text-white rounded-full text-sm">预订</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== PAGE: Island Tour ========== -->
+    <div id="page-island" class="page">
+      <!-- Header -->
+      <div class="sticky top-0 bg-white z-10 border-b">
+        <div class="flex items-center gap-3 px-4 py-3">
+          <button onclick="showPage('home')" class="text-gray-600">←</button>
+          <h1 class="text-lg font-bold text-gray-900">跳岛一日游</h1>
+        </div>
+      </div>
+
+      <!-- Island Cards -->
+      <div class="px-4 py-4 space-y-4">
+        <!-- Racha -->
+        <div onclick="showPage('island-detail')" class="relative h-44 rounded-2xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform card-shadow">
+          <img src="https://images.unsplash.com/photo-1559128010-7c1ad6e1b6a5?w=600&q=80" class="w-full h-full object-cover">
+          <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+          <div class="absolute top-3 right-3 bg-ocean-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+            ¥480起
+          </div>
+          <div class="absolute bottom-3 left-4 right-4 text-white">
+            <h3 class="font-bold text-xl mb-1">🏝️ 皇帝岛 Racha</h3>
+            <p class="text-white/80 text-sm">水质清澈 · 浮潜深潜胜地</p>
+            <div class="flex gap-2 mt-2 text-xs">
+              <span class="bg-white/20 px-2 py-0.5 rounded">⏰ 8-9小时</span>
+              <span class="bg-white/20 px-2 py-0.5 rounded">🚤 快艇/帆船</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- PP -->
+        <div onclick="showPage('island-detail')" class="relative h-44 rounded-2xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform card-shadow">
+          <img src="https://images.unsplash.com/photo-1504214208698-ea1916a2195a?w=600&q=80" class="w-full h-full object-cover">
+          <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+          <div class="absolute top-3 right-3 bg-ocean-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+            ¥580起
+          </div>
+          <div class="absolute bottom-3 left-4 right-4 text-white">
+            <h3 class="font-bold text-xl mb-1">🏝️ 皮皮岛 Phi Phi</h3>
+            <p class="text-white/80 text-sm">《海滩》取景地 · 风景绝美</p>
+            <div class="flex gap-2 mt-2 text-xs">
+              <span class="bg-white/20 px-2 py-0.5 rounded">⏰ 9-10小时</span>
+              <span class="bg-white/20 px-2 py-0.5 rounded">🚢 大船/游艇</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Similan -->
+        <div onclick="showPage('island-detail')" class="relative h-44 rounded-2xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform card-shadow">
+          <img src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600&q=80" class="w-full h-full object-cover">
+          <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+          <div class="absolute top-3 left-3 bg-red-500 text-white px-2 py-1 rounded text-xs font-bold">
+            ⏰ 限时开放
+          </div>
+          <div class="absolute top-3 right-3 bg-purple-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+            ¥980起
+          </div>
+          <div class="absolute bottom-3 left-4 right-4 text-white">
+            <h3 class="font-bold text-xl mb-1">🏝️ 斯米兰 Similan</h3>
+            <p class="text-white/80 text-sm">世界十大潜水圣地</p>
+            <div class="flex gap-2 mt-2 text-xs">
+              <span class="bg-white/20 px-2 py-0.5 rounded">⏰ 12-13小时</span>
+              <span class="bg-white/20 px-2 py-0.5 rounded">🌊 精品小团</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== PAGE: Island Detail ========== -->
+    <div id="page-island-detail" class="page">
+      <!-- Header with Back -->
+      <div class="sticky top-0 bg-white z-10 border-b">
+        <div class="flex items-center gap-3 px-4 py-3">
+          <button onclick="showPage('island')" class="text-gray-600">←</button>
+          <h1 class="text-lg font-bold text-gray-900">皇帝岛一日游</h1>
+        </div>
+      </div>
+
+      <div class="pb-32">
+        <!-- Hero Image -->
+        <div class="relative h-48">
+          <img src="https://images.unsplash.com/photo-1559128010-7c1ad6e1b6a5?w=800&q=80" class="w-full h-full object-cover">
+          <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+        </div>
+
+        <!-- Info -->
+        <div class="px-4 py-4">
+          <h2 class="text-xl font-bold text-gray-900 mb-2">⛵ 选择船只</h2>
+          
+          <!-- Boat 1 -->
+          <div onclick="showPage('booking-form')" class="bg-white border-2 border-ocean-500 rounded-2xl p-4 mb-3 cursor-pointer active:scale-[0.98] transition-transform">
+            <div class="flex gap-3">
+              <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=200&q=80" class="w-24 h-24 rounded-xl object-cover">
+              <div class="flex-1">
+                <div class="flex justify-between items-start">
+                  <h3 class="font-bold text-gray-900">豪华双体帆船</h3>
+                  <span class="text-lg font-bold text-ocean-600">¥780</span>
+                </div>
+                <p class="text-gray-500 text-xs mt-1">私密舒适 · 中文导游</p>
+                <div class="flex flex-wrap gap-1 mt-2">
+                  <span class="px-2 py-0.5 bg-green-50 text-green-600 rounded text-xs">午餐</span>
+                  <span class="px-2 py-0.5 bg-green-50 text-green-600 rounded text-xs">浮潜</span>
+                  <span class="px-2 py-0.5 bg-green-50 text-green-600 rounded text-xs">接送</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Boat 2 -->
+          <div onclick="showPage('booking-form')" class="bg-white border border-gray-200 rounded-2xl p-4 mb-3 cursor-pointer active:scale-[0.98] transition-transform">
+            <div class="flex gap-3">
+              <img src="https://images.unsplash.com/photo-1504214208698-ea1916a2195a?w=200&q=80" class="w-24 h-24 rounded-xl object-cover">
+              <div class="flex-1">
+                <div class="flex justify-between items-start">
+                  <h3 class="font-bold text-gray-900">快艇经典游</h3>
+                  <span class="text-lg font-bold text-ocean-600">¥480</span>
+                </div>
+                <p class="text-gray-500 text-xs mt-1">经济实惠 · 性价比高</p>
+                <div class="flex flex-wrap gap-1 mt-2">
+                  <span class="px-2 py-0.5 bg-green-50 text-green-600 rounded text-xs">午餐</span>
+                  <span class="px-2 py-0.5 bg-green-50 text-green-600 rounded text-xs">浮潜</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Itinerary -->
+        <div class="px-4 py-4">
+          <h2 class="text-lg font-bold text-gray-900 mb-3">📋 行程安排</h2>
+          <div class="bg-gray-50 rounded-2xl p-4 text-sm space-y-3">
+            <div class="flex gap-3">
+              <div class="w-16 text-ocean-600 font-medium">08:30</div>
+              <div class="text-gray-700">酒店接载</div>
+            </div>
+            <div class="flex gap-3">
+              <div class="w-16 text-ocean-600 font-medium">10:00</div>
+              <div class="text-gray-700">抵达皇帝岛，开始浮潜</div>
+            </div>
+            <div class="flex gap-3">
+              <div class="w-16 text-ocean-600 font-medium">12:00</div>
+              <div class="text-gray-700">船上享用午餐</div>
+            </div>
+            <div class="flex gap-3">
+              <div class="w-16 text-ocean-600 font-medium">15:30</div>
+              <div class="text-gray-700">返回码头</div>
+            </div>
+            <div class="flex gap-3">
+              <div class="w-16 text-ocean-600 font-medium">17:00</div>
+              <div class="text-gray-700">送回酒店</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom CTA -->
+      <div class="fixed bottom-20 left-0 right-0 max-w-md mx-auto px-4">
+        <button onclick="showPage('booking-form')" class="w-full py-4 btn-primary text-white rounded-2xl font-bold text-lg floating-btn">
+          立即预订
+        </button>
+      </div>
+    </div>
+
+    <!-- ========== PAGE: Booking Form ========== -->
+    <div id="page-booking-form" class="page">
+      <!-- Header -->
+      <div class="sticky top-0 bg-white z-10 border-b">
+        <div class="flex items-center gap-3 px-4 py-3">
+          <button onclick="showPage('island-detail')" class="text-gray-600">←</button>
+          <h1 class="text-lg font-bold text-gray-900">填写预订信息</h1>
+        </div>
+      </div>
+
+      <div class="px-4 py-5 space-y-5 pb-32">
+        <!-- Trip Info -->
+        <div class="bg-ocean-50 rounded-xl p-3 flex items-center gap-3">
+          <span class="text-2xl">⛵</span>
+          <div>
+            <p class="font-medium text-gray-900">皇帝岛 · 豪华双体帆船</p>
+            <p class="text-ocean-600 text-sm">¥780/人</p>
+          </div>
+        </div>
+
+        <!-- Date & Quantity -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">📅 出发日期</label>
+            <input type="date" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">👥 人数</label>
+            <div class="flex items-center bg-gray-50 border border-gray-200 rounded-xl">
+              <button class="px-3 py-2.5 text-gray-600">-</button>
+              <span class="flex-1 text-center font-bold">2</span>
+              <button class="px-3 py-2.5 text-gray-600">+</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hotel -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">🏨 酒店名称</label>
+          <input type="text" placeholder="入住所属酒店" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl">
+        </div>
+
+        <!-- Contact -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">📛 联系人姓名</label>
+          <input type="text" placeholder="中文姓名" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">📧 邮箱</label>
+            <input type="email" placeholder="邮箱" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">📱 电话</label>
+            <input type="tel" placeholder="电话" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">💬 微信号</label>
+          <input type="text" placeholder="方便客服联系" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl">
+        </div>
+
+        <!-- Travelers -->
+        <div class="pt-4 border-t">
+          <div class="flex justify-between items-center mb-3">
+            <label class="text-sm font-medium text-gray-700">✈️ 出行人信息</label>
+            <button class="text-ocean-600 text-sm">+ 添加</button>
+          </div>
+          
+          <div class="bg-gray-50 rounded-xl p-4 space-y-3">
+            <div class="flex gap-2">
+              <input type="text" placeholder="中文姓名" value="张三" class="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm">
+              <input type="text" placeholder="护照号" class="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm">
+            </div>
+            <input type="date" placeholder="生日" class="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm">
+          </div>
+        </div>
+
+        <!-- Price -->
+        <div class="bg-gradient-to-r from-ocean-500 to-blue-500 rounded-xl p-4 text-white">
+          <div class="flex justify-between items-center">
+            <span>2人 × ¥780</span>
+            <span class="text-2xl font-bold">¥1,560</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom CTA -->
+      <div class="fixed bottom-20 left-0 right-0 max-w-md mx-auto px-4">
+        <button onclick="showPage('payment')" class="w-full py-4 btn-primary text-white rounded-2xl font-bold text-lg floating-btn">
+          提交订单
+        </button>
+      </div>
+    </div>
+
+    <!-- ========== PAGE: Payment ========== -->
+    <div id="page-payment" class="page">
+      <!-- Header -->
+      <div class="sticky top-0 bg-white z-10 border-b">
+        <div class="flex items-center gap-3 px-4 py-3">
+          <button onclick="showPage('home')" class="text-gray-600">←</button>
+          <h1 class="text-lg font-bold text-gray-900">订单确认</h1>
+        </div>
+      </div>
+
+      <div class="px-4 py-5 space-y-5 pb-8">
+        <!-- Success -->
+        <div class="text-center py-6">
+          <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+            <span class="text-3xl">✅</span>
+          </div>
+          <h2 class="text-xl font-bold text-gray-900">订单已提交！</h2>
+          <p class="text-gray-500 text-sm mt-1">订单号：PT20260420-A1B2</p>
+        </div>
+
+        <!-- Order Summary -->
+        <div class="bg-gray-50 rounded-xl p-4">
+          <h3 class="font-medium text-gray-900 mb-2">📋 订单摘要</h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between">
+              <span class="text-gray-500">行程</span>
+              <span class="text-gray-900">皇帝岛一日游</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-500">日期</span>
+              <span class="text-gray-900">2024-05-15</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-500">人数</span>
+              <span class="text-gray-900">2人</span>
+            </div>
+            <div class="flex justify-between pt-2 border-t">
+              <span class="font-medium text-gray-900">总价</span>
+              <span class="text-xl font-bold text-ocean-600">¥1,560</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payment QR Codes -->
+        <div>
+          <h3 class="font-medium text-gray-900 mb-3">💳 请扫码付款</h3>
+          <div class="grid grid-cols-3 gap-2">
+            <div class="text-center">
+              <p class="text-xs text-gray-600 mb-2">💚 微信</p>
+              <div class="bg-gray-100 rounded-xl p-2 aspect-square flex items-center justify-center">
+                <span class="text-gray-400 text-xs">QR</span>
+              </div>
+            </div>
+            <div class="text-center">
+              <p class="text-xs text-gray-600 mb-2">💙 支付宝</p>
+              <div class="bg-gray-100 rounded-xl p-2 aspect-square flex items-center justify-center">
+                <span class="text-gray-400 text-xs">QR</span>
+              </div>
+            </div>
+            <div class="text-center">
+              <p class="text-xs text-gray-600 mb-2">💛 泰铢</p>
+              <div class="bg-gray-100 rounded-xl p-2 aspect-square flex items-center justify-center">
+                <span class="text-gray-400 text-xs">QR</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Customer Service -->
+        <div class="gradient-bg rounded-2xl p-4 text-white">
+          <h3 class="font-bold mb-3">📱 联系客服确认</h3>
+          <div class="flex items-center gap-4 mb-4">
+            <div class="w-20 h-20 bg-white/20 rounded-xl flex items-center justify-center">
+              <span class="text-3xl">👤</span>
+            </div>
+            <div>
+              <p class="font-medium">客服微信</p>
+              <p class="text-2xl font-bold mt-1">phuket_2024</p>
+            </div>
+          </div>
+          <button class="w-full py-2.5 bg-white text-ocean-600 rounded-xl font-bold">
+            复制微信号
+          </button>
+          <p class="text-white/80 text-xs mt-3 text-center">
+            付款后添加客服，备注订单号确认预订
+          </p>
+        </div>
+
+        <button onclick="showPage('home')" class="w-full py-3 border border-gray-300 text-gray-600 rounded-xl font-medium">
+          返回首页
+        </button>
+      </div>
+    </div>
+
+    <!-- ========== PAGE: Show ========== -->
+    <div id="page-show" class="page">
+      <!-- Header -->
+      <div class="sticky top-0 bg-white z-10 border-b">
+        <div class="flex items-center gap-3 px-4 py-3">
+          <button onclick="showPage('home')" class="text-gray-600">←</button>
+          <h1 class="text-lg font-bold text-gray-900">秀场表演</h1>
+        </div>
+      </div>
+
+      <div class="px-4 py-4 space-y-4">
+        <!-- Kawaii Show -->
+        <div class="bg-white rounded-2xl overflow-hidden card-shadow">
+          <div class="relative h-36">
+            <img src="https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=600&q=80" class="w-full h-full object-cover">
+            <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+            <h3 class="absolute bottom-3 left-4 text-xl font-bold text-white">🎭 天皇秀</h3>
+          </div>
+          <div class="p-4">
+            <p class="text-gray-600 text-sm mb-3">泰国最著名的人妖秀，表演精彩绝伦</p>
+            <div class="space-y-2">
+              <div class="flex justify-between items-center py-2 border-b">
+                <span class="text-gray-700">VIP座位</span>
+                <div>
+                  <span class="text-lg font-bold text-ocean-600">¥480</span>
+                  <button class="ml-2 px-3 py-1 bg-ocean-500 text-white rounded-full text-xs">预订</button>
+                </div>
+              </div>
+              <div class="flex justify-between items-center py-2">
+                <span class="text-gray-700">普通座位</span>
+                <div>
+                  <span class="text-lg font-bold text-ocean-600">¥380</span>
+                  <button class="ml-2 px-3 py-1 bg-ocean-500 text-white rounded-full text-xs">预订</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Simon Show -->
+        <div class="bg-white rounded-2xl overflow-hidden card-shadow">
+          <div class="relative h-36">
+            <img src="https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=600&q=80" class="w-full h-full object-cover">
+            <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+            <h3 class="absolute bottom-3 left-4 text-xl font-bold text-white">🎭 西蒙秀</h3>
+          </div>
+          <div class="p-4">
+            <p class="text-gray-600 text-sm mb-3">世界闻名的变装歌舞秀</p>
+            <div class="space-y-2">
+              <div class="flex justify-between items-center py-2 border-b">
+                <span class="text-gray-700">VIP+接送</span>
+                <div>
+                  <span class="text-lg font-bold text-purple-600">¥680</span>
+                  <button class="ml-2 px-3 py-1 bg-purple-500 text-white rounded-full text-xs">预订</button>
+                </div>
+              </div>
+              <div class="flex justify-between items-center py-2 border-b">
+                <span class="text-gray-700">VIP座位</span>
+                <div>
+                  <span class="text-lg font-bold text-purple-600">¥480</span>
+                  <button class="ml-2 px-3 py-1 bg-purple-500 text-white rounded-full text-xs">预订</button>
+                </div>
+              </div>
+              <div class="flex justify-between items-center py-2">
+                <span class="text-gray-700">普通座位</span>
+                <div>
+                  <span class="text-lg font-bold text-purple-600">¥380</span>
+                  <button class="ml-2 px-3 py-1 bg-purple-500 text-white rounded-full text-xs">预订</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    </main>
+
+    <!-- ========== Bottom Tab Bar ========== -->
+    <div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white tab-bar">
+      <div class="flex justify-around py-2">
+        <button onclick="showPage('home')" class="flex flex-col items-center p-2 text-ocean-500">
+          <span class="text-xl mb-0.5">🏠</span>
+          <span class="text-[10px]">首页</span>
+        </button>
+        <button onclick="showPage('island')" class="flex flex-col items-center p-2 text-gray-400">
+          <span class="text-xl mb-0.5">🏝️</span>
+          <span class="text-[10px]">跳岛</span>
+        </button>
+        <button onclick="showPage('diving')" class="flex flex-col items-center p-2 text-gray-400">
+          <span class="text-xl mb-0.5">🤿</span>
+          <span class="text-[10px]">深潜</span>
+        </button>
+        <button onclick="showPage('show')" class="flex flex-col items-center p-2 text-gray-400">
+          <span class="text-xl mb-0.5">🎭</span>
+          <span class="text-[10px]">秀场</span>
+        </button>
+        <button class="flex flex-col items-center p-2 text-gray-400">
+          <span class="text-xl mb-0.5">💬</span>
+          <span class="text-[10px]">客服</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ========== Scripts ========== -->
+  <script>
+    function showPage(pageId) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById('page-' + pageId).classList.add('active');
+      window.scrollTo(0, 0);
+    }
+
+    function changeCount(type, delta) {
+      const el = document.getElementById(type + '-count');
+      let count = parseInt(el.textContent) + delta;
+      if (count < 1) count = 1;
+      if (count > 20) count = 20;
+      el.textContent = count;
+    }
+
+    // Interest button toggle
+    document.querySelectorAll('.interest-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        btn.classList.toggle('bg-red-50');
+        btn.classList.toggle('border-red-400');
+        btn.classList.toggle('text-red-600');
+        btn.classList.toggle('bg-gray-100');
+        btn.classList.toggle('border-gray-200');
+        btn.classList.toggle('text-gray-700');
+      });
+    });
+  </script>
+</body>
+</html>

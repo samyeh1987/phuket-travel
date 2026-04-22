@@ -1,0 +1,37 @@
+{
+  "common": {
+    "home": "Home",
+    "customTrip": "Custom Trip",
+    "diving": "Diving",
+    "islandTour": "Island Tour",
+    "show": "Shows",
+    "contact": "Contact Us",
+    "bookNow": "Book Now",
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "save": "Save",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "required": "Required"
+  },
+  "nav": {
+    "home": "Home",
+    "customTrip": "Custom Trip",
+    "diving": "Diving",
+    "islandTour": "Island Tour",
+    "show": "Shows",
+    "contact": "Contact"
+  },
+  "home": {
+    "heroTitle": "Phuket Fun",
+    "heroSubtitle": "Phuket Travel Expert",
+    "heroDescription": "Custom Tours · Diving · Island Tours · Shows",
+    "customizeBtn": "Start Customizing",
+    "viewToursBtn": "View Day Tours",
+    "servicesTitle": "Our Services",
+    "servicesSubtitle": "Professional Phuket travel services for an unforgettable vacation"
+  }
+}

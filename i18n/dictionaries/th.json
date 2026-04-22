@@ -1,0 +1,35 @@
+{
+  "common": {
+    "home": "หน้าแรก",
+    "customTrip": "ทัวร์กำหนดเอง",
+    "diving": "ดำน้ำ",
+    "islandTour": "ทัวร์เกาะ",
+    "show": "งานแสดง",
+    "contact": "ติดต่อเรา",
+    "bookNow": "จองเลย",
+    "submit": "ส่ง",
+    "cancel": "ยกเลิก",
+    "edit": "แก้ไข",
+    "delete": "ลบ",
+    "save": "บันทึก",
+    "loading": "กำลังโหลด...",
+    "error": "เกิดข้อผิดพลาด",
+    "success": "สำเร็จ",
+    "required": "จำเป็น"
+  },
+  "nav": {
+    "home": "หน้าแรก",
+    "customTrip": "ทัวร์กำหนดเอง",
+    "diving": "ดำน้ำ",
+    "islandTour": "ทัวร์เกาะ",
+    "show": "งานแสดง",
+    "contact": "ติดต่อ"
+  },
+  "home": {
+    "heroTitle": "ภูเก็ตสนุก",
+    "heroSubtitle": "ผู้เชี่ยวชาญทัวร์ภูเก็ต",
+    "heroDescription": "ทัวร์กำหนดเอง · ดำน้ำ · ทัวร์เกาะ · งานแสดง",
+    "customizeBtn": "เริ่มกำหนดเอง",
+    "viewToursBtn": "ดูทัวร์วันเดียว"
+  }
+}
