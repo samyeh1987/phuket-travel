@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { useParams } from 'next/navigation';
-import { CheckCircle, Clock, MapPin, ChevronLeft, Users } from 'lucide-react';
+import { CheckCircle, Clock, MapPin, ChevronLeft, MessageCircle } from 'lucide-react';
 
 const showData: Record<string, {
   name: string; subtitle: string; description: string;
@@ -23,7 +23,7 @@ const showData: Record<string, {
   },
   'simon-show': {
     name: '西蒙秀', subtitle: 'Simon Cabaret Show',
-    description: '西蒙秀是普吉岛最著名的人妖秀，自1989年开业以来已接待超过千万游客。演员们的变装表演精湛绝伦，服装华丽炫目，舞台效果震撼人心。秀场提供多种座位选择，演出期间禁止拍照摄像。',
+    description: '西蒙秀是普吉岛最著名的人妖秀，自1989年开业以来已接待超过千万游客。演员们的变装表演精湛绝伦，服装华丽炫目，舞台效果震撼人心。秀场提供多种座位选择。',
     heroImage: 'https://images.unsplash.com/photo-1516475429286-465d815a0df7?w=1920&q=80',
     duration: '70分钟', location: '芭东海滩西蒙秀剧场',
     packages: [
@@ -34,11 +34,14 @@ const showData: Record<string, {
   },
 };
 
+function genOrderNo() { return 'SW' + Date.now().toString().slice(-8); }
+
 export default function ShowDetailPage() {
   const params = useParams();
   const showKey = params.show as string;
   const info = showData[showKey];
 
+  const orderNo = useMemo(() => genOrderNo(), []);
   const [selectedPkg, setSelectedPkg] = useState<typeof info.packages[0] | null>(null);
   const [quantity, setQuantity] = useState(2);
   const [showDate, setShowDate] = useState('');
@@ -46,19 +49,62 @@ export default function ShowDetailPage() {
   const [nameEn, setNameEn] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [wechat, setWechat] = useState('');
+  const [hotel, setHotel] = useState('');
+  const [submitted, setSubmitted] = useState(false);
 
   if (!info) return <div className="p-8 text-center">秀场不存在</div>;
 
+  const buildWechatMsg = () => [
+    `🎭 秀场预订`,
+    `📋 订单号：${orderNo}`,
+    `🎪 秀场：${info.name}`,
+    `🎫 套餐：${selectedPkg?.name ?? '-'}`,
+    `📅 日期：${showDate || '待定'}`,
+    `👥 人数：${quantity}人`,
+    `💰 总金额：¥${selectedPkg ? (selectedPkg.price * quantity).toLocaleString() : '-'}`,
+    ``,
+    `👤 姓名：${nameCn} / ${nameEn || '-'}`,
+    `📞 电话：${phone || '-'}`,
+    `📧 邮箱：${email || '-'}`,
+    `💬 微信：${wechat || '-'}`,
+    `🏨 酒店：${hotel || '-'}`,
+    ``,
+    `请确认预订，谢谢！🙏`,
+  ].join('\n');
+
   const handleSubmit = () => {
     if (!selectedPkg || !showDate || !nameCn || !phone) {
-      alert('请填写必填信息');
+      alert('请填写必填信息（日期、姓名、联系电话）');
       return;
     }
-    window.location.href = `/payment/confirmation?show=${showKey}&pkg=${selectedPkg.id}&people=${quantity}&date=${showDate}&total=${selectedPkg.price * quantity}`;
+    const msg = buildWechatMsg();
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(msg).catch(() => {});
+    }
+    setSubmitted(true);
+    setTimeout(() => { window.location.href = 'weixin://'; }, 300);
   };
 
+  if (submitted) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-8 text-center">
+        <div className="text-6xl mb-4">🎉</div>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">预订信息已复制！</h1>
+        <p className="text-gray-500 mb-6">正在打开微信，请将信息粘贴发送给客服</p>
+        <div className="bg-white rounded-xl p-4 w-full max-w-xs shadow text-left space-y-2">
+          <div className="flex justify-between text-sm"><span className="text-gray-500">订单号</span><span className="font-mono font-bold text-ocean-600">{orderNo}</span></div>
+          <div className="flex justify-between text-sm"><span className="text-gray-500">秀场</span><span>{info.name}</span></div>
+          <div className="flex justify-between text-sm"><span className="text-gray-500">套餐</span><span>{selectedPkg?.name}</span></div>
+          <div className="flex justify-between text-sm"><span className="text-gray-500">总金额</span><span className="font-bold text-ocean-600">¥{selectedPkg ? (selectedPkg.price * quantity).toLocaleString() : '-'}</span></div>
+        </div>
+        <a href="/show" className="mt-6 text-sm text-gray-400 hover:text-gray-600">← 返回秀场列表</a>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 pb-32 md:pb-0">
+    <div className="min-h-screen bg-gray-50">
       {/* Hero */}
       <div className="relative h-48 md:h-64 overflow-hidden">
         <Image src={info.heroImage} alt={info.name} fill className="object-cover" priority />
@@ -72,7 +118,7 @@ export default function ShowDetailPage() {
         </div>
       </div>
 
-      <div className="max-w-xl mx-auto px-4 py-6 space-y-4">
+      <div className="max-w-xl mx-auto px-4 py-6 pb-10 space-y-4">
         {/* Info */}
         <div className="bg-white rounded-2xl p-5 shadow-sm">
           <p className="text-sm text-gray-600 leading-relaxed">{info.description}</p>
@@ -84,7 +130,7 @@ export default function ShowDetailPage() {
 
         {/* Packages */}
         <div className="bg-white rounded-2xl p-5 shadow-sm">
-          <h2 className="font-bold text-gray-900 mb-4">选择套餐</h2>
+          <h2 className="font-bold text-gray-900 mb-4">选择套餐 *</h2>
           <div className="space-y-3">
             {info.packages.map(pkg => (
               <div
@@ -95,7 +141,7 @@ export default function ShowDetailPage() {
                 <div className="flex justify-between items-start">
                   <div>
                     <h3 className="font-bold text-gray-900">{pkg.name}</h3>
-                    <div className="flex flex-wrap gap-1 mt-1.5">
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
                       {pkg.includes.map(inc => (
                         <span key={inc} className="text-xs text-gray-500 flex items-center gap-0.5">
                           <CheckCircle className="w-3 h-3 text-ocean-400" />{inc}
@@ -103,7 +149,7 @@ export default function ShowDetailPage() {
                       ))}
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right ml-3 flex-shrink-0">
                     <div className="text-ocean-600 font-bold text-xl">¥{pkg.price}</div>
                     <div className="text-xs text-gray-400">/人</div>
                   </div>
@@ -116,6 +162,13 @@ export default function ShowDetailPage() {
         {/* Booking Form */}
         <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
           <h2 className="font-bold text-gray-900">预订信息</h2>
+
+          {/* 订单号 */}
+          <div className="flex justify-between items-center bg-ocean-50 rounded-xl px-4 py-2">
+            <span className="text-xs text-ocean-600">订单号</span>
+            <span className="font-mono text-sm font-bold text-ocean-700">{orderNo}</span>
+          </div>
+
           <div>
             <label className="text-xs text-gray-500 mb-1 block">观看日期 *</label>
             <input type="date" value={showDate} onChange={e => setShowDate(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
@@ -145,25 +198,39 @@ export default function ShowDetailPage() {
               <label className="text-xs text-gray-500 mb-1 block">邮箱</label>
               <input type="email" placeholder="email@example.com" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
             </div>
+            <div className="col-span-2">
+              <label className="text-xs text-gray-500 mb-1 block">微信号</label>
+              <input type="text" placeholder="方便客服联系" value={wechat} onChange={e => setWechat(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
+            </div>
+            <div className="col-span-2">
+              <label className="text-xs text-gray-500 mb-1 block">预订酒店</label>
+              <input type="text" placeholder="入住酒店名称" value={hotel} onChange={e => setHotel(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
+            </div>
           </div>
         </div>
 
-        {/* Total */}
+        {/* Total & Submit */}
         {selectedPkg && (
           <div className="bg-ocean-500 text-white rounded-2xl p-5 shadow-lg">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center mb-4">
               <div>
                 <div className="text-sm opacity-80">应付总额</div>
                 <div className="text-3xl font-bold">¥{(selectedPkg.price * quantity).toLocaleString()}</div>
                 <div className="text-xs opacity-70 mt-1">{selectedPkg.name} × {quantity}人</div>
               </div>
-              <button
-                onClick={handleSubmit}
-                className="px-8 py-4 bg-white text-ocean-600 rounded-full font-bold text-lg hover:bg-gray-100 transition-colors"
-              >
-                提交订单
-              </button>
+              <div className="text-right text-xs opacity-70">
+                <div>订单号</div>
+                <div className="font-mono">{orderNo}</div>
+              </div>
             </div>
+            <button
+              onClick={handleSubmit}
+              className="w-full py-4 bg-white text-ocean-600 rounded-full font-bold text-lg hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
+            >
+              <MessageCircle className="w-5 h-5" />
+              提交预订 · 发给客服
+            </button>
+            <p className="text-xs text-center text-white/60 mt-2">将自动复制信息并打开微信</p>
           </div>
         )}
       </div>

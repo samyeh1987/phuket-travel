@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Image from 'next/image';
-import { Calendar, Users, DollarSign, Heart, Sparkles, MessageCircle } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 
 const tripDays = [
   { nights: 3, days: 4, label: '4天3夜' },
@@ -29,24 +29,32 @@ const crowdTypes = [
 ];
 
 const preferences = [
-  { value: 'show', label: '秀场类型', icon: '🎭' },
+  { value: 'show', label: '秀场', icon: '🎭' },
   { value: 'island', label: '跳岛', icon: '🏝️' },
   { value: 'nightlife', label: '夜生活', icon: '🌃' },
   { value: 'food', label: '美食', icon: '🍜' },
   { value: 'photo', label: '出片', icon: '📸' },
-  { value: 'diving', label: '深潜/浮潜', icon: '🤿' },
+  { value: 'diving', label: '深潜', icon: '🤿' },
   { value: 'fishing', label: '海钓', icon: '🎣' },
-  { value: 'party', label: '私人轰趴', icon: '🎉' },
+  { value: 'party', label: '轰趴', icon: '🎉' },
   { value: 'shooting', label: '射击', icon: '🎯' },
 ];
+
+// 生成订单号：CT + 时间戳后8位
+function genOrderNo() {
+  return 'CT' + Date.now().toString().slice(-8);
+}
 
 export default function CustomTripPage() {
   const [step, setStep] = useState(1);
   const [selectedDays, setSelectedDays] = useState<number | null>(null);
+  const [startDate, setStartDate] = useState('');
   const [selectedBudget, setSelectedBudget] = useState<number | null>(null);
   const [people, setPeople] = useState(2);
   const [crowdType, setCrowdType] = useState<string | null>(null);
   const [selectedPrefs, setSelectedPrefs] = useState<string[]>([]);
+  // 固定一个订单号，整个组件生命周期不变
+  const orderNo = useMemo(() => genOrderNo(), []);
 
   const togglePref = (value: string) => {
     setSelectedPrefs(prev =>
@@ -62,8 +70,35 @@ export default function CustomTripPage() {
     return true;
   };
 
+  // 生成微信跳转链接（weixin:// 在手机上可直接呼起微信）
+  // 同时准备文字内容方便用户复制发给客服
+  const buildWechatMsg = () => {
+    const dayInfo = tripDays.find(d => d.nights === selectedDays);
+    const budgetInfo = budgets.find(b => b.value === selectedBudget);
+    const crowdInfo = crowdTypes.find(c => c.value === crowdType);
+    const prefLabels = selectedPrefs
+      .map(v => preferences.find(p => p.value === v)?.label)
+      .filter(Boolean)
+      .join('、');
+
+    return [
+      `🌴 普吉旅行定制需求`,
+      `📋 订单号：${orderNo}`,
+      `📅 行程天数：${dayInfo?.label ?? '-'}`,
+      `🗓️ 出发日期：${startDate || '待定'}`,
+      `💰 人均预算：¥${budgetInfo?.label ?? '-'}/天`,
+      `👥 出行人数：${people}人`,
+      `🎯 旅行类型：${crowdInfo ? `${crowdInfo.emoji} ${crowdInfo.label}` : '-'}`,
+      `✨ 偏好体验：${prefLabels || '未选择'}`,
+      ``,
+      `请帮我定制专属行程，谢谢！🙏`,
+    ].join('\n');
+  };
+
+  const steps = ['行程', '预算', '人数', '偏好', '完成'];
+
   return (
-    <div className="min-h-screen bg-gray-50 pb-24 md:pb-0">
+    <div className="min-h-screen bg-gray-50">
       {/* Hero */}
       <div className="relative h-48 md:h-64 overflow-hidden">
         <Image
@@ -83,22 +118,25 @@ export default function CustomTripPage() {
       <div className="bg-white shadow-sm sticky top-14 md:top-16 z-40">
         <div className="max-w-xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
-            {['行程', '预算', '人数', '偏好', '完成'].map((s, i) => (
+            {steps.map((s, i) => (
               <div key={s} className="flex items-center">
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${step > i + 1 ? 'bg-ocean-500 text-white' : step === i + 1 ? 'bg-ocean-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
                   {step > i + 1 ? '✓' : i + 1}
                 </div>
                 <span className="hidden sm:block ml-1 text-xs font-medium text-gray-500">{s}</span>
-                {i < 4 && <div className={`w-6 md:w-10 h-0.5 mx-1 ${step > i + 1 ? 'bg-ocean-500' : 'bg-gray-200'}`} />}
+                {i < steps.length - 1 && (
+                  <div className={`w-6 md:w-10 h-0.5 mx-1 ${step > i + 1 ? 'bg-ocean-500' : 'bg-gray-200'}`} />
+                )}
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Steps */}
-      <div className="max-w-xl mx-auto px-4 py-6">
-        {/* Step 1: 天数 */}
+      {/* 步骤内容区：底部留足空间给固定 CTA */}
+      <div className="max-w-xl mx-auto px-4 py-6 pb-36">
+
+        {/* Step 1: 天数 + 出发日期 */}
         {step === 1 && (
           <div className="bg-white rounded-2xl p-5 shadow-sm">
             <h2 className="text-lg font-bold text-gray-900 mb-1">选择你的行程</h2>
@@ -110,14 +148,16 @@ export default function CustomTripPage() {
                   onClick={() => setSelectedDays(day.nights)}
                   className={`py-4 rounded-xl text-center font-semibold transition-all ${selectedDays === day.nights ? 'bg-ocean-500 text-white shadow-lg scale-105' : 'bg-gray-50 text-gray-700 hover:bg-ocean-50'}`}
                 >
-                  <div className="text-base">{day.label}</div>
+                  <div className="text-sm">{day.label}</div>
                 </button>
               ))}
             </div>
             <div className="mt-5">
-              <label className="text-sm font-medium text-gray-700 mb-2 block">选择出发日期</label>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">选择出发日期（可选）</label>
               <input
                 type="date"
+                value={startDate}
+                onChange={e => setStartDate(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-700 focus:outline-none focus:ring-2 focus:ring-ocean-500"
               />
             </div>
@@ -191,27 +231,50 @@ export default function CustomTripPage() {
 
         {/* Step 5: 喜好 */}
         {step === 5 && (
-          <div className="bg-white rounded-2xl p-5 shadow-sm">
-            <h2 className="text-lg font-bold text-gray-900 mb-1">喜好选择</h2>
-            <p className="text-sm text-gray-500 mb-5">可多选，告诉我们你想要的体验</p>
-            <div className="grid grid-cols-3 gap-3">
-              {preferences.map(p => (
-                <button
-                  key={p.value}
-                  onClick={() => togglePref(p.value)}
-                  className={`flex flex-col items-center gap-1 p-4 rounded-xl transition-all ${selectedPrefs.includes(p.value) ? 'bg-ocean-500 text-white shadow-lg' : 'bg-gray-50 text-gray-700 hover:bg-ocean-50'}`}
-                >
-                  <span className="text-2xl">{p.icon}</span>
-                  <span className="text-xs font-medium text-center">{p.label}</span>
-                </button>
-              ))}
+          <div className="space-y-4">
+            <div className="bg-white rounded-2xl p-5 shadow-sm">
+              <h2 className="text-lg font-bold text-gray-900 mb-1">喜好选择</h2>
+              <p className="text-sm text-gray-500 mb-5">可多选，告诉我们你想要的体验</p>
+              <div className="grid grid-cols-3 gap-3">
+                {preferences.map(p => (
+                  <button
+                    key={p.value}
+                    onClick={() => togglePref(p.value)}
+                    className={`flex flex-col items-center gap-1 p-4 rounded-xl transition-all ${selectedPrefs.includes(p.value) ? 'bg-ocean-500 text-white shadow-lg' : 'bg-gray-50 text-gray-700 hover:bg-ocean-50'}`}
+                  >
+                    <span className="text-2xl">{p.icon}</span>
+                    <span className="text-xs font-medium text-center">{p.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 订单预览 */}
+            <div className="bg-ocean-50 border border-ocean-200 rounded-2xl p-5">
+              <h3 className="font-bold text-ocean-800 mb-3">📋 需求摘要</h3>
+              <div className="space-y-1.5 text-sm text-gray-700">
+                <div className="flex justify-between"><span className="text-gray-500">订单号</span><span className="font-mono font-bold text-ocean-700">{orderNo}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">行程天数</span><span>{tripDays.find(d => d.nights === selectedDays)?.label}</span></div>
+                {startDate && <div className="flex justify-between"><span className="text-gray-500">出发日期</span><span>{startDate}</span></div>}
+                <div className="flex justify-between"><span className="text-gray-500">人均预算</span><span>¥{budgets.find(b => b.value === selectedBudget)?.label}/天</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">出行人数</span><span>{people}人</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">旅行类型</span><span>{crowdTypes.find(c => c.value === crowdType)?.label}</span></div>
+                {selectedPrefs.length > 0 && (
+                  <div className="flex justify-between"><span className="text-gray-500">偏好</span><span>{selectedPrefs.map(v => preferences.find(p => p.value === v)?.icon).join(' ')}</span></div>
+                )}
+              </div>
+            </div>
+
+            {/* 提示文案 */}
+            <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-700">
+              <strong>点击下方按钮</strong>将自动打开微信，并复制需求内容，发给客服即可完成定制预约 🎉
             </div>
           </div>
         )}
       </div>
 
-      {/* Bottom CTA */}
-      <div className="fixed bottom-16 md:bottom-0 left-0 right-0 bg-white border-t p-4 z-40">
+      {/* Bottom CTA - fixed，足够高的 bottom 兼容手机底部 Tab Bar */}
+      <div className="fixed bottom-16 md:bottom-0 left-0 right-0 bg-white border-t shadow-lg p-4 z-50">
         <div className="max-w-xl mx-auto flex gap-3">
           {step > 1 && (
             <button
@@ -223,36 +286,28 @@ export default function CustomTripPage() {
           )}
           {step < 5 ? (
             <button
-              onClick={() => setStep(step + 1)}
+              onClick={() => { if (canNext()) setStep(step + 1); }}
               disabled={!canNext()}
               className={`flex-1 py-4 rounded-full font-semibold transition-colors ${canNext() ? 'bg-ocean-500 text-white hover:bg-ocean-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
             >
               下一步
             </button>
           ) : (
-            <a
-              href={(() => {
-                const dayInfo = tripDays.find(d => d.nights === selectedDays);
-                const budgetInfo = budgets.find(b => b.value === selectedBudget);
-                const crowdInfo = crowdTypes.find(c => c.value === crowdType);
-                const prefLabels = selectedPrefs.map(v => preferences.find(p => p.value === v)?.label).filter(Boolean).join('、');
-                const msg = [
-                  '🌴 普吉旅行定制需求',
-                  `📅 行程天数：${dayInfo?.label ?? '-'}`,
-                  `💰 人均预算：¥${budgetInfo?.label ?? '-'}/天`,
-                  `👥 出行人数：${people}人`,
-                  `🎯 旅行类型：${crowdInfo ? `${crowdInfo.emoji} ${crowdInfo.label}` : '-'}`,
-                  `✨ 偏好体验：${prefLabels || '未选择'}`,
-                  '',
-                  '请帮我定制专属行程，谢谢！🙏',
-                ].join('\n');
-                return `https://wa.me/66XXXXXXXXX?text=${encodeURIComponent(msg)}`;
-              })()}
-              className="flex-1 py-4 rounded-full bg-ocean-500 text-white font-semibold hover:bg-ocean-600 transition-colors flex items-center justify-center gap-2"
+            <button
+              onClick={() => {
+                const msg = buildWechatMsg();
+                // 复制到剪贴板
+                if (navigator.clipboard) {
+                  navigator.clipboard.writeText(msg).catch(() => {});
+                }
+                // 跳转微信（手机端会呼起微信）
+                window.location.href = 'weixin://';
+              }}
+              className="flex-1 py-4 rounded-full bg-green-500 text-white font-semibold hover:bg-green-600 transition-colors flex items-center justify-center gap-2 shadow-lg"
             >
               <MessageCircle className="w-5 h-5" />
-              开始定制
-            </a>
+              复制需求 · 打开微信
+            </button>
           )}
         </div>
       </div>

@@ -1,11 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { useParams } from 'next/navigation';
-import { Clock, Users, CheckCircle, MapPin, ChevronLeft, Plus, User, Calendar } from 'lucide-react';
+import { Clock, Users, CheckCircle, ChevronLeft, Plus, MessageCircle } from 'lucide-react';
 
-// 岛屿数据
 const islandData: Record<string, {
   name: string; subtitle: string; description: string;
   heroImage: string; galleryImages: string[];
@@ -13,7 +12,7 @@ const islandData: Record<string, {
 }> = {
   racha: {
     name: '皇帝岛', subtitle: 'Racha Island',
-    description: '皇帝岛以其澄澈见底的玻璃海水闻名，是普吉周边最受欢迎的跳岛目的地之一。这里海水清澈见底，珊瑚礁保存完好，浮潜体验绝佳。',
+    description: '皇帝岛以其澄澈见底的玻璃海水闻名，是普吉周边最受欢迎的跳岛目的地之一。海水清澈见底，珊瑚礁保存完好，浮潜体验绝佳。',
     heroImage: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80',
     galleryImages: [
       'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80',
@@ -43,7 +42,6 @@ const islandData: Record<string, {
   },
 };
 
-// 船只数据
 const boatData = {
   racha: [
     { id: 'speedboat-1', name: '豪华双体帆船', image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&q=80', price: 680, capacity: 25, duration: '8小时', features: ['双体船稳定', '含午餐', '浮潜装备', '水果饮料', '中文导游'] },
@@ -63,12 +61,15 @@ interface Traveler {
   nameCn: string; nameEn: string; passport: string; birthdate: string;
 }
 
+function genOrderNo() { return 'IS' + Date.now().toString().slice(-8); }
+
 export default function IslandDetailPage() {
   const params = useParams();
   const island = params.island as string;
   const info = islandData[island];
   const boats = boatData[island as keyof typeof boatData] || [];
 
+  const orderNo = useMemo(() => genOrderNo(), []);
   const [selectedBoat, setSelectedBoat] = useState<typeof boats[0] | null>(null);
   const [tab, setTab] = useState<'detail' | 'book'>('detail');
   const [people, setPeople] = useState(2);
@@ -81,6 +82,7 @@ export default function IslandDetailPage() {
   const [contactEmail, setContactEmail] = useState('');
   const [contactWechat, setContactWechat] = useState('');
   const [travelers, setTravelers] = useState<Traveler[]>([{ nameCn: '', nameEn: '', passport: '', birthdate: '' }]);
+  const [submitted, setSubmitted] = useState(false);
 
   if (!info) return <div className="p-8 text-center">岛屿不存在</div>;
 
@@ -91,24 +93,71 @@ export default function IslandDetailPage() {
   const updateTraveler = (index: number, field: keyof Traveler, value: string) => {
     const updated = [...travelers];
     updated[index] = { ...updated[index], [field]: value };
-    // 自动生成英文名（简化版，只做展示）
-    if (field === 'nameCn') {
-      updated[index].nameEn = value; // 实际应调用拼音转换
-    }
     setTravelers(updated);
+  };
+
+  const buildWechatMsg = () => {
+    const lines = [
+      `🏝️ 跳岛游预订`,
+      `📋 订单号：${orderNo}`,
+      `📍 目的地：${info.name}`,
+      `🚢 船只：${selectedBoat?.name ?? '-'}`,
+      `📅 出行日期：${travelDate || '待定'}`,
+      `👥 人数：${people}人`,
+      `💰 总金额：¥${selectedBoat ? (selectedBoat.price * people).toLocaleString() : '-'}`,
+      ``,
+      `🏨 酒店：${hotelName || '-'}`,
+      `📍 地址：${hotelAddress || '-'}`,
+      ``,
+      `👤 联系人：${contactNameCn} / ${contactNameEn || '-'}`,
+      `📞 电话：${contactPhone || '-'}`,
+      `📧 邮箱：${contactEmail || '-'}`,
+      `💬 微信：${contactWechat || '-'}`,
+      ``,
+    ];
+    travelers.forEach((t, i) => {
+      lines.push(`━━ 出行人 ${i + 1} ━━`);
+      lines.push(`姓名：${t.nameCn} / ${t.nameEn || '-'}`);
+      lines.push(`护照：${t.passport || '-'}`);
+      lines.push(`生日：${t.birthdate || '-'}`);
+      lines.push('');
+    });
+    lines.push('请确认预订，谢谢！🙏');
+    return lines.join('\n');
   };
 
   const handleSubmit = () => {
     if (!selectedBoat || !travelDate || !contactNameCn || !contactPhone) {
-      alert('请填写必填信息');
+      alert('请填写必填信息（出行日期、姓名、联系电话）');
       return;
     }
-    // 生成订单并跳转付款页
-    window.location.href = `/payment/demo?island=${island}&boat=${selectedBoat.id}&people=${people}&date=${travelDate}&total=${selectedBoat.price * people}`;
+    const msg = buildWechatMsg();
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(msg).catch(() => {});
+    }
+    setSubmitted(true);
+    setTimeout(() => { window.location.href = 'weixin://'; }, 300);
   };
 
+  if (submitted) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-8 text-center">
+        <div className="text-6xl mb-4">🎉</div>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">预订信息已复制！</h1>
+        <p className="text-gray-500 mb-6">正在打开微信，请将信息发给客服确认</p>
+        <div className="bg-white rounded-xl p-4 w-full max-w-xs shadow text-left space-y-2">
+          <div className="flex justify-between text-sm"><span className="text-gray-500">订单号</span><span className="font-mono font-bold text-ocean-600">{orderNo}</span></div>
+          <div className="flex justify-between text-sm"><span className="text-gray-500">目的地</span><span>{info.name}</span></div>
+          <div className="flex justify-between text-sm"><span className="text-gray-500">船只</span><span>{selectedBoat?.name}</span></div>
+          <div className="flex justify-between text-sm"><span className="text-gray-500">总金额</span><span className="font-bold text-ocean-600">¥{selectedBoat ? (selectedBoat.price * people).toLocaleString() : '-'}</span></div>
+        </div>
+        <a href="/island-tour" className="mt-6 text-sm text-gray-400 hover:text-gray-600">← 返回跳岛游</a>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 pb-32 md:pb-0">
+    <div className="min-h-screen bg-gray-50">
       {/* Hero */}
       <div className="relative h-48 md:h-64 overflow-hidden">
         <Image src={info.heroImage} alt={info.name} fill className="object-cover" priority />
@@ -139,14 +188,11 @@ export default function IslandDetailPage() {
 
       {/* Detail Tab */}
       {tab === 'detail' && (
-        <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-          {/* Description */}
+        <div className="max-w-4xl mx-auto px-4 py-6 pb-36 space-y-6">
           <div className="bg-white rounded-2xl p-5 shadow-sm">
             <h2 className="text-lg font-bold text-gray-900 mb-2">关于{info.name}</h2>
             <p className="text-sm text-gray-600 leading-relaxed">{info.description}</p>
           </div>
-
-          {/* Highlights */}
           <div className="bg-white rounded-2xl p-5 shadow-sm">
             <h2 className="text-lg font-bold text-gray-900 mb-3">行程亮点</h2>
             <div className="flex flex-wrap gap-2">
@@ -155,8 +201,6 @@ export default function IslandDetailPage() {
               ))}
             </div>
           </div>
-
-          {/* Gallery */}
           <div className="bg-white rounded-2xl p-5 shadow-sm">
             <h2 className="text-lg font-bold text-gray-900 mb-3">实拍图片</h2>
             <div className="grid grid-cols-2 gap-3">
@@ -167,8 +211,6 @@ export default function IslandDetailPage() {
               ))}
             </div>
           </div>
-
-          {/* Boat Options */}
           <div className="bg-white rounded-2xl p-5 shadow-sm">
             <h2 className="text-lg font-bold text-gray-900 mb-3">选择船只</h2>
             <div className="space-y-3">
@@ -203,10 +245,8 @@ export default function IslandDetailPage() {
               ))}
             </div>
           </div>
-
-          {/* Book CTA */}
           {selectedBoat && (
-            <div className="fixed bottom-16 md:bottom-0 left-0 right-0 bg-white border-t p-4 z-40">
+            <div className="fixed bottom-16 md:bottom-0 left-0 right-0 bg-white border-t p-4 z-50 shadow-lg">
               <div className="max-w-4xl mx-auto flex items-center justify-between">
                 <div>
                   <div className="text-sm text-gray-500">已选：{selectedBoat.name}</div>
@@ -226,24 +266,37 @@ export default function IslandDetailPage() {
 
       {/* Book Tab */}
       {tab === 'book' && (
-        <div className="max-w-xl mx-auto px-4 py-6 space-y-4">
+        <div className="max-w-xl mx-auto px-4 py-6 pb-10 space-y-4">
           {!selectedBoat && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-sm text-yellow-700">
               请先在「岛屿详情」中选择船只
             </div>
           )}
 
-          {/* Basic Info */}
+          {/* 订单摘要 */}
+          {selectedBoat && (
+            <div className="bg-ocean-50 border border-ocean-200 rounded-2xl p-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <div className="text-sm text-ocean-700 font-medium">{info.name} · {selectedBoat.name}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">{selectedBoat.duration}</div>
+                </div>
+                <span className="font-mono text-xs text-ocean-600 bg-ocean-100 px-2 py-1 rounded-full">{orderNo}</span>
+              </div>
+            </div>
+          )}
+
+          {/* 预订基本信息 */}
           <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
             <h3 className="font-bold text-gray-900">预订信息</h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">出行日期</label>
+                <label className="text-xs text-gray-500 mb-1 block">出行日期 *</label>
                 <input type="date" value={travelDate} onChange={e => setTravelDate(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
               </div>
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">人数</label>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 pt-1">
                   <button onClick={() => setPeople(Math.max(1, people - 1))} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-600">−</button>
                   <span className="w-8 text-center font-semibold">{people}</span>
                   <button onClick={() => setPeople(people + 1)} className="w-9 h-9 rounded-full bg-ocean-500 text-white flex items-center justify-center font-bold">+</button>
@@ -251,16 +304,16 @@ export default function IslandDetailPage() {
               </div>
             </div>
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">酒店名称</label>
+              <label className="text-xs text-gray-500 mb-1 block">酒店名称 *</label>
               <input type="text" placeholder="入住酒店名称" value={hotelName} onChange={e => setHotelName(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
             </div>
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">酒店地址（Google Maps）</label>
-              <input type="text" placeholder="粘贴酒店Google Maps链接或地址" value={hotelAddress} onChange={e => setHotelAddress(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
+              <label className="text-xs text-gray-500 mb-1 block">酒店地址 / Google Maps 链接</label>
+              <input type="text" placeholder="粘贴地址或链接" value={hotelAddress} onChange={e => setHotelAddress(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
             </div>
           </div>
 
-          {/* Contact Info */}
+          {/* 联系人 */}
           <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
             <h3 className="font-bold text-gray-900">联系人信息</h3>
             <div className="grid grid-cols-2 gap-3">
@@ -282,22 +335,22 @@ export default function IslandDetailPage() {
               </div>
               <div className="col-span-2">
                 <label className="text-xs text-gray-500 mb-1 block">微信号</label>
-                <input type="text" placeholder="微信号（方便客服联系）" value={contactWechat} onChange={e => setContactWechat(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
+                <input type="text" placeholder="方便客服联系" value={contactWechat} onChange={e => setContactWechat(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
               </div>
             </div>
           </div>
 
-          {/* Travelers */}
+          {/* 出行人员 */}
           <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-gray-900">出行人员（共{travelers.length}人）</h3>
               <button onClick={addTraveler} className="flex items-center gap-1 text-sm text-ocean-500 font-medium">
-                <Plus className="w-4 h-4" /> 添加人员
+                <Plus className="w-4 h-4" /> 添加
               </button>
             </div>
             {travelers.map((t, i) => (
               <div key={i} className="border border-gray-100 rounded-xl p-4 space-y-3">
-                <div className="text-xs font-medium text-gray-500">人员 {i + 1}</div>
+                <div className="text-xs font-medium text-gray-500">出行人 {i + 1}</div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs text-gray-400 mb-1 block">中文姓名</label>
@@ -309,10 +362,10 @@ export default function IslandDetailPage() {
                   </div>
                   <div>
                     <label className="text-xs text-gray-400 mb-1 block">护照号码</label>
-                    <input type="text" placeholder="Gxxxxxxx" value={t.passport} onChange={e => updateTraveler(i, 'passport', e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
+                    <input type="text" placeholder="E12345678" value={t.passport} onChange={e => updateTraveler(i, 'passport', e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-400 mb-1 block">生日</label>
+                    <label className="text-xs text-gray-400 mb-1 block">出生日期</label>
                     <input type="date" value={t.birthdate} onChange={e => updateTraveler(i, 'birthdate', e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
                   </div>
                 </div>
@@ -320,22 +373,28 @@ export default function IslandDetailPage() {
             ))}
           </div>
 
-          {/* Total */}
+          {/* 提交 */}
           {selectedBoat && (
             <div className="bg-ocean-500 text-white rounded-2xl p-5 shadow-lg">
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center mb-4">
                 <div>
                   <div className="text-sm opacity-80">应付总额</div>
                   <div className="text-3xl font-bold">¥{(selectedBoat.price * people).toLocaleString()}</div>
                   <div className="text-xs opacity-70 mt-1">{selectedBoat.name} × {people}人</div>
                 </div>
-                <button
-                  onClick={handleSubmit}
-                  className="px-8 py-4 bg-white text-ocean-600 rounded-full font-bold text-lg hover:bg-gray-100 transition-colors"
-                >
-                  提交订单
-                </button>
+                <div className="text-right text-xs opacity-70">
+                  <div>订单号</div>
+                  <div className="font-mono">{orderNo}</div>
+                </div>
               </div>
+              <button
+                onClick={handleSubmit}
+                className="w-full py-4 bg-white text-ocean-600 rounded-full font-bold text-lg hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
+              >
+                <MessageCircle className="w-5 h-5" />
+                提交预订 · 发给客服
+              </button>
+              <p className="text-xs text-center text-white/60 mt-2">将自动复制信息并打开微信</p>
             </div>
           )}
         </div>
