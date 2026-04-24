@@ -1,17 +1,21 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Suspense } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, Plus, Trash2, MessageCircle, ChevronDown, ChevronUp, Info } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { ChevronLeft, MessageCircle, ChevronDown, ChevronUp, Info } from 'lucide-react';
 
-// 从 URL params 读取选课信息（实际项目可通过 context 或 URL 传递）
-// 这里 mock：假设报名了 OW + 体验 x2
-const selectedItems = [
-  { id: 'ow', title: '水肺OW考证', price: 2800, qty: 1, needEmail: true },
-  { id: 'experience', title: '体验深潜', price: 1800, qty: 2, needEmail: false },
+// 所有课程定义
+const divingTypes = [
+  { id: 'experience', title: '体验深潜', price: 1800, needEmail: false },
+  { id: 'ow', title: '水肺OW考证', price: 2800, needEmail: true },
+  { id: 'aow', title: '水肺AOW考证', price: 2500, needEmail: true },
+  { id: 'free2', title: '自由潜2星', price: 2200, needEmail: true },
+  { id: 'free3', title: '自由潜3星', price: 3000, needEmail: true },
 ];
 
 interface DivingPerson {
+  startDate: string;
   name: string;
   passportNo: string;
   gender: string;
@@ -27,7 +31,7 @@ interface DivingPerson {
 }
 
 const emptyPerson = (): DivingPerson => ({
-  name: '', passportNo: '', gender: '', birthdate: '',
+  startDate: '', name: '', passportNo: '', gender: '', birthdate: '',
   height: '', weight: '', shoeSize: '', vision: '',
   email: '', hotel: '', phone: '', allergy: '',
 });
@@ -36,7 +40,35 @@ function genOrderNo() {
   return 'DV' + Date.now().toString().slice(-8);
 }
 
+// 从 URL params 解析选课
+function parseSelectedItems(search: string) {
+  if (!search) return [];
+  try {
+    const params = new URLSearchParams(search);
+    const itemsParam = params.get('items') || '';
+    if (!itemsParam) return [];
+    return itemsParam.split(',').map(token => {
+      const [id, qtyStr] = token.split(':');
+      const def = divingTypes.find(d => d.id === id);
+      if (!def) return null;
+      return { id, title: def.title, price: def.price, qty: parseInt(qtyStr) || 1, needEmail: def.needEmail };
+    }).filter(Boolean) as { id: string; title: string; price: number; qty: number; needEmail: boolean }[];
+  } catch {
+    return [];
+  }
+}
+
 export default function DivingBookPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-gray-400">加载中...</div>}>
+      <DivingBookContent />
+    </Suspense>
+  );
+}
+
+function DivingBookContent() {
+  const searchParams = useSearchParams();
+  const selectedItems = useMemo(() => parseSelectedItems(searchParams.toString()), [searchParams]);
   const orderNo = useMemo(() => genOrderNo(), []);
   const totalPeople = selectedItems.reduce((s, i) => s + i.qty, 0);
   const totalPrice = selectedItems.reduce((s, i) => s + i.price * i.qty, 0);
@@ -71,6 +103,7 @@ export default function DivingBookPage() {
     ];
     persons.forEach((p, i) => {
       lines.push(`━━ 第${i + 1}人 ━━`);
+      lines.push(`行程开始日期：${p.startDate || '-'}`);
       lines.push(`姓名：${p.name || '-'}`);
       lines.push(`护照：${p.passportNo || '-'}`);
       lines.push(`性别：${p.gender || '-'}  生日：${p.birthdate || '-'}`);
@@ -191,6 +224,8 @@ export default function DivingBookPage() {
                   <label className="text-xs font-medium text-gray-500 mb-1.5 block">行程开始日期 *</label>
                   <input
                     type="date"
+                    value={person.startDate}
+                    onChange={e => updatePerson(idx, 'startDate', e.target.value)}
                     className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
                   />
                 </div>
