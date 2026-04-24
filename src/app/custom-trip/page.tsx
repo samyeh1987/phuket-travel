@@ -231,7 +231,23 @@ export default function CustomTripPage() {
             </button>
           ) : (
             <a
-              href="https://wa.me/66XXXXXXXXX?text=我想定制旅行"
+              href={(() => {
+                const dayInfo = tripDays.find(d => d.nights === selectedDays);
+                const budgetInfo = budgets.find(b => b.value === selectedBudget);
+                const crowdInfo = crowdTypes.find(c => c.value === crowdType);
+                const prefLabels = selectedPrefs.map(v => preferences.find(p => p.value === v)?.label).filter(Boolean).join('、');
+                const msg = [
+                  '🌴 普吉旅行定制需求',
+                  `📅 行程天数：${dayInfo?.label ?? '-'}`,
+                  `💰 人均预算：¥${budgetInfo?.label ?? '-'}/天`,
+                  `👥 出行人数：${people}人`,
+                  `🎯 旅行类型：${crowdInfo ? `${crowdInfo.emoji} ${crowdInfo.label}` : '-'}`,
+                  `✨ 偏好体验：${prefLabels || '未选择'}`,
+                  '',
+                  '请帮我定制专属行程，谢谢！🙏',
+                ].join('\n');
+                return `https://wa.me/66XXXXXXXXX?text=${encodeURIComponent(msg)}`;
+              })()}
               className="flex-1 py-4 rounded-full bg-ocean-500 text-white font-semibold hover:bg-ocean-600 transition-colors flex items-center justify-center gap-2"
             >
               <MessageCircle className="w-5 h-5" />
