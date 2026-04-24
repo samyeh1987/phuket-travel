@@ -9,6 +9,22 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Tables
 -- =============================================
 
+-- 会员/用户资料（关联 auth.users）
+CREATE TABLE profiles (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    email VARCHAR(255),
+    name_cn VARCHAR(100),
+    name_en VARCHAR(100),
+    phone VARCHAR(50),
+    wechat VARCHAR(100),
+    avatar_url TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 关联 orders 表增加 user_id 字段（让用户能查自己的订单）
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL;
+
 -- 管理员用户
 CREATE TABLE admin_users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
