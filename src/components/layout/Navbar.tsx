@@ -205,29 +205,69 @@ export function Navbar() {
 
       {/* Mobile Bottom Tab Bar */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t shadow-lg">
-        <div className="flex items-center justify-around h-16">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="flex flex-col items-center justify-center gap-1 py-2 px-3 text-gray-500 hover:text-ocean-500 transition-colors"
-              >
-                <Icon className="w-5 h-5" />
-                <span className="text-xs font-medium">{item.label}</span>
-              </Link>
-            );
-          })}
-          {user && (
-            <Link
-              href="/my/orders"
-              className="flex flex-col items-center justify-center gap-1 py-2 px-3 text-gray-500 hover:text-ocean-500 transition-colors"
-            >
-              <Package className="w-5 h-5" />
-              <span className="text-xs font-medium">订单</span>
-            </Link>
-          )}
+        <div className="px-2 pb-safe">
+          {/* 用户区：已登录显示头像+名字，未登录显示登录入口 */}
+          <div className="flex items-center justify-between px-3 py-2 mb-1.5">
+            {user ? (
+              <>
+                <Link href="/profile" className="flex items-center gap-2.5 group">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-ocean-400 to-ocean-600 flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
+                    <User className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800 leading-tight">{userLabel}</p>
+                    <p className="text-xs text-gray-400 leading-tight">查看个人资料</p>
+                  </div>
+                </Link>
+                <div className="flex items-center gap-1">
+                  <Link
+                    href="/my/orders"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-ocean-50 text-ocean-600 text-xs font-medium hover:bg-ocean-100 transition-colors"
+                  >
+                    <Package className="w-3.5 h-3.5" />
+                    我的订单
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="p-2 text-gray-400 hover:text-red-400 transition-colors"
+                    title="退出登录"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center justify-between w-full">
+                <p className="text-sm text-gray-500">登录后享受更多服务</p>
+                <Link
+                  href="/auth/login"
+                  className="px-4 py-1.5 bg-ocean-500 text-white text-xs font-semibold rounded-full hover:bg-ocean-600 transition-colors"
+                >
+                  登录 / 注册
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* 导航分隔线 */}
+          <div className="border-t border-gray-100 mx-3 mb-1.5" />
+
+          {/* 功能导航图标 */}
+          <div className="flex items-center justify-around h-14">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="flex flex-col items-center justify-center gap-0.5 py-1 px-2 text-gray-500 hover:text-ocean-500 transition-colors"
+                >
+                  <Icon className="w-5 h-5" />
+                  <span className="text-[10px] font-medium leading-tight">{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
         </div>
       </nav>
     </>

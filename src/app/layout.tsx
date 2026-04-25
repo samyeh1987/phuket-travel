@@ -29,7 +29,7 @@ export default function RootLayout({
       <body className={`${inter.className} antialiased`}>
         <AuthProvider>
           <Navbar />
-          <main className="min-h-screen">{children}</main>
+          <main className="min-h-screen pb-32 md:pb-0">{children}</main>
           <Footer />
         </AuthProvider>
       </body>
