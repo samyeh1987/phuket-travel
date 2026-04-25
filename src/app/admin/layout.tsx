@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { LayoutDashboard, Anchor, Sailboat, Ticket, ShoppingBag, Settings, LogOut, Menu, X, Sailboat as SailboatIcon } from 'lucide-react';
-import { useState } from 'react';
+import { createClient } from '@/lib/supabase';
 
 const adminNav = [
   { href: '/admin', label: '控制台', icon: LayoutDashboard },
@@ -16,7 +17,60 @@ const adminNav = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      // 排除登入頁
+      if (pathname === '/admin/auth/login') {
+        setChecking(false);
+        return;
+      }
+
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        router.push('/admin/auth/login');
+        return;
+      }
+
+      // 檢查是否為管理員
+      const { data: adminUser } = await supabase
+        .from('admin_users')
+        .select('id')
+        .eq('id', user.id)
+        .single();
+
+      if (!adminUser) {
+        await supabase.auth.signOut();
+        router.push('/admin/auth/login?error=unauthorized');
+        return;
+      }
+
+      setChecking(false);
+    };
+
+    checkAdmin();
+  }, [pathname, router]);
+
+  if (checking) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-10 h-10 border-3 border-ocean-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-sm text-gray-500">驗證身份中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 登入頁不需要側邊欄
+  if (pathname === '/admin/auth/login') {
+    return <>{children}</>;
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 flex">
@@ -99,8 +153,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <h1 className="text-lg font-bold text-gray-900 hidden md:block">后台管理</h1>
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-ocean-100 rounded-full flex items-center justify-center text-ocean-600 font-bold text-sm">管</div>
-            <span className="text-sm font-medium text-gray-700 hidden sm:block">管理员</span>
+            <Link
+              href="/"
+              className="text-sm text-gray-500 hover:text-ocean-500 transition-colors hidden sm:block"
+            >
+              返回前台
+            </Link>
           </div>
         </header>
 

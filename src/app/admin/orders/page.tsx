@@ -1,59 +1,103 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, Eye, CheckCircle, XCircle } from 'lucide-react';
-
-const orders = [
-  { id: '#TH001', type: '跳岛游', product: '皇帝岛 - 豪华双体帆船', name: '张三', phone: '+86 138xxxx', people: 4, total: 2720, status: '待付款', date: '2026-04-22' },
-  { id: '#TH002', type: '深潜', product: '水肺OW考证', name: '李四', phone: '+86 139xxxx', people: 2, total: 5600, status: '已确认', date: '2026-04-22' },
-  { id: '#TH003', type: '秀场', product: '西蒙秀 - VIP票', name: '王五', phone: '+86 137xxxx', people: 3, total: 1440, status: '已完成', date: '2026-04-22' },
-  { id: '#TH004', type: '跳岛游', product: '皮皮岛 - VIP快艇', name: '赵六', phone: '+86 136xxxx', people: 6, total: 4680, status: '待付款', date: '2026-04-21' },
-  { id: '#TH005', type: '深潜', product: '体验深潜', name: '钱七', phone: '+86 135xxxx', people: 2, total: 3600, status: '已完成', date: '2026-04-21' },
-  { id: '#TH006', type: '秀场', product: '天皇秀 - 普通票', name: '孙八', phone: '+86 134xxxx', people: 2, total: 760, status: '已取消', date: '2026-04-21' },
-];
-
-const statusConfig: Record<string, { color: string; bg: string; icon: any }> = {
-  '待付款': { color: 'text-amber-600', bg: 'bg-amber-50', icon: XCircle },
-  '已确认': { color: 'text-blue-600', bg: 'bg-blue-50', icon: CheckCircle },
-  '已完成': { color: 'text-green-600', bg: 'bg-green-50', icon: CheckCircle },
-  '已取消': { color: 'text-red-600', bg: 'bg-red-50', icon: XCircle },
-};
-
-const typeColors: Record<string, string> = {
-  '跳岛游': 'bg-cyan-50 text-cyan-600',
-  '深潜': 'bg-blue-50 text-blue-600',
-  '秀场': 'bg-purple-50 text-purple-600',
-};
+import { useEffect, useState } from 'react';
+import { Search, Eye, CheckCircle, XCircle, RefreshCw, X } from 'lucide-react';
+import { createClient } from '@/lib/supabase';
 
 export default function AdminOrdersPage() {
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('全部');
   const [search, setSearch] = useState('');
-  const [selectedOrder, setSelectedOrder] = useState<typeof orders[0] | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+  const [updating, setUpdating] = useState(false);
+  const supabase = createClient();
 
-  const types = ['全部', '跳岛游', '深潜', '秀场'];
+  const fetchOrders = async () => {
+    setLoading(true);
+    let query = supabase
+      .from('orders')
+      .select('*, profiles(name_cn, email)')
+      .order('created_at', { ascending: false });
+
+    const { data } = await query;
+    setOrders(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchOrders(); }, []);
+
+  const updateStatus = async (orderId: string, status: string) => {
+    setUpdating(true);
+    await supabase.from('orders').update({ status }).eq('id', orderId);
+    setSelectedOrder(null);
+    await fetchOrders();
+    setUpdating(false);
+  };
+
+  const types = ['全部', 'diving', 'island', 'show', 'custom'];
+  const typeLabels: Record<string, string> = {
+    diving: '深潜', island: '跳岛游', show: '秀场', custom: '定制旅行',
+  };
+
+  const statusConfig: Record<string, { color: string; bg: string }> = {
+    pending: { color: 'text-amber-600', bg: 'bg-amber-50' },
+    confirmed: { color: 'text-blue-600', bg: 'bg-blue-50' },
+    completed: { color: 'text-green-600', bg: 'bg-green-50' },
+    cancelled: { color: 'text-red-600', bg: 'bg-red-50' },
+  };
+
+  const typeColors: Record<string, string> = {
+    diving: 'bg-blue-50 text-blue-600',
+    island: 'bg-cyan-50 text-cyan-600',
+    show: 'bg-purple-50 text-purple-600',
+    custom: 'bg-orange-50 text-orange-600',
+  };
+
+  const statusOptions = [
+    { value: 'pending', label: '待付款', color: 'text-amber-600' },
+    { value: 'confirmed', label: '已确认', color: 'text-blue-600' },
+    { value: 'completed', label: '已完成', color: 'text-green-600' },
+    { value: 'cancelled', label: '已取消', color: 'text-red-600' },
+  ];
+
   const filtered = orders.filter(o => {
     const typeMatch = filter === '全部' || o.type === filter;
-    const searchMatch = !search || o.name.includes(search) || o.phone.includes(search) || o.id.includes(search);
+    const q = search.toLowerCase();
+    const searchMatch = !q ||
+      (o.order_number || '').toLowerCase().includes(q) ||
+      (o.profiles?.name_cn || o.contact_name_cn || '').toLowerCase().includes(q) ||
+      (o.contact_phone || '').includes(q) ||
+      (o.contact_email || '').toLowerCase().includes(q);
     return typeMatch && searchMatch;
   });
 
+  const statusLabels: Record<string, string> = {
+    pending: '待付款', confirmed: '已确认', completed: '已完成', cancelled: '已取消',
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">订单管理</h1>
-        <p className="text-sm text-gray-500 mt-1">查看和处理所有订单</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">订单管理</h1>
+          <p className="text-sm text-gray-500 mt-1">共 {filtered.length} 笔订单</p>
+        </div>
+        <button onClick={fetchOrders} className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-500 hover:text-ocean-500 border border-gray-200 rounded-xl hover:border-ocean-300 transition-colors">
+          <RefreshCw className="w-4 h-4" /> 刷新
+        </button>
       </div>
 
       {/* Filter */}
       <div className="bg-white rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {types.map(t => (
             <button
               key={t}
               onClick={() => setFilter(t)}
               className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${filter === t ? 'bg-ocean-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
             >
-              {t}
+              {t === '全部' ? t : typeLabels[t]}
             </button>
           ))}
         </div>
@@ -71,78 +115,129 @@ export default function AdminOrdersPage() {
 
       {/* Table */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50">
-            <tr className="text-left text-gray-500">
-              <th className="px-5 py-3.5 font-medium">订单号</th>
-              <th className="px-5 py-3.5 font-medium">类型</th>
-              <th className="px-5 py-3.5 font-medium">产品</th>
-              <th className="px-5 py-3.5 font-medium">客户</th>
-              <th className="px-5 py-3.5 font-medium">人数</th>
-              <th className="px-5 py-3.5 font-medium">金额</th>
-              <th className="px-5 py-3.5 font-medium">状态</th>
-              <th className="px-5 py-3.5 font-medium">日期</th>
-              <th className="px-5 py-3.5 font-medium">操作</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {filtered.map(o => {
-              const status = statusConfig[o.status];
-              const StatusIcon = status.icon;
-              return (
-                <tr key={o.id} className="hover:bg-gray-50">
-                  <td className="px-5 py-3.5 font-mono text-xs">{o.id}</td>
-                  <td className="px-5 py-3.5"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${typeColors[o.type]}`}>{o.type}</span></td>
-                  <td className="px-5 py-3.5 text-gray-700 max-w-[180px] truncate">{o.product}</td>
-                  <td className="px-5 py-3.5">
-                    <div className="font-medium">{o.name}</div>
-                    <div className="text-xs text-gray-400">{o.phone}</div>
-                  </td>
-                  <td className="px-5 py-3.5 text-gray-500">{o.people}人</td>
-                  <td className="px-5 py-3.5 font-semibold text-ocean-600">¥{o.total.toLocaleString()}</td>
-                  <td className="px-5 py-3.5">
-                    <span className={`flex items-center gap-1 text-xs font-medium ${status.color} ${status.bg} px-2 py-1 rounded-full w-fit`}>
-                      <StatusIcon className="w-3 h-3" />{o.status}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3.5 text-gray-400 text-xs">{o.date}</td>
-                  <td className="px-5 py-3.5">
-                    <button
-                      onClick={() => setSelectedOrder(o)}
-                      className="p-1.5 text-gray-400 hover:text-ocean-500 hover:bg-ocean-50 rounded-lg transition-colors"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
-                  </td>
+        {loading ? (
+          <div className="p-12 text-center text-gray-400">
+            <div className="w-6 h-6 border-2 border-ocean-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+            <p className="text-sm">加载中...</p>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="p-12 text-center text-gray-400 text-sm">暂无订单</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50">
+                <tr className="text-left text-gray-500">
+                  <th className="px-5 py-3.5 font-medium">订单号</th>
+                  <th className="px-5 py-3.5 font-medium">类型</th>
+                  <th className="px-5 py-3.5 font-medium">客户</th>
+                  <th className="px-5 py-3.5 font-medium">人数</th>
+                  <th className="px-5 py-3.5 font-medium">金额</th>
+                  <th className="px-5 py-3.5 font-medium">状态</th>
+                  <th className="px-5 py-3.5 font-medium">日期</th>
+                  <th className="px-5 py-3.5 font-medium">操作</th>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
+              </thead>
+              <tbody className="divide-y">
+                {filtered.map(o => {
+                  const status = statusConfig[o.status] || statusConfig.pending;
+                  return (
+                    <tr key={o.id} className="hover:bg-gray-50">
+                      <td className="px-5 py-3.5 font-mono text-xs text-gray-600">{o.order_number}</td>
+                      <td className="px-5 py-3.5"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${typeColors[o.type] || 'bg-gray-50 text-gray-600'}`}>{typeLabels[o.type] || o.type}</span></td>
+                      <td className="px-5 py-3.5">
+                        <div className="font-medium">{o.profiles?.name_cn || o.contact_name_cn || '—'}</div>
+                        <div className="text-xs text-gray-400">{o.contact_phone || o.contact_email || ''}</div>
+                      </td>
+                      <td className="px-5 py-3.5 text-gray-500">{o.quantity || 1}人</td>
+                      <td className="px-5 py-3.5 font-semibold text-ocean-600">¥{Number(o.total_price || 0).toLocaleString()}</td>
+                      <td className="px-5 py-3.5">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${status.color} ${status.bg}`}>
+                          {statusLabels[o.status] || o.status}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-gray-400 text-xs">{new Date(o.created_at).toLocaleDateString('zh-CN')}</td>
+                      <td className="px-5 py-3.5">
+                        <button
+                          onClick={() => setSelectedOrder(o)}
+                          className="p-1.5 text-gray-400 hover:text-ocean-500 hover:bg-ocean-50 rounded-lg transition-colors"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Order Detail Modal */}
       {selectedOrder && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-lg">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">订单详情 {selectedOrder.id}</h2>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-900">订单详情</h2>
+              <button onClick={() => setSelectedOrder(null)} className="p-1 text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
             <div className="space-y-3 text-sm">
               <div className="grid grid-cols-2 gap-3">
-                <div><span className="text-gray-500">类型</span><div className="font-medium mt-0.5">{selectedOrder.type}</div></div>
-                <div><span className="text-gray-500">状态</span><div className={`font-medium mt-0.5 ${statusConfig[selectedOrder.status].color}`}>{selectedOrder.status}</div></div>
-                <div><span className="text-gray-500">产品</span><div className="font-medium mt-0.5">{selectedOrder.product}</div></div>
-                <div><span className="text-gray-500">日期</span><div className="font-medium mt-0.5">{selectedOrder.date}</div></div>
-                <div><span className="text-gray-500">客户姓名</span><div className="font-medium mt-0.5">{selectedOrder.name}</div></div>
-                <div><span className="text-gray-500">联系电话</span><div className="font-medium mt-0.5">{selectedOrder.phone}</div></div>
-                <div><span className="text-gray-500">人数</span><div className="font-medium mt-0.5">{selectedOrder.people}人</div></div>
-                <div><span className="text-gray-500">金额</span><div className="font-semibold text-ocean-600 mt-0.5">¥{selectedOrder.total.toLocaleString()}</div></div>
+                <div><span className="text-gray-500">订单号</span><div className="font-mono text-xs font-medium mt-0.5">{selectedOrder.order_number}</div></div>
+                <div><span className="text-gray-500">状态</span>
+                  <select
+                    value={selectedOrder.status}
+                    onChange={async (e) => { await updateStatus(selectedOrder.id, e.target.value); }}
+                    disabled={updating}
+                    className={`mt-0.5 w-full px-2 py-1 rounded-lg text-xs font-medium border ${statusConfig[selectedOrder.status]?.color} ${statusConfig[selectedOrder.status]?.bg}`}
+                  >
+                    {statusOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                  </select>
+                </div>
+                <div><span className="text-gray-500">类型</span><div className="font-medium mt-0.5">{typeLabels[selectedOrder.type] || selectedOrder.type}</div></div>
+                <div><span className="text-gray-500">旅行日期</span><div className="font-medium mt-0.5">{selectedOrder.travel_date || '—'}</div></div>
+                <div><span className="text-gray-500">姓名</span><div className="font-medium mt-0.5">{selectedOrder.profiles?.name_cn || selectedOrder.contact_name_cn || '—'}</div></div>
+                <div><span className="text-gray-500">电话</span><div className="font-medium mt-0.5">{selectedOrder.contact_phone || '—'}</div></div>
+                <div><span className="text-gray-500">微信</span><div className="font-medium mt-0.5">{selectedOrder.contact_wechat || '—'}</div></div>
+                <div><span className="text-gray-500">邮箱</span><div className="font-medium mt-0.5 text-xs">{selectedOrder.contact_email || '—'}</div></div>
+                <div><span className="text-gray-500">人数</span><div className="font-medium mt-0.5">{selectedOrder.quantity || 1}人</div></div>
+                <div><span className="text-gray-500">金额</span><div className="font-semibold text-ocean-600 mt-0.5">¥{Number(selectedOrder.total_price || 0).toLocaleString()}</div></div>
+                <div><span className="text-gray-500">酒店</span><div className="font-medium mt-0.5">{selectedOrder.hotel_name || '—'}</div></div>
+                <div><span className="text-gray-500">创建时间</span><div className="font-medium mt-0.5">{new Date(selectedOrder.created_at).toLocaleString('zh-CN')}</div></div>
               </div>
-            </div>
-            <div className="flex gap-3 mt-6">
-              {selectedOrder.status === '待付款' && (
-                <button className="flex-1 py-2.5 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600">确认收款</button>
+              {selectedOrder.extra_data && (
+                <div>
+                  <span className="text-gray-500">附加信息</span>
+                  <pre className="mt-1 p-2 bg-gray-50 rounded-lg text-xs text-gray-700 overflow-auto">
+                    {JSON.stringify(selectedOrder.extra_data, null, 2)}
+                  </pre>
+                </div>
               )}
-              <button onClick={() => setSelectedOrder(null)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-gray-600 font-medium hover:bg-gray-50">关闭</button>
+              {selectedOrder.customer_service_notes && (
+                <div>
+                  <span className="text-gray-500">客服备注</span>
+                  <div className="mt-1 p-2 bg-yellow-50 rounded-lg text-xs text-yellow-800">{selectedOrder.customer_service_notes}</div>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6">
+              <p className="text-xs text-gray-400 mb-2">修改状态</p>
+              <div className="flex flex-wrap gap-2">
+                {statusOptions.map(s => (
+                  <button
+                    key={s.value}
+                    onClick={() => updateStatus(selectedOrder.id, s.value)}
+                    disabled={updating || selectedOrder.status === s.value}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${selectedOrder.status === s.value ? `${s.color} border-current opacity-50` : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'}`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
