@@ -3,7 +3,9 @@
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Clock, Users, CheckCircle, ChevronLeft, Plus, MessageCircle } from 'lucide-react';
+import { useAuth } from '@/components/AuthProvider';
 
 const islandData: Record<string, {
   name: string; subtitle: string; description: string;
@@ -65,6 +67,8 @@ function genOrderNo() { return 'IS' + Date.now().toString().slice(-8); }
 
 export default function IslandDetailPage() {
   const params = useParams();
+  const router = useRouter();
+  const { user } = useAuth();
   const island = params.island as string;
   const info = islandData[island];
   const boats = boatData[island as keyof typeof boatData] || [];
@@ -127,6 +131,10 @@ export default function IslandDetailPage() {
   };
 
   const handleSubmit = () => {
+    if (!user) {
+      router.push(`/auth/login?next=${encodeURIComponent(`/island-tour/${island}`)}`);
+      return;
+    }
     if (!selectedBoat || !travelDate || !contactNameCn || !contactPhone) {
       alert('请填写必填信息（出行日期、姓名、联系电话）');
       return;

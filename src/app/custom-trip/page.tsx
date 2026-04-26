@@ -2,7 +2,9 @@
 
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { MessageCircle } from 'lucide-react';
+import { useAuth } from '@/components/AuthProvider';
 
 const tripDays = [
   { nights: 3, days: 4, label: '4天3夜' },
@@ -46,6 +48,8 @@ function genOrderNo() {
 }
 
 export default function CustomTripPage() {
+  const router = useRouter();
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [selectedDays, setSelectedDays] = useState<number | null>(null);
   const [startDate, setStartDate] = useState('');
@@ -63,7 +67,7 @@ export default function CustomTripPage() {
   };
 
   const canNext = () => {
-    if (step === 1) return selectedDays !== null;
+    if (step === 1) return selectedDays !== null && startDate !== '';
     if (step === 2) return selectedBudget !== null;
     if (step === 3) return people > 0;
     if (step === 4) return crowdType !== null;
@@ -153,7 +157,7 @@ export default function CustomTripPage() {
               ))}
             </div>
             <div className="mt-5">
-              <label className="text-sm font-medium text-gray-700 mb-2 block">选择出发日期（可选）</label>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">选择出发日期 <span className="text-red-500">*</span></label>
               <input
                 type="date"
                 value={startDate}
@@ -286,7 +290,15 @@ export default function CustomTripPage() {
           )}
           {step < 5 ? (
             <button
-              onClick={() => { if (canNext()) setStep(step + 1); }}
+              onClick={() => {
+                if (!canNext()) {
+                  if (step === 1 && !startDate) {
+                    alert('请选择出发日期');
+                  }
+                  return;
+                }
+                setStep(step + 1);
+              }}
               disabled={!canNext()}
               className={`flex-1 py-4 rounded-full font-semibold transition-colors ${canNext() ? 'bg-ocean-500 text-white hover:bg-ocean-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
             >
@@ -295,6 +307,10 @@ export default function CustomTripPage() {
           ) : (
             <button
               onClick={() => {
+                if (!user) {
+                  router.push('/auth/login?next=/custom-trip');
+                  return;
+                }
                 const msg = buildWechatMsg();
                 // 复制到剪贴板
                 if (navigator.clipboard) {

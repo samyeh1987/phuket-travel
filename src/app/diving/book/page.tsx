@@ -3,7 +3,9 @@
 import { useState, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { ChevronLeft, MessageCircle, ChevronDown, ChevronUp, Info } from 'lucide-react';
+import { useAuth } from '@/components/AuthProvider';
 
 // 所有课程定义
 const divingTypes = [
@@ -26,6 +28,7 @@ interface DivingPerson {
   vision: string;
   email: string;
   hotel: string;
+  hotelAddress: string;
   phone: string;
   allergy: string;
 }
@@ -33,7 +36,7 @@ interface DivingPerson {
 const emptyPerson = (): DivingPerson => ({
   startDate: '', name: '', passportNo: '', gender: '', birthdate: '',
   height: '', weight: '', shoeSize: '', vision: '',
-  email: '', hotel: '', phone: '', allergy: '',
+  email: '', hotel: '', hotelAddress: '', phone: '', allergy: '',
 });
 
 function genOrderNo() {
@@ -68,6 +71,8 @@ export default function DivingBookPage() {
 
 function DivingBookContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const { user } = useAuth();
   const selectedItems = useMemo(() => parseSelectedItems(searchParams.toString()), [searchParams]);
   const orderNo = useMemo(() => genOrderNo(), []);
   const totalPeople = selectedItems.reduce((s, i) => s + i.qty, 0);
@@ -111,6 +116,7 @@ function DivingBookContent() {
       lines.push(`近视：${p.vision ? p.vision + '度' : '无'}`);
       if (needEmailCourses.length > 0) lines.push(`邮箱：${p.email || '-'}`);
       lines.push(`酒店：${p.hotel || '-'}`);
+      if (p.hotelAddress) lines.push(`地址：${p.hotelAddress}`);
       lines.push(`电话：${p.phone || '未填写'}`);
       lines.push(`过敏：${p.allergy || '无'}`);
       lines.push('');
@@ -120,6 +126,10 @@ function DivingBookContent() {
   };
 
   const handleSubmit = () => {
+    if (!user) {
+      router.push('/auth/login?next=/diving/book?' + searchParams.toString());
+      return;
+    }
     const msg = buildWechatMsg();
     if (navigator.clipboard) {
       navigator.clipboard.writeText(msg).catch(() => {});
@@ -350,6 +360,16 @@ function DivingBookContent() {
                     placeholder="例：普吉岛假日酒店"
                     value={person.hotel}
                     onChange={e => updatePerson(idx, 'hotel', e.target.value)}
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-500 mb-1.5 block">详细地址 *</label>
+                  <input
+                    type="text"
+                    placeholder="例：Patong Beach, Phuket 83150 或 Google Maps 链接"
+                    value={person.hotelAddress}
+                    onChange={e => updatePerson(idx, 'hotelAddress', e.target.value)}
                     className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
                   />
                 </div>

@@ -3,7 +3,9 @@
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { CheckCircle, Clock, MapPin, ChevronLeft, MessageCircle } from 'lucide-react';
+import { useAuth } from '@/components/AuthProvider';
 
 const showData: Record<string, {
   name: string; subtitle: string; description: string;
@@ -38,6 +40,8 @@ function genOrderNo() { return 'SW' + Date.now().toString().slice(-8); }
 
 export default function ShowDetailPage() {
   const params = useParams();
+  const router = useRouter();
+  const { user } = useAuth();
   const showKey = params.show as string;
   const info = showData[showKey];
 
@@ -74,6 +78,10 @@ export default function ShowDetailPage() {
   ].join('\n');
 
   const handleSubmit = () => {
+    if (!user) {
+      router.push(`/auth/login?next=${encodeURIComponent(`/show/${showKey}`)}`);
+      return;
+    }
     if (!selectedPkg || !showDate || !nameCn || !phone) {
       alert('请填写必填信息（日期、姓名、联系电话）');
       return;
