@@ -59,6 +59,7 @@ const paymentMethods = [
 ];
 
 export function PaymentMethodSelector({ value, onChange }: PaymentMethodSelectorProps) {
+  // 付款方式选择组件
   const [qrCodes, setQrCodes] = useState<PaymentQR>({
     alipay: '',
     wechat: '',
