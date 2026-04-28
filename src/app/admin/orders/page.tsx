@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Search, Eye, CheckCircle, XCircle, RefreshCw, X } from 'lucide-react';
+import { Search, Eye, RefreshCw, X, Calendar, Filter } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 
 export default function AdminOrdersPage() {
@@ -9,6 +9,8 @@ export default function AdminOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('全部');
   const [search, setSearch] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [updating, setUpdating] = useState(false);
   const supabase = createClient();
@@ -69,7 +71,13 @@ export default function AdminOrdersPage() {
       (o.profiles?.name_cn || o.contact_name_cn || '').toLowerCase().includes(q) ||
       (o.contact_phone || '').includes(q) ||
       (o.contact_email || '').toLowerCase().includes(q);
-    return typeMatch && searchMatch;
+    
+    // 日期筛选
+    const orderDate = new Date(o.created_at);
+    const fromMatch = !dateFrom || orderDate >= new Date(dateFrom);
+    const toMatch = !dateTo || orderDate <= new Date(dateTo + 'T23:59:59');
+    
+    return typeMatch && searchMatch && fromMatch && toMatch;
   });
 
   const statusLabels: Record<string, string> = {
@@ -89,27 +97,96 @@ export default function AdminOrdersPage() {
       </div>
 
       {/* Filter */}
-      <div className="bg-white rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-        <div className="flex gap-2 flex-wrap">
-          {types.map(t => (
-            <button
-              key={t}
-              onClick={() => setFilter(t)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${filter === t ? 'bg-ocean-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-            >
-              {t === '全部' ? t : typeLabels[t]}
-            </button>
-          ))}
+      <div className="bg-white rounded-2xl p-4 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+          <div className="flex gap-2 flex-wrap">
+            {types.map(t => (
+              <button
+                key={t}
+                onClick={() => setFilter(t)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${filter === t ? 'bg-ocean-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              >
+                {t === '全部' ? t : typeLabels[t]}
+              </button>
+            ))}
+          </div>
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="搜索订单号/姓名/电话"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
+            />
+          </div>
         </div>
-        <div className="relative w-full sm:w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="搜索订单号/姓名/电话"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
-          />
+        
+        {/* 日期筛选 */}
+        <div className="flex flex-wrap gap-3 items-center">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-gray-400" />
+            <span className="text-sm text-gray-500">日期范围：</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={e => setDateFrom(e.target.value)}
+              className="px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
+              placeholder="开始日期"
+            />
+            <span className="text-gray-400">至</span>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={e => setDateTo(e.target.value)}
+              className="px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
+              placeholder="结束日期"
+            />
+            {(dateFrom || dateTo) && (
+              <button
+                onClick={() => { setDateFrom(''); setDateTo(''); }}
+                className="px-2 py-1 text-xs text-gray-400 hover:text-red-500 flex items-center gap-1"
+              >
+                <X className="w-3 h-3" /> 清除
+              </button>
+            )}
+          </div>
+          <div className="flex gap-1">
+            <button
+              onClick={() => {
+                const today = new Date();
+                setDateFrom(today.toISOString().split('T')[0]);
+                setDateTo(today.toISOString().split('T')[0]);
+              }}
+              className="px-3 py-1.5 text-xs text-gray-500 hover:text-ocean-500 border border-gray-200 rounded-lg hover:border-ocean-300 transition-colors"
+            >
+              今天
+            </button>
+            <button
+              onClick={() => {
+                const today = new Date();
+                const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+                setDateFrom(weekAgo.toISOString().split('T')[0]);
+                setDateTo(today.toISOString().split('T')[0]);
+              }}
+              className="px-3 py-1.5 text-xs text-gray-500 hover:text-ocean-500 border border-gray-200 rounded-lg hover:border-ocean-300 transition-colors"
+            >
+              近7天
+            </button>
+            <button
+              onClick={() => {
+                const today = new Date();
+                const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+                setDateFrom(monthAgo.toISOString().split('T')[0]);
+                setDateTo(today.toISOString().split('T')[0]);
+              }}
+              className="px-3 py-1.5 text-xs text-gray-500 hover:text-ocean-500 border border-gray-200 rounded-lg hover:border-ocean-300 transition-colors"
+            >
+              近30天
+            </button>
+          </div>
         </div>
       </div>
 
