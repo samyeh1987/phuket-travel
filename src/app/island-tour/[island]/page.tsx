@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Image from 'next/image'
 import { useParams, useRouter } from 'next/navigation'
 import { Clock, Users, CheckCircle, ChevronLeft, Plus, MessageCircle } from 'lucide-react'
@@ -90,7 +90,17 @@ export default function IslandDetailPage() {
   const [travelers, setTravelers] = useState<Traveler[]>([{ nameCn: '', nameEn: '', passport: '', birthdate: '' }])
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
+  const [showBackToTop, setShowBackToTop] = useState(false)
   const supabase = createClient()
+
+  // Track scroll position for back-to-top button
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > 400)
+    }
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   if (!info) return <div className="p-8 text-center">岛屿不存在</div>
 
@@ -211,7 +221,12 @@ export default function IslandDetailPage() {
           {[['detail', '岛屿详情'], ['book', '立即预订']].map(([t, label]) => (
             <button
               key={t}
-              onClick={() => setTab(t as typeof tab)}
+              onClick={() => {
+                setTab(t as typeof tab)
+                if (t === 'book') {
+                  window.scrollTo({ top: 0, behavior: 'smooth' })
+                }
+              }}
               className={`flex-1 py-3.5 text-sm font-semibold border-b-2 transition-colors ${tab === t ? 'text-ocean-600 border-ocean-500' : 'text-gray-400 border-transparent'}`}
             >
               {label}
@@ -279,23 +294,38 @@ export default function IslandDetailPage() {
               ))}
             </div>
           </div>
-          {selectedBoat && (
-            <div className="fixed bottom-16 md:bottom-0 left-0 right-0 bg-white border-t p-4 z-50 shadow-lg">
-              <div className="max-w-4xl mx-auto flex items-center justify-between">
-                <div>
-                  <div className="text-sm text-gray-500">已选：{selectedBoat.name}</div>
-                  <div className="text-ocean-600 font-bold text-xl">¥{selectedBoat.price}起/人</div>
-                </div>
-                <button
-                  onClick={() => setTab('book')}
-                  className="px-8 py-4 bg-ocean-500 text-white rounded-full font-bold text-lg hover:bg-ocean-600 transition-colors"
-                >
-                  立即预订
-                </button>
-              </div>
+
+      {/* Bottom Fixed Bar - Only show on detail tab */}
+      {selectedBoat && tab === 'detail' && (
+        <div className="fixed bottom-16 md:bottom-0 left-0 right-0 bg-white border-t p-4 z-50 shadow-lg">
+          <div className="max-w-4xl mx-auto flex items-center justify-between">
+            <div>
+              <div className="text-sm text-gray-500">已选：{selectedBoat.name}</div>
+              <div className="text-ocean-600 font-bold text-xl">¥{selectedBoat.price}起/人</div>
             </div>
-          )}
+            <button
+              onClick={() => {
+                setTab('book')
+                window.scrollTo({ top: 0, behavior: 'smooth' })
+              }}
+              className="px-8 py-4 bg-ocean-500 text-white rounded-full font-bold text-lg hover:bg-ocean-600 transition-colors"
+            >
+              立即预订
+            </button>
+          </div>
         </div>
+      )}
+
+      {/* Back to Top Button */}
+      {tab === 'book' && showBackToTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed bottom-24 right-4 w-12 h-12 bg-white border border-gray-200 rounded-full shadow-lg flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors z-40"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+          </svg>
+        </button>
       )}
 
       {/* Book Tab */}
@@ -489,6 +519,39 @@ export default function IslandDetailPage() {
             </div>
           )}
         </div>
+      )}
+
+      {/* Bottom Fixed Bar - Only show on detail tab */}
+      {selectedBoat && tab === 'detail' && (
+        <div className="fixed bottom-16 md:bottom-0 left-0 right-0 bg-white border-t p-4 z-50 shadow-lg">
+          <div className="max-w-4xl mx-auto flex items-center justify-between">
+            <div>
+              <div className="text-sm text-gray-500">已选：{selectedBoat.name}</div>
+              <div className="text-ocean-600 font-bold text-xl">¥{selectedBoat.price}起/人</div>
+            </div>
+            <button
+              onClick={() => {
+                setTab('book')
+                window.scrollTo({ top: 0, behavior: 'smooth' })
+              }}
+              className="px-8 py-4 bg-ocean-500 text-white rounded-full font-bold text-lg hover:bg-ocean-600 transition-colors"
+            >
+              立即预订
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Back to Top Button */}
+      {tab === 'book' && showBackToTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed bottom-24 right-4 w-12 h-12 bg-white border border-gray-200 rounded-full shadow-lg flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors z-40"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+          </svg>
+        </button>
       )}
     </div>
   )
