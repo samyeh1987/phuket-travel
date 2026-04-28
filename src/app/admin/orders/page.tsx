@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react';
 import { Search, Eye, RefreshCw, X, Calendar, Filter, Check, XCircle, Image as ImageIcon } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/components/AuthProvider';
+import { useRouter } from 'next/navigation';
 
 export default function AdminOrdersPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('全部');
@@ -17,6 +19,13 @@ export default function AdminOrdersPage() {
   const [updating, setUpdating] = useState(false);
   const supabase = createClient();
 
+  // Redirect if not logged in
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/auth/login?next=/admin/orders');
+    }
+  }, [user, authLoading, router]);
+
   const fetchOrders = async () => {
     setLoading(true);
     let query = supabase
@@ -24,12 +33,19 @@ export default function AdminOrdersPage() {
       .select('*, profiles(name_cn, email)')
       .order('created_at', { ascending: false });
 
-    const { data } = await query;
+    const { data, error } = await query;
+    if (error) {
+      console.error('获取订单失败:', error);
+    }
     setOrders(data || []);
     setLoading(false);
   };
 
-  useEffect(() => { fetchOrders(); }, []);
+  useEffect(() => {
+    if (user) {
+      fetchOrders();
+    }
+  }, [user]);
 
   const updateStatus = async (orderId: string, status: string) => {
     setUpdating(true);
