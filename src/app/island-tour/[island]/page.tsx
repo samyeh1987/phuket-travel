@@ -294,38 +294,7 @@ export default function IslandDetailPage() {
               ))}
             </div>
           </div>
-
-      {/* Bottom Fixed Bar - Only show on detail tab */}
-      {selectedBoat && tab === 'detail' && (
-        <div className="fixed bottom-16 md:bottom-0 left-0 right-0 bg-white border-t p-4 z-50 shadow-lg">
-          <div className="max-w-4xl mx-auto flex items-center justify-between">
-            <div>
-              <div className="text-sm text-gray-500">已选：{selectedBoat.name}</div>
-              <div className="text-ocean-600 font-bold text-xl">¥{selectedBoat.price}起/人</div>
-            </div>
-            <button
-              onClick={() => {
-                setTab('book')
-                window.scrollTo({ top: 0, behavior: 'smooth' })
-              }}
-              className="px-8 py-4 bg-ocean-500 text-white rounded-full font-bold text-lg hover:bg-ocean-600 transition-colors"
-            >
-              立即预订
-            </button>
-          </div>
         </div>
-      )}
-
-      {/* Back to Top Button */}
-      {tab === 'book' && showBackToTop && (
-        <button
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="fixed bottom-24 right-4 w-12 h-12 bg-white border border-gray-200 rounded-full shadow-lg flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors z-40"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-          </svg>
-        </button>
       )}
 
       {/* Book Tab */}
