@@ -159,6 +159,7 @@ export default function IslandDetailPage() {
 
     // Build order data
     const orderData = {
+      order_number: orderNo,
       user_id: user.id,
       type: 'island',
       status: 'pending',

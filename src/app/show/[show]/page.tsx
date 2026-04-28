@@ -77,6 +77,7 @@ export default function ShowDetailPage() {
 
     // 构建订单数据
     const orderData = {
+      order_number: orderNo,
       user_id: user.id,
       type: 'show',
       status: 'pending',
@@ -101,7 +102,10 @@ export default function ShowDetailPage() {
     const { data, error } = await supabase.from('orders').insert(orderData).select('id').single();
     if (error) {
       console.error('订单保存失败:', error);
-      setSubmitError('订单保存失败，请重试');
+      const errorMsg = error.message || '订单保存失败，请重试';
+      setSubmitError(errorMsg.includes('order_number') 
+        ? '系统配置错误，请联系客服' 
+        : errorMsg);
       setSubmitting(false);
       return;
     }

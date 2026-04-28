@@ -141,6 +141,7 @@ function DivingBookContent() {
     // 构建订单数据
     // 注意：items 和 details 存入 extra_data JSONB 字段
     const orderData = {
+      order_number: orderNo,
       user_id: user.id,
       type: 'diving',
       status: 'pending',
