@@ -480,6 +480,7 @@ export default function CustomTripPage() {
                   const contactMethod = contactMethods.find(m => m.id === selectedContact);
 
                   const orderData = {
+                    order_number: orderNo,
                     user_id: user.id,
                     type: 'custom',
                     status: 'pending',
