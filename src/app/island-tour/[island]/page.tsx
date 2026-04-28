@@ -1,4 +1,4 @@
-'use client';
+'use client'; // Island detail page
 
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
