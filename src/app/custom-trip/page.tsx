@@ -3,10 +3,9 @@
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { MessageCircle } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { createClient } from '@/lib/supabase';
-import { ServiceQRModal } from '@/components/ServiceQRModal';
 
 const tripDays = [
   { nights: 3, days: 4, label: '4天3夜' },
@@ -60,7 +59,6 @@ export default function CustomTripPage() {
   const [people, setPeople] = useState(2);
   const [crowdType, setCrowdType] = useState<string | null>(null);
   const [selectedPrefs, setSelectedPrefs] = useState<string[]>([]);
-  const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   // 固定一个订单号，整个组件生命周期不变
@@ -78,31 +76,6 @@ export default function CustomTripPage() {
     if (step === 3) return people > 0;
     if (step === 4) return crowdType !== null;
     return true;
-  };
-
-  // 生成微信跳转链接（weixin:// 在手机上可直接呼起微信）
-  // 同时准备文字内容方便用户复制发给客服
-  const buildWechatMsg = () => {
-    const dayInfo = tripDays.find(d => d.nights === selectedDays);
-    const budgetInfo = budgets.find(b => b.value === selectedBudget);
-    const crowdInfo = crowdTypes.find(c => c.value === crowdType);
-    const prefLabels = selectedPrefs
-      .map(v => preferences.find(p => p.value === v)?.label)
-      .filter(Boolean)
-      .join('、');
-
-    return [
-      `🌴 普吉旅行定制需求`,
-      `📋 订单号：${orderNo}`,
-      `📅 行程天数：${dayInfo?.label ?? '-'}`,
-      `🗓️ 出发日期：${startDate || '待定'}`,
-      `💰 人均预算：¥${budgetInfo?.label ?? '-'}/天`,
-      `👥 出行人数：${people}人`,
-      `🎯 旅行类型：${crowdInfo ? `${crowdInfo.emoji} ${crowdInfo.label}` : '-'}`,
-      `✨ 偏好体验：${prefLabels || '未选择'}`,
-      ``,
-      `请帮我定制专属行程，谢谢！🙏`,
-    ].join('\n');
   };
 
   const steps = ['行程', '预算', '人数', '偏好', '完成'];
@@ -275,11 +248,6 @@ export default function CustomTripPage() {
               </div>
             </div>
 
-            {/* 提示文案 */}
-            <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-700">
-              <strong>点击下方按钮</strong>将自动打开微信，并复制需求内容，发给客服即可完成定制预约 🎉
-            </div>
-
             {/* 错误提示 */}
             {submitError && (
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-600">
@@ -289,9 +257,6 @@ export default function CustomTripPage() {
           </div>
         )}
       </div>
-
-      {/* 提交成功后显示二维码弹窗 */}
-      {submitted && <ServiceQRModal orderNo={orderNo} onClose={() => router.push('/my/orders')} />}
 
       {/* Bottom CTA - fixed，足够高的 bottom 兼容手机底部 Tab Bar */}
       <div className="fixed bottom-16 md:bottom-0 left-0 right-0 bg-white border-t shadow-lg p-4 z-50">
@@ -344,6 +309,7 @@ export default function CustomTripPage() {
                   user_id: user.id,
                   type: 'custom',
                   status: 'pending',
+                  payment_status: 'unpaid',
                   travel_date: startDate || null,
                   quantity: people,
                   total_price: budgetInfo && dayInfo ? budgetInfo.value * dayInfo.days * people : 0,
@@ -358,7 +324,7 @@ export default function CustomTripPage() {
                 };
 
                 // 保存到数据库
-                const { error } = await supabase.from('orders').insert(orderData);
+                const { data, error } = await supabase.from('orders').insert(orderData).select('id').single();
                 if (error) {
                   console.error('订单保存失败:', error);
                   setSubmitError('订单保存失败，请重试');
@@ -366,19 +332,15 @@ export default function CustomTripPage() {
                   return;
                 }
 
-                const msg = buildWechatMsg();
-                // 复制到剪贴板
-                if (navigator.clipboard) {
-                  navigator.clipboard.writeText(msg).catch(() => {});
-                }
-                setSubmitted(true);
+                // 跳转到付款页面
+                router.push(`/payment/${data.id}`);
                 setSubmitting(false);
               }}
               disabled={submitting}
-              className="flex-1 py-4 rounded-full bg-green-500 text-white font-semibold hover:bg-green-600 transition-colors flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
+              className="flex-1 py-4 rounded-full bg-ocean-500 text-white font-semibold hover:bg-ocean-600 transition-colors flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
             >
-              <MessageCircle className="w-5 h-5" />
-              {submitting ? '提交中...' : '复制需求 · 打开微信'}
+              {submitting && <Loader2 className="w-5 h-5 animate-spin" />}
+              {submitting ? '提交中...' : '提交订单 · 前往支付'}
             </button>
           )}
         </div>

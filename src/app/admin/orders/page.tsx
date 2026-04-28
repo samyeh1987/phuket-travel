@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Search, Eye, RefreshCw, X, Calendar, Filter } from 'lucide-react';
+import { Search, Eye, RefreshCw, X, Calendar, Filter, Check, XCircle, Image as ImageIcon } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
+import { useAuth } from '@/components/AuthProvider';
 
 export default function AdminOrdersPage() {
+  const { user } = useAuth();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('全部');
@@ -37,6 +39,39 @@ export default function AdminOrdersPage() {
     setUpdating(false);
   };
 
+  const updatePaymentStatus = async (orderId: string, paymentStatus: string, notes?: string) => {
+    setUpdating(true);
+    const updateData: any = { payment_status: paymentStatus };
+    if (paymentStatus === 'paid') {
+      updateData.paid_at = new Date().toISOString();
+      updateData.reviewed_by = user?.id;
+      updateData.reviewed_at = new Date().toISOString();
+    }
+    if (notes) {
+      updateData.customer_service_notes = notes;
+    }
+    await supabase.from('orders').update(updateData).eq('id', orderId);
+
+    // 如果是确认付款，同时写入财务流水
+    if (paymentStatus === 'paid' && selectedOrder) {
+      const order = selectedOrder;
+      await supabase.from('payment_transactions').insert({
+        order_id: orderId,
+        order_number: order.order_number,
+        order_type: order.type,
+        amount: order.total_price,
+        payment_method: order.payment_method || 'unknown',
+        proof_url: order.payment_proof_url,
+        status: 'completed',
+        admin_id: user?.id,
+      });
+    }
+
+    setSelectedOrder(null);
+    await fetchOrders();
+    setUpdating(false);
+  };
+
   const types = ['全部', 'diving', 'island', 'show', 'custom'];
   const typeLabels: Record<string, string> = {
     diving: '深潜', island: '跳岛游', show: '秀场', custom: '定制旅行',
@@ -47,6 +82,14 @@ export default function AdminOrdersPage() {
     confirmed: { color: 'text-blue-600', bg: 'bg-blue-50' },
     completed: { color: 'text-green-600', bg: 'bg-green-50' },
     cancelled: { color: 'text-red-600', bg: 'bg-red-50' },
+  };
+
+  // 付款状态配置
+  const paymentStatusConfig: Record<string, { color: string; bg: string; label: string }> = {
+    unpaid: { color: 'text-gray-600', bg: 'bg-gray-100', label: '未付款' },
+    pending_review: { color: 'text-orange-600', bg: 'bg-orange-100', label: '待审核' },
+    paid: { color: 'text-green-600', bg: 'bg-green-100', label: '已付款' },
+    rejected: { color: 'text-red-600', bg: 'bg-red-100', label: '已拒绝' },
   };
 
   const typeColors: Record<string, string> = {
@@ -209,7 +252,8 @@ export default function AdminOrdersPage() {
                   <th className="px-5 py-3.5 font-medium">客户</th>
                   <th className="px-5 py-3.5 font-medium">人数</th>
                   <th className="px-5 py-3.5 font-medium">金额</th>
-                  <th className="px-5 py-3.5 font-medium">状态</th>
+                  <th className="px-5 py-3.5 font-medium">付款状态</th>
+                  <th className="px-5 py-3.5 font-medium">订单状态</th>
                   <th className="px-5 py-3.5 font-medium">日期</th>
                   <th className="px-5 py-3.5 font-medium">操作</th>
                 </tr>
@@ -227,6 +271,16 @@ export default function AdminOrdersPage() {
                       </td>
                       <td className="px-5 py-3.5 text-gray-500">{o.quantity || 1}人</td>
                       <td className="px-5 py-3.5 font-semibold text-ocean-600">¥{Number(o.total_price || 0).toLocaleString()}</td>
+                      <td className="px-5 py-3.5">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${paymentStatusConfig[o.payment_status]?.color || 'text-gray-600'} ${paymentStatusConfig[o.payment_status]?.bg || 'bg-gray-100'}`}>
+                          {paymentStatusConfig[o.payment_status]?.label || '未付款'}
+                        </span>
+                        {o.payment_proof_url && (
+                          <a href={o.payment_proof_url} target="_blank" rel="noopener noreferrer" className="ml-1 text-ocean-500 hover:text-ocean-700">
+                            <ImageIcon className="w-3.5 h-3.5 inline" />
+                          </a>
+                        )}
+                      </td>
                       <td className="px-5 py-3.5">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${status.color} ${status.bg}`}>
                           {statusLabels[o.status] || o.status}
@@ -282,9 +336,26 @@ export default function AdminOrdersPage() {
                 <div><span className="text-gray-500">邮箱</span><div className="font-medium mt-0.5 text-xs">{selectedOrder.contact_email || '—'}</div></div>
                 <div><span className="text-gray-500">人数</span><div className="font-medium mt-0.5">{selectedOrder.quantity || 1}人</div></div>
                 <div><span className="text-gray-500">金额</span><div className="font-semibold text-ocean-600 mt-0.5">¥{Number(selectedOrder.total_price || 0).toLocaleString()}</div></div>
+                <div><span className="text-gray-500">付款方式</span><div className="font-medium mt-0.5">{selectedOrder.payment_method === 'alipay' ? '支付宝' : selectedOrder.payment_method === 'wechat' ? '微信支付' : selectedOrder.payment_method === 'thai_qr' ? '泰国QR码' : '—'}</div></div>
+                <div><span className="text-gray-500">付款状态</span>
+                  <span className={`inline-block mt-0.5 px-2 py-1 rounded-full text-xs font-medium ${paymentStatusConfig[selectedOrder.payment_status]?.color || 'text-gray-600'} ${paymentStatusConfig[selectedOrder.payment_status]?.bg || 'bg-gray-100'}`}>
+                    {paymentStatusConfig[selectedOrder.payment_status]?.label || '未付款'}
+                  </span>
+                </div>
                 <div><span className="text-gray-500">酒店</span><div className="font-medium mt-0.5">{selectedOrder.hotel_name || '—'}</div></div>
                 <div><span className="text-gray-500">创建时间</span><div className="font-medium mt-0.5">{new Date(selectedOrder.created_at).toLocaleString('zh-CN')}</div></div>
+                {selectedOrder.paid_at && (
+                  <div><span className="text-gray-500">付款时间</span><div className="font-medium mt-0.5 text-green-600">{new Date(selectedOrder.paid_at).toLocaleString('zh-CN')}</div></div>
+                )}
               </div>
+              {selectedOrder.payment_proof_url && (
+                <div>
+                  <span className="text-gray-500">付款凭证</span>
+                  <a href={selectedOrder.payment_proof_url} target="_blank" rel="noopener noreferrer" className="mt-1 block">
+                    <img src={selectedOrder.payment_proof_url} alt="付款凭证" className="max-w-full h-auto rounded-lg border border-gray-200" />
+                  </a>
+                </div>
+              )}
               {selectedOrder.extra_data && (
                 <div>
                   <span className="text-gray-500">附加信息</span>
@@ -316,6 +387,35 @@ export default function AdminOrdersPage() {
                 ))}
               </div>
             </div>
+
+            {/* 付款审核区域 */}
+            {selectedOrder.payment_status !== 'paid' && (
+              <div className="mt-6 pt-6 border-t">
+                <p className="text-xs text-gray-400 mb-2">付款审核</p>
+                <div className="flex flex-wrap gap-2">
+                  {selectedOrder.payment_proof_url ? (
+                    <>
+                      <button
+                        onClick={() => updatePaymentStatus(selectedOrder.id, 'paid')}
+                        disabled={updating}
+                        className="px-4 py-2 rounded-lg text-sm font-medium bg-green-500 text-white hover:bg-green-600 transition-colors flex items-center gap-1 disabled:opacity-50"
+                      >
+                        <Check className="w-4 h-4" /> 确认收款
+                      </button>
+                      <button
+                        onClick={() => updatePaymentStatus(selectedOrder.id, 'rejected')}
+                        disabled={updating}
+                        className="px-4 py-2 rounded-lg text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-colors flex items-center gap-1 disabled:opacity-50"
+                      >
+                        <XCircle className="w-4 h-4" /> 拒绝
+                      </button>
+                    </>
+                  ) : (
+                    <span className="text-sm text-gray-400">等待客户上传付款凭证</span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

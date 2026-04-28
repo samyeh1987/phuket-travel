@@ -7,7 +7,6 @@ import { useSearchParams } from 'next/navigation';
 import { ChevronLeft, MessageCircle, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/components/AuthProvider';
-import { ServiceQRModal } from '@/components/ServiceQRModal';
 
 // 所有课程定义
 const divingTypes = [
@@ -86,7 +85,6 @@ function DivingBookContent() {
     Array.from({ length: totalPeople }, emptyPerson)
   );
   const [expanded, setExpanded] = useState<number[]>([0]);
-  const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
@@ -146,6 +144,7 @@ function DivingBookContent() {
       user_id: user.id,
       type: 'diving',
       status: 'pending',
+      payment_status: 'unpaid',
       total_price: totalPrice,
       quantity: totalPeople,
       travel_date: persons[0]?.startDate || null,
@@ -157,7 +156,7 @@ function DivingBookContent() {
     };
 
     // 保存到数据库
-    const { error } = await supabase.from('orders').insert(orderData);
+    const { data, error } = await supabase.from('orders').insert(orderData).select('id').single();
 
     if (error) {
       console.error('订单保存失败:', error);
@@ -171,15 +170,11 @@ function DivingBookContent() {
     if (navigator.clipboard) {
       navigator.clipboard.writeText(msg).catch(() => {});
     }
-    // 显示客服二维码弹窗
-    setSubmitted(true);
+
+    // 跳转到付款页面
+    router.push(`/payment/${data.id}`);
     setSubmitting(false);
   };
-
-  // 提交成功后显示二维码弹窗
-  if (submitted) {
-    return <ServiceQRModal orderNo={orderNo} onClose={() => router.push('/my/orders')} />;
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -463,11 +458,11 @@ function DivingBookContent() {
             {submitting ? '提交中...' : (
               <>
                 <MessageCircle className="w-5 h-5" />
-                提交报名 · 发送给客服
+                提交订单 · 前往支付
               </>
             )}
           </button>
-          <p className="text-xs text-center text-white/60 mt-2">将自动复制信息并打开微信</p>
+          <p className="text-xs text-center text-white/60 mt-2">订单提交后将跳转至支付页面</p>
         </div>
       </div>
     </div>

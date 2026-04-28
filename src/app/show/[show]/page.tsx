@@ -4,10 +4,9 @@ import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
-import { CheckCircle, Clock, MapPin, ChevronLeft, MessageCircle } from 'lucide-react';
+import { CheckCircle, Clock, MapPin, ChevronLeft, Loader2 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { createClient } from '@/lib/supabase';
-import { ServiceQRModal } from '@/components/ServiceQRModal';
 
 const showData: Record<string, {
   name: string; subtitle: string; description: string;
@@ -57,30 +56,11 @@ export default function ShowDetailPage() {
   const [phone, setPhone] = useState('');
   const [wechat, setWechat] = useState('');
   const [hotel, setHotel] = useState('');
-  const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const supabase = createClient();
 
   if (!info) return <div className="p-8 text-center">秀场不存在</div>;
-
-  const buildWechatMsg = () => [
-    `🎭 秀场预订`,
-    `📋 订单号：${orderNo}`,
-    `🎪 秀场：${info.name}`,
-    `🎫 套餐：${selectedPkg?.name ?? '-'}`,
-    `📅 日期：${showDate || '待定'}`,
-    `👥 人数：${quantity}人`,
-    `💰 总金额：¥${selectedPkg ? (selectedPkg.price * quantity).toLocaleString() : '-'}`,
-    ``,
-    `👤 姓名：${nameCn} / ${nameEn || '-'}`,
-    `📞 电话：${phone || '-'}`,
-    `📧 邮箱：${email || '-'}`,
-    `💬 微信：${wechat || '-'}`,
-    `🏨 酒店：${hotel || '-'}`,
-    ``,
-    `请确认预订，谢谢！🙏`,
-  ].join('\n');
 
   const handleSubmit = async () => {
     if (!user) {
@@ -100,6 +80,7 @@ export default function ShowDetailPage() {
       user_id: user.id,
       type: 'show',
       status: 'pending',
+      payment_status: 'unpaid',
       travel_date: showDate,
       quantity: quantity,
       total_price: selectedPkg ? selectedPkg.price * quantity : 0,
@@ -117,7 +98,7 @@ export default function ShowDetailPage() {
     };
 
     // 保存到数据库
-    const { error } = await supabase.from('orders').insert(orderData);
+    const { data, error } = await supabase.from('orders').insert(orderData).select('id').single();
     if (error) {
       console.error('订单保存失败:', error);
       setSubmitError('订单保存失败，请重试');
@@ -125,17 +106,10 @@ export default function ShowDetailPage() {
       return;
     }
 
-    const msg = buildWechatMsg();
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(msg).catch(() => {});
-    }
-    setSubmitted(true);
+    // 跳转到付款页面
+    router.push(`/payment/${data.id}`);
     setSubmitting(false);
   };
-
-  if (submitted) {
-    return <ServiceQRModal orderNo={orderNo} onClose={() => router.push('/my/orders')} />;
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -269,10 +243,9 @@ export default function ShowDetailPage() {
                 disabled={submitting}
                 className="w-full py-4 bg-white text-ocean-600 rounded-full font-bold text-lg hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                <MessageCircle className="w-5 h-5" />
-                {submitting ? '提交中...' : '提交预订 · 发给客服'}
+                {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+                {submitting ? '提交中...' : '提交订单 · 前往支付'}
               </button>
-              <p className="text-xs text-center text-white/60 mt-2">将自动复制信息并打开微信</p>
             </div>
           </div>
         )}

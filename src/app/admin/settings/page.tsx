@@ -137,9 +137,9 @@ export default function AdminSettingsPage() {
         <h2 className="text-lg font-bold text-gray-900 mb-4">收款方式</h2>
         <div className="space-y-4">
           {[
+            { key: 'alipay_qr', label: '支付宝收款码', emoji: '💙', placeholder: '输入支付宝收款码图片URL' },
             { key: 'wechat_qr', label: '微信收款码', emoji: '💚', placeholder: '输入微信收款码图片URL' },
-            { key: 'alipay_account', label: '支付宝账号', emoji: '🔵', placeholder: 'account@example.com' },
-            { key: 'promptpay', label: '泰国 PromptPay / QR', emoji: '🇹🇭', placeholder: '输入泰国收款码图片URL' },
+            { key: 'thai_qr', label: '泰国QR码', emoji: '🇹🇭', placeholder: '输入泰国收款码图片URL' },
           ].map(f => (
             <div key={f.key} className="border border-gray-100 rounded-xl p-4">
               <div className="flex items-center gap-2 mb-3">
@@ -153,9 +153,15 @@ export default function AdminSettingsPage() {
                 placeholder={f.placeholder}
                 className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
               />
+              {settings[f.key] && (
+                <div className="mt-2 rounded-lg overflow-hidden bg-gray-50 inline-block">
+                  <img src={settings[f.key]} alt={f.label} className="h-32 object-contain" onError={e => (e.target as HTMLImageElement).style.display = 'none'} />
+                </div>
+              )}
             </div>
           ))}
         </div>
+        <p className="text-xs text-gray-400 mt-3">建议图片尺寸 300x400 像素，背景透明或浅色为佳</p>
       </div>
 
       {/* 首页Banner */}

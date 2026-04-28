@@ -125,31 +125,55 @@ CREATE TABLE orders (
     order_number VARCHAR(50) UNIQUE NOT NULL,
     type VARCHAR(50) NOT NULL, -- 'custom', 'diving_experience', 'diving_cert', 'island', 'show'
     status VARCHAR(50) DEFAULT 'pending', -- 'pending', 'paid', 'confirmed', 'cancelled'
-    
+
     -- 预订信息
     travel_date DATE,
     quantity INTEGER DEFAULT 1,
     total_price DECIMAL(10, 2),
-    
+
     -- 联系人
     contact_name_cn VARCHAR(100),
     contact_name_en VARCHAR(100),
     contact_email VARCHAR(255),
     contact_phone VARCHAR(50),
     contact_wechat VARCHAR(100),
-    
+
     -- 酒店信息（跳岛游）
     hotel_name VARCHAR(255),
     hotel_address TEXT,
-    
+
+    -- 付款信息
+    payment_method VARCHAR(50), -- 'alipay', 'wechat', 'thai_qr'
+    payment_status VARCHAR(50) DEFAULT 'unpaid', -- 'unpaid', 'pending_review', 'paid', 'rejected'
+    payment_proof_url TEXT, -- 凭证图片URL
+    paid_at TIMESTAMP WITH TIME ZONE, -- 付款时间
+    reviewed_by UUID, -- 审核人ID
+    reviewed_at TIMESTAMP WITH TIME ZONE, -- 审核时间
+
     -- 额外信息
     extra_data JSONB, -- 存储套餐ID等
-    
+
     -- 客服信息
     customer_service_notes TEXT,
-    
+
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 财务流水表
+CREATE TABLE payment_transactions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    order_id UUID REFERENCES orders(id) ON DELETE SET NULL,
+    order_number VARCHAR(50),
+    order_type VARCHAR(50),
+    amount DECIMAL(10, 2) NOT NULL,
+    payment_method VARCHAR(50) NOT NULL, -- 'alipay', 'wechat', 'thai_qr'
+    transaction_ref VARCHAR(100), -- 流水号/备注
+    proof_url TEXT,
+    status VARCHAR(50) DEFAULT 'completed', -- 'pending', 'completed', 'refunded'
+    admin_id UUID REFERENCES admin_users(id),
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- 订单出行人
@@ -180,10 +204,15 @@ CREATE TABLE system_settings (
 CREATE INDEX idx_orders_type ON orders(type);
 CREATE INDEX idx_orders_status ON orders(status);
 CREATE INDEX idx_orders_created_at ON orders(created_at DESC);
+CREATE INDEX idx_orders_payment_status ON orders(payment_status);
+CREATE INDEX idx_orders_user_id ON orders(user_id);
 CREATE INDEX idx_order_travelers_order_id ON order_travelers(order_id);
 CREATE INDEX idx_diving_packages_type ON diving_packages(type);
 CREATE INDEX idx_island_boats_island_id ON island_boats(island_id);
 CREATE INDEX idx_show_packages_show_id ON show_packages(show_id);
+CREATE INDEX idx_transactions_order_id ON payment_transactions(order_id);
+CREATE INDEX idx_transactions_created_at ON payment_transactions(created_at DESC);
+CREATE INDEX idx_transactions_status ON payment_transactions(status);
 
 -- =============================================
 -- Row Level Security (RLS)
@@ -260,6 +289,10 @@ CREATE POLICY "Public create orders" ON orders
 CREATE POLICY "Public read orders" ON orders
     FOR SELECT USING (true);
 
+-- Public: Update orders (for payment proof upload)
+CREATE POLICY "Public update orders" ON orders
+    FOR UPDATE USING (true);
+
 -- Admin: Full access to orders
 CREATE POLICY "Admin manage orders" ON orders
     FOR ALL USING (auth.role() = 'authenticated');
@@ -283,6 +316,32 @@ CREATE POLICY "Public read settings" ON system_settings
 -- Admin: Manage settings
 CREATE POLICY "Admin manage settings" ON system_settings
     FOR ALL USING (auth.role() = 'authenticated');
+
+-- Payment transactions: Public can read, Admin can manage
+CREATE POLICY "Public read transactions" ON payment_transactions
+    FOR SELECT USING (true);
+
+CREATE POLICY "Admin manage transactions" ON payment_transactions
+    FOR ALL USING (auth.role() = 'authenticated');
+
+-- =============================================
+-- Storage Buckets
+-- =============================================
+
+-- Enable storage extension if not exists
+INSERT INTO storage.buckets (id, name, public, created_at, updated_at)
+VALUES ('payment-proofs', 'payment-proofs', true, NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+-- Storage policies
+CREATE POLICY "Public upload payment proofs" ON storage.objects
+    FOR INSERT WITH CHECK (bucket_id = 'payment-proofs');
+
+CREATE POLICY "Public read payment proofs" ON storage.objects
+    FOR SELECT USING (bucket_id = 'payment-proofs');
+
+CREATE POLICY "Admin manage payment proofs" ON storage.objects
+    FOR ALL USING (bucket_id = 'payment-proofs' AND auth.role() = 'authenticated');
 
 -- =============================================
 -- Functions
@@ -432,9 +491,11 @@ FROM shows WHERE slug = 'simon';
 
 -- 系统设置
 INSERT INTO system_settings (key, value, description) VALUES
-('customer_service_wechat', '', '客服微信号'),
-('customer_service_qr', '', '客服微信二维码URL'),
+('wechat', '', '客服微信号'),
+('whatsapp', '', 'WhatsApp号码'),
+('phone', '', '联系电话'),
+('email', '', '邮箱'),
+('service_qr', '', '客服二维码URL'),
+('alipay_qr', '', '支付宝收款码URL'),
 ('wechat_qr', '', '微信收款码URL'),
-('alipay_account', '', '支付宝账号'),
-('thai_qr', '', '泰国收款二维码URL'),
-('whatsapp', '', 'WhatsApp号码');
+('thai_qr', '', '泰国QR码收款URL');
