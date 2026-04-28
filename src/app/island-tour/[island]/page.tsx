@@ -71,6 +71,8 @@ export default function IslandDetailPage() {
   const router = useRouter();
   const { user } = useAuth();
   const island = params.island as string;
+
+  // Island info and boat options
   const info = islandData[island];
   const boats = boatData[island as keyof typeof boatData] || [];
 
