@@ -6,6 +6,8 @@ import { useParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { Clock, Users, CheckCircle, ChevronLeft, Plus, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
+import { createClient } from '@/lib/supabase';
+import { ServiceQRModal } from '@/components/ServiceQRModal';
 
 const islandData: Record<string, {
   name: string; subtitle: string; description: string;
@@ -87,6 +89,9 @@ export default function IslandDetailPage() {
   const [contactWechat, setContactWechat] = useState('');
   const [travelers, setTravelers] = useState<Traveler[]>([{ nameCn: '', nameEn: '', passport: '', birthdate: '' }]);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const supabase = createClient();
 
   if (!info) return <div className="p-8 text-center">岛屿不存在</div>;
 
@@ -130,7 +135,7 @@ export default function IslandDetailPage() {
     return lines.join('\n');
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!user) {
       router.push(`/auth/login?next=${encodeURIComponent(`/island-tour/${island}`)}`);
       return;
@@ -139,29 +144,52 @@ export default function IslandDetailPage() {
       alert('请填写必填信息（出行日期、姓名、联系电话）');
       return;
     }
+
+    setSubmitting(true);
+    setSubmitError('');
+
+    // 构建订单数据
+    const orderData = {
+      user_id: user.id,
+      type: 'island',
+      status: 'pending',
+      travel_date: travelDate,
+      quantity: people,
+      total_price: selectedBoat ? selectedBoat.price * people : 0,
+      contact_name_cn: contactNameCn,
+      contact_name_en: contactNameEn,
+      contact_phone: contactPhone,
+      contact_email: contactEmail,
+      contact_wechat: contactWechat,
+      hotel_name: hotelName,
+      hotel_address: hotelAddress,
+      extra_data: {
+        island: island,
+        island_name: info.name,
+        boat: selectedBoat,
+        travelers: travelers,
+      },
+    };
+
+    // 保存到数据库
+    const { error } = await supabase.from('orders').insert(orderData);
+    if (error) {
+      console.error('订单保存失败:', error);
+      setSubmitError('订单保存失败，请重试');
+      setSubmitting(false);
+      return;
+    }
+
     const msg = buildWechatMsg();
     if (navigator.clipboard) {
       navigator.clipboard.writeText(msg).catch(() => {});
     }
     setSubmitted(true);
-    setTimeout(() => { window.location.href = 'weixin://'; }, 300);
+    setSubmitting(false);
   };
 
   if (submitted) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-8 text-center">
-        <div className="text-6xl mb-4">🎉</div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">预订信息已复制！</h1>
-        <p className="text-gray-500 mb-6">正在打开微信，请将信息发给客服确认</p>
-        <div className="bg-white rounded-xl p-4 w-full max-w-xs shadow text-left space-y-2">
-          <div className="flex justify-between text-sm"><span className="text-gray-500">订单号</span><span className="font-mono font-bold text-ocean-600">{orderNo}</span></div>
-          <div className="flex justify-between text-sm"><span className="text-gray-500">目的地</span><span>{info.name}</span></div>
-          <div className="flex justify-between text-sm"><span className="text-gray-500">船只</span><span>{selectedBoat?.name}</span></div>
-          <div className="flex justify-between text-sm"><span className="text-gray-500">总金额</span><span className="font-bold text-ocean-600">¥{selectedBoat ? (selectedBoat.price * people).toLocaleString() : '-'}</span></div>
-        </div>
-        <a href="/island-tour" className="mt-6 text-sm text-gray-400 hover:text-gray-600">← 返回跳岛游</a>
-      </div>
-    );
+    return <ServiceQRModal orderNo={orderNo} onClose={() => router.push('/my/orders')} />;
   }
 
   return (
@@ -383,26 +411,35 @@ export default function IslandDetailPage() {
 
           {/* 提交 */}
           {selectedBoat && (
-            <div className="bg-ocean-500 text-white rounded-2xl p-5 shadow-lg">
-              <div className="flex justify-between items-center mb-4">
-                <div>
-                  <div className="text-sm opacity-80">应付总额</div>
-                  <div className="text-3xl font-bold">¥{(selectedBoat.price * people).toLocaleString()}</div>
-                  <div className="text-xs opacity-70 mt-1">{selectedBoat.name} × {people}人</div>
+            <div className="space-y-3">
+              {/* 错误提示 */}
+              {submitError && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-600">
+                  {submitError}
                 </div>
-                <div className="text-right text-xs opacity-70">
-                  <div>订单号</div>
-                  <div className="font-mono">{orderNo}</div>
+              )}
+              <div className="bg-ocean-500 text-white rounded-2xl p-5 shadow-lg">
+                <div className="flex justify-between items-center mb-4">
+                  <div>
+                    <div className="text-sm opacity-80">应付总额</div>
+                    <div className="text-3xl font-bold">¥{(selectedBoat.price * people).toLocaleString()}</div>
+                    <div className="text-xs opacity-70 mt-1">{selectedBoat.name} × {people}人</div>
+                  </div>
+                  <div className="text-right text-xs opacity-70">
+                    <div>订单号</div>
+                    <div className="font-mono">{orderNo}</div>
+                  </div>
                 </div>
+                <button
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  className="w-full py-4 bg-white text-ocean-600 rounded-full font-bold text-lg hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  {submitting ? '提交中...' : '提交预订 · 发给客服'}
+                </button>
+                <p className="text-xs text-center text-white/60 mt-2">将自动复制信息并打开微信</p>
               </div>
-              <button
-                onClick={handleSubmit}
-                className="w-full py-4 bg-white text-ocean-600 rounded-full font-bold text-lg hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
-              >
-                <MessageCircle className="w-5 h-5" />
-                提交预订 · 发给客服
-              </button>
-              <p className="text-xs text-center text-white/60 mt-2">将自动复制信息并打开微信</p>
             </div>
           )}
         </div>

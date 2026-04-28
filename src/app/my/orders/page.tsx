@@ -8,6 +8,7 @@ import { Package, ChevronRight, Clock } from 'lucide-react';
 
 const typeLabels: Record<string, string> = {
   custom: '定制旅行',
+  diving: '深潜预订',
   diving_experience: '深潜体验',
   diving_cert: '潜水考证',
   island: '跳岛游',
