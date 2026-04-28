@@ -346,7 +346,7 @@ export default function CustomTripPage() {
                   status: 'pending',
                   travel_date: startDate || null,
                   quantity: people,
-                  total_price: budgetInfo ? budgetInfo.value * dayInfo?.days * people : 0,
+                  total_price: budgetInfo && dayInfo ? budgetInfo.value * dayInfo.days * people : 0,
                   contact_email: user.email,
                   extra_data: {
                     trip_days: dayInfo?.label,
