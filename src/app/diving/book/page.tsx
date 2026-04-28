@@ -2,9 +2,10 @@
 
 import { useState, useMemo, Suspense } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { ChevronLeft, MessageCircle, ChevronDown, ChevronUp, Info } from 'lucide-react';
+import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/components/AuthProvider';
 
 // 所有课程定义
@@ -70,9 +71,10 @@ export default function DivingBookPage() {
 }
 
 function DivingBookContent() {
-  const searchParams = useSearchParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
+  const supabase = createClient();
   const selectedItems = useMemo(() => parseSelectedItems(searchParams.toString()), [searchParams]);
   const orderNo = useMemo(() => genOrderNo(), []);
   const totalPeople = selectedItems.reduce((s, i) => s + i.qty, 0);
@@ -84,6 +86,8 @@ function DivingBookContent() {
   );
   const [expanded, setExpanded] = useState<number[]>([0]);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const toggleExpand = (i: number) => {
     setExpanded(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i]);
@@ -125,11 +129,41 @@ function DivingBookContent() {
     return lines.join('\n');
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    // 检查登录
     if (!user) {
-      router.push('/auth/login?next=/diving/book?' + searchParams.toString());
+      router.push('/auth/login?next=' + encodeURIComponent(window.location.pathname + window.location.search));
       return;
     }
+
+    setSubmitting(true);
+    setSubmitError('');
+
+    // 构建订单数据
+    const orderData = {
+      user_id: user.id,
+      order_number: orderNo,
+      type: 'diving',
+      status: 'pending',
+      total_price: totalPrice,
+      quantity: totalPeople,
+      travel_date: persons[0]?.startDate || null,
+      items: selectedItems,
+      details: persons,
+      contact_email: user.email,
+    };
+
+    // 保存到数据库
+    const { error } = await supabase.from('orders').insert(orderData);
+
+    if (error) {
+      console.error('订单保存失败:', error);
+      setSubmitError('订单保存失败，请重试');
+      setSubmitting(false);
+      return;
+    }
+
+    // 复制信息到剪贴簿
     const msg = buildWechatMsg();
     if (navigator.clipboard) {
       navigator.clipboard.writeText(msg).catch(() => {});
@@ -410,6 +444,13 @@ function DivingBookContent() {
           <strong>📌 温馨提示：</strong>每人一份表格。如有多项课程，客服会帮忙补充填写其他项目的信息，无需重复提交。
         </div>
 
+        {/* 错误提示 */}
+        {submitError && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-600">
+            {submitError}
+          </div>
+        )}
+
         {/* 提交按钮 */}
         <div className="bg-ocean-500 text-white rounded-2xl p-5 shadow-lg">
           <div className="flex justify-between items-center mb-4">
@@ -424,10 +465,15 @@ function DivingBookContent() {
           </div>
           <button
             onClick={handleSubmit}
-            className="w-full py-4 bg-white text-ocean-600 rounded-full font-bold text-lg hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
+            disabled={submitting}
+            className="w-full py-4 bg-white text-ocean-600 rounded-full font-bold text-lg hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
           >
-            <MessageCircle className="w-5 h-5" />
-            提交报名 · 发送给客服
+            {submitting ? '提交中...' : (
+              <>
+                <MessageCircle className="w-5 h-5" />
+                提交报名 · 发送给客服
+              </>
+            )}
           </button>
           <p className="text-xs text-center text-white/60 mt-2">将自动复制信息并打开微信</p>
         </div>
