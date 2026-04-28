@@ -141,17 +141,19 @@ function DivingBookContent() {
     setSubmitError('');
 
     // 构建订单数据
+    // 注意：items 和 details 存入 extra_data JSONB 字段
     const orderData = {
       user_id: user.id,
-      order_number: orderNo,
       type: 'diving',
       status: 'pending',
       total_price: totalPrice,
       quantity: totalPeople,
       travel_date: persons[0]?.startDate || null,
-      items: selectedItems,
-      details: persons,
       contact_email: user.email,
+      extra_data: {
+        items: selectedItems,
+        details: persons,
+      },
     };
 
     // 保存到数据库
