@@ -181,12 +181,15 @@ export default function CustomTripPage() {
             </div>
             <div className="mt-5">
               <label className="text-sm font-medium text-gray-700 mb-2 block">选择出发日期 <span className="text-red-500">*</span></label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={e => setStartDate(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-700 focus:outline-none focus:ring-2 focus:ring-ocean-500"
-              />
+              <div className="relative">
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={e => setStartDate(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-700 focus:outline-none focus:border-ocean-500 focus:ring-2 focus:ring-ocean-100 transition-colors bg-white appearance-none cursor-pointer"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">📅</span>
+              </div>
             </div>
           </div>
         )}

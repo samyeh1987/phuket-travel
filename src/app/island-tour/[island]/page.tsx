@@ -322,21 +322,21 @@ export default function IslandDetailPage() {
           {/* 预订基本信息 */}
           <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
             <h3 className="font-bold text-gray-900">预订信息</h3>
-            <div className="grid grid-cols-1 gap-4">
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">出行日期 *</label>
-                <input type="date" value={travelDate} onChange={e => setTravelDate(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500 box-border" />
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">人数</label>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setPeople(Math.max(1, people - 1))} className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-600">−</button>
-                  <span className="w-10 text-center font-semibold text-lg">{people}</span>
-                  <button onClick={() => setPeople(people + 1)} className="w-10 h-10 rounded-full bg-ocean-500 text-white flex items-center justify-center font-bold">+</button>
-                </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">出行日期 *</label>
+              <div className="relative">
+                <input type="date" value={travelDate} onChange={e => setTravelDate(e.target.value)} className="w-full px-3 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-ocean-500 focus:ring-2 focus:ring-ocean-100 transition-colors bg-white appearance-none cursor-pointer" />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">📅</span>
               </div>
             </div>
             <div>
+              <label className="text-xs text-gray-500 mb-1 block">人数</label>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setPeople(Math.max(1, people - 1))} className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-600 hover:bg-gray-200 transition-colors">−</button>
+                <span className="w-10 text-center font-semibold text-lg">{people}</span>
+                <button onClick={() => setPeople(people + 1)} className="w-10 h-10 rounded-full bg-ocean-500 text-white flex items-center justify-center font-bold hover:bg-ocean-600 transition-colors">+</button>
+              </div>
+            </div>
               <label className="text-xs text-gray-500 mb-1 block">酒店名称 *</label>
               <input type="text" placeholder="入住酒店名称" value={hotelName} onChange={e => setHotelName(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
             </div>

@@ -253,12 +253,15 @@ function DivingBookContent() {
                 {/* 行程开始日期 */}
                 <div className="pt-4">
                   <label className="text-xs font-medium text-gray-500 mb-1.5 block">行程开始日期 *</label>
-                  <input
-                    type="date"
-                    value={person.startDate}
-                    onChange={e => updatePerson(idx, 'startDate', e.target.value)}
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
-                  />
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={person.startDate}
+                      onChange={e => updatePerson(idx, 'startDate', e.target.value)}
+                      className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-ocean-500 focus:ring-2 focus:ring-ocean-100 transition-colors bg-white appearance-none cursor-pointer"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-sm">📅</span>
+                  </div>
                 </div>
 
                 {/* 基本信息 */}
@@ -299,12 +302,15 @@ function DivingBookContent() {
                   </div>
                   <div>
                     <label className="text-xs font-medium text-gray-500 mb-1.5 block">出生日期 *</label>
-                    <input
-                      type="date"
-                      value={person.birthdate}
-                      onChange={e => updatePerson(idx, 'birthdate', e.target.value)}
-                      className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
-                    />
+                    <div className="relative">
+                      <input
+                        type="date"
+                        value={person.birthdate}
+                        onChange={e => updatePerson(idx, 'birthdate', e.target.value)}
+                        className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-ocean-500 focus:ring-2 focus:ring-ocean-100 transition-colors bg-white appearance-none cursor-pointer"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-sm">📅</span>
+                    </div>
                   </div>
                 </div>
 

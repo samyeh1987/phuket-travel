@@ -179,7 +179,10 @@ export default function ShowDetailPage() {
 
           <div>
             <label className="text-xs text-gray-500 mb-1 block">观看日期 *</label>
-            <input type="date" value={showDate} onChange={e => setShowDate(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
+            <div className="relative">
+              <input type="date" value={showDate} onChange={e => setShowDate(e.target.value)} className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-ocean-500 focus:ring-2 focus:ring-ocean-100 transition-colors bg-white appearance-none cursor-pointer" />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">📅</span>
+            </div>
           </div>
           <div>
             <label className="text-xs text-gray-500 mb-1 block">人数</label>
