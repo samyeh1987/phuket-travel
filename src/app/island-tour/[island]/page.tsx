@@ -322,18 +322,16 @@ export default function IslandDetailPage() {
           {/* 预订基本信息 */}
           <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
             <h3 className="font-bold text-gray-900">预订信息</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">出行日期 *</label>
-                <input type="date" value={travelDate} onChange={e => setTravelDate(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">人数</label>
-                <div className="flex items-center gap-2 pt-1">
-                  <button onClick={() => setPeople(Math.max(1, people - 1))} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-600">−</button>
-                  <span className="w-8 text-center font-semibold">{people}</span>
-                  <button onClick={() => setPeople(people + 1)} className="w-9 h-9 rounded-full bg-ocean-500 text-white flex items-center justify-center font-bold">+</button>
-                </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">出行日期 *</label>
+              <input type="date" value={travelDate} onChange={e => setTravelDate(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">人数</label>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setPeople(Math.max(1, people - 1))} className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-600">−</button>
+                <span className="w-10 text-center font-semibold text-lg">{people}</span>
+                <button onClick={() => setPeople(people + 1)} className="w-10 h-10 rounded-full bg-ocean-500 text-white flex items-center justify-center font-bold">+</button>
               </div>
             </div>
             <div>
