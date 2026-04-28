@@ -7,6 +7,7 @@ import { useSearchParams } from 'next/navigation';
 import { ChevronLeft, MessageCircle, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/components/AuthProvider';
+import { ServiceQRModal } from '@/components/ServiceQRModal';
 
 // 所有课程定义
 const divingTypes = [
@@ -163,30 +164,19 @@ function DivingBookContent() {
       return;
     }
 
-    // 复制信息到剪贴簿
+    // 复制信息到剪贴簿（可选）
     const msg = buildWechatMsg();
     if (navigator.clipboard) {
       navigator.clipboard.writeText(msg).catch(() => {});
     }
+    // 显示客服二维码弹窗
     setSubmitted(true);
-    setTimeout(() => {
-      window.location.href = 'weixin://';
-    }, 300);
+    setSubmitting(false);
   };
 
+  // 提交成功后显示二维码弹窗
   if (submitted) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-8 text-center">
-        <div className="text-6xl mb-4">🎉</div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">信息已复制！</h1>
-        <p className="text-gray-500 mb-6">正在打开微信，请直接粘贴发送给客服</p>
-        <div className="bg-white rounded-xl p-4 w-full max-w-xs shadow">
-          <div className="text-sm text-gray-500 mb-1">订单号</div>
-          <div className="font-mono font-bold text-ocean-600 text-lg">{orderNo}</div>
-        </div>
-        <Link href="/diving" className="mt-6 text-sm text-gray-400 hover:text-gray-600">← 返回深潜页面</Link>
-      </div>
-    );
+    return <ServiceQRModal orderNo={orderNo} onClose={() => router.push('/my/orders')} />;
   }
 
   return (

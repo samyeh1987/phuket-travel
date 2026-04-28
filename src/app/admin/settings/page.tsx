@@ -114,6 +114,22 @@ export default function AdminSettingsPage() {
             </div>
           ))}
         </div>
+        {/* 客服二维码 */}
+        <div className="mt-4">
+          <label className="text-sm font-medium text-gray-700 mb-1 block">客服二维码图片URL</label>
+          <input
+            type="text"
+            value={settings['service_qr'] || ''}
+            onChange={e => updateSetting('service_qr', e.target.value)}
+            placeholder="https://... (输入二維碼图片链接)"
+            className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
+          />
+          {settings['service_qr'] && (
+            <div className="mt-2 rounded-lg overflow-hidden bg-gray-50 inline-block">
+              <img src={settings['service_qr']} alt="客服二维码" className="h-40 object-contain" onError={e => (e.target as HTMLImageElement).style.display = 'none'} />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 收款方式 */}
