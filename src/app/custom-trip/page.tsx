@@ -501,7 +501,7 @@ export default function CustomTripPage() {
                   const { data, error } = await supabase.from('orders').insert(orderData).select('id').single();
                   if (error) {
                     console.error('订单保存失败:', error);
-                    setSubmitError('订单保存失败，请重试');
+                    setSubmitError(`订单保存失败：${error.message}`);
                     setSubmitting(false);
                     return;
                   }
