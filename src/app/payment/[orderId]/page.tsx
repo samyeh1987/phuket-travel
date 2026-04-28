@@ -51,7 +51,7 @@ export default function PaymentPage() {
 
   const handlePaymentMethodSelect = (method: string) => {
     setPaymentMethod(method);
-    setCurrentStep(2);
+    // 不自动跳转，等待用户点击"下一步"
   };
 
   const handleProofUpload = async (url: string) => {
