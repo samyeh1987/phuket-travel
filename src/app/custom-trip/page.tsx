@@ -115,7 +115,8 @@ export default function CustomTripPage() {
     if (step === 2) return selectedBudget !== null;
     if (step === 3) return people > 0;
     if (step === 4) return crowdType !== null;
-    if (step === 5) return selectedContact !== null && contactValue.trim() !== '';
+    if (step === 5) return true; // 喜好选择是可选的
+    if (step === 6) return selectedContact !== null && contactValue.trim() !== '';
     return true;
   };
 
