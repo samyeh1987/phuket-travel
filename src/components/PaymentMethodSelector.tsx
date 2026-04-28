@@ -15,7 +15,7 @@ interface PaymentQR {
   thai_qr: string;
 }
 
-const paymentMethods = [
+const PAYMENT_METHODS = [
   {
     id: 'alipay',
     name: '支付宝',
@@ -59,7 +59,6 @@ const paymentMethods = [
 ];
 
 export function PaymentMethodSelector({ value, onChange }: PaymentMethodSelectorProps) {
-  // 付款方式选择组件
   const [qrCodes, setQrCodes] = useState<PaymentQR>({
     alipay: '',
     wechat: '',
@@ -88,16 +87,16 @@ export function PaymentMethodSelector({ value, onChange }: PaymentMethodSelector
   }, []);
 
   const selectedQr = qrCodes[value as keyof PaymentQR] || '';
+  const selectedMethod = PAYMENT_METHODS.find((m) => m.id === value);
 
   return (
     <div className="space-y-4">
-      {/* 付款方式选择 */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-3">
           请选择付款方式
         </label>
         <div className="grid grid-cols-3 gap-3">
-          {paymentMethods.map((method) => (
+          {PAYMENT_METHODS.map((method) => (
             <button
               key={method.id}
               onClick={() => onChange(method.id)}
@@ -123,11 +122,10 @@ export function PaymentMethodSelector({ value, onChange }: PaymentMethodSelector
         </div>
       </div>
 
-      {/* 收款码展示 */}
       {value && (
         <div className="mt-6">
           <label className="block text-sm font-medium text-gray-700 mb-3">
-            请扫描{maymentMethods.find((m) => m.id === value)?.name}收款码进行付款
+            请扫描{selectedMethod?.name}收款码进行付款
           </label>
           <div className="bg-gray-50 rounded-2xl p-6 flex justify-center">
             {selectedQr ? (
