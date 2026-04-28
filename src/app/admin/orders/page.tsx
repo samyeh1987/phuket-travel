@@ -72,6 +72,15 @@ export default function AdminOrdersPage() {
     setUpdating(false);
   };
 
+  // 更新联系状态（定制旅行专用）
+  const updateContactStatus = async (orderId: string, contactStatus: string) => {
+    setUpdating(true);
+    await supabase.from('orders').update({ contact_status: contactStatus }).eq('id', orderId);
+    setSelectedOrder(null);
+    await fetchOrders();
+    setUpdating(false);
+  };
+
   const types = ['全部', 'diving', 'island', 'show', 'custom'];
   const typeLabels: Record<string, string> = {
     diving: '深潜', island: '跳岛游', show: '秀场', custom: '定制旅行',
@@ -90,6 +99,12 @@ export default function AdminOrdersPage() {
     pending_review: { color: 'text-orange-600', bg: 'bg-orange-100', label: '待审核' },
     paid: { color: 'text-green-600', bg: 'bg-green-100', label: '已付款' },
     rejected: { color: 'text-red-600', bg: 'bg-red-100', label: '已拒绝' },
+  };
+
+  // 联系状态配置（定制旅行专用）
+  const contactStatusConfig: Record<string, { color: string; bg: string; label: string }> = {
+    pending_contact: { color: 'text-amber-600', bg: 'bg-amber-100', label: '待联系' },
+    contacted: { color: 'text-green-600', bg: 'bg-green-100', label: '已联系' },
   };
 
   const typeColors: Record<string, string> = {
@@ -253,6 +268,7 @@ export default function AdminOrdersPage() {
                   <th className="px-5 py-3.5 font-medium">人数</th>
                   <th className="px-5 py-3.5 font-medium">金额</th>
                   <th className="px-5 py-3.5 font-medium">付款状态</th>
+                  <th className="px-5 py-3.5 font-medium">联系状态</th>
                   <th className="px-5 py-3.5 font-medium">订单状态</th>
                   <th className="px-5 py-3.5 font-medium">日期</th>
                   <th className="px-5 py-3.5 font-medium">操作</th>
@@ -261,6 +277,7 @@ export default function AdminOrdersPage() {
               <tbody className="divide-y">
                 {filtered.map(o => {
                   const status = statusConfig[o.status] || statusConfig.pending;
+                  const isCustomOrder = o.type === 'custom';
                   return (
                     <tr key={o.id} className="hover:bg-gray-50">
                       <td className="px-5 py-3.5 font-mono text-xs text-gray-600">{o.order_number}</td>
@@ -279,6 +296,16 @@ export default function AdminOrdersPage() {
                           <a href={o.payment_proof_url} target="_blank" rel="noopener noreferrer" className="ml-1 text-ocean-500 hover:text-ocean-700">
                             <ImageIcon className="w-3.5 h-3.5 inline" />
                           </a>
+                        )}
+                      </td>
+                      {/* 联系状态 - 仅定制旅行显示 */}
+                      <td className="px-5 py-3.5">
+                        {isCustomOrder ? (
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${contactStatusConfig[o.contact_status]?.color || 'text-gray-600'} ${contactStatusConfig[o.contact_status]?.bg || 'bg-gray-100'}`}>
+                            {contactStatusConfig[o.contact_status]?.label || '待联系'}
+                          </span>
+                        ) : (
+                          <span className="text-gray-300">—</span>
                         )}
                       </td>
                       <td className="px-5 py-3.5">
@@ -342,6 +369,20 @@ export default function AdminOrdersPage() {
                     {paymentStatusConfig[selectedOrder.payment_status]?.label || '未付款'}
                   </span>
                 </div>
+                {/* 联系状态 - 定制旅行 */}
+                {selectedOrder.type === 'custom' && (
+                  <div><span className="text-gray-500">联系状态</span>
+                    <select
+                      value={selectedOrder.contact_status || 'pending_contact'}
+                      onChange={async (e) => { await updateContactStatus(selectedOrder.id, e.target.value); }}
+                      disabled={updating}
+                      className={`mt-0.5 w-full px-2 py-1 rounded-lg text-xs font-medium border ${contactStatusConfig[selectedOrder.contact_status]?.color} ${contactStatusConfig[selectedOrder.contact_status]?.bg}`}
+                    >
+                      <option value="pending_contact">待联系</option>
+                      <option value="contacted">已联系</option>
+                    </select>
+                  </div>
+                )}
                 <div><span className="text-gray-500">酒店</span><div className="font-medium mt-0.5">{selectedOrder.hotel_name || '—'}</div></div>
                 <div><span className="text-gray-500">创建时间</span><div className="font-medium mt-0.5">{new Date(selectedOrder.created_at).toLocaleString('zh-CN')}</div></div>
                 {selectedOrder.paid_at && (
@@ -386,6 +427,29 @@ export default function AdminOrdersPage() {
                   </button>
                 ))}
               </div>
+
+              {/* 联系状态快捷按钮 - 定制旅行 */}
+              {selectedOrder.type === 'custom' && (
+                <div className="mt-4 pt-4 border-t">
+                  <p className="text-xs text-gray-400 mb-2">联系状态（定制旅行）</p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => updateContactStatus(selectedOrder.id, 'pending_contact')}
+                      disabled={updating || selectedOrder.contact_status === 'pending_contact'}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${selectedOrder.contact_status === 'pending_contact' ? 'text-amber-600 border-amber-300 opacity-50' : 'border-gray-200 text-amber-600 hover:border-amber-300 hover:bg-amber-50'}`}
+                    >
+                      待联系
+                    </button>
+                    <button
+                      onClick={() => updateContactStatus(selectedOrder.id, 'contacted')}
+                      disabled={updating || selectedOrder.contact_status === 'contacted'}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${selectedOrder.contact_status === 'contacted' ? 'text-green-600 border-green-300 opacity-50' : 'border-gray-200 text-green-600 hover:border-green-300 hover:bg-green-50'}`}
+                    >
+                      已联系
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* 付款审核区域 */}

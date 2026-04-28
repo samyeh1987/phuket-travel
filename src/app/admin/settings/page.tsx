@@ -115,20 +115,50 @@ export default function AdminSettingsPage() {
           ))}
         </div>
         {/* 客服二维码 */}
-        <div className="mt-4">
-          <label className="text-sm font-medium text-gray-700 mb-1 block">客服二维码图片URL</label>
-          <input
-            type="text"
-            value={settings['service_qr'] || ''}
-            onChange={e => updateSetting('service_qr', e.target.value)}
-            placeholder="https://... (输入二維碼图片链接)"
-            className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
-          />
-          {settings['service_qr'] && (
-            <div className="mt-2 rounded-lg overflow-hidden bg-gray-50 inline-block">
-              <img src={settings['service_qr']} alt="客服二维码" className="h-40 object-contain" onError={e => (e.target as HTMLImageElement).style.display = 'none'} />
+        <div className="mt-4 space-y-4">
+          <label className="text-sm font-medium text-gray-700 mb-1 block">客服二维码图片（定制旅行页面使用）</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* 微信客服二维码 */}
+            <div className="border border-gray-100 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-xl">💚</span>
+                <span className="font-medium text-gray-900">微信客服二维码</span>
+              </div>
+              <input
+                type="text"
+                value={settings['service_wechat_qr'] || ''}
+                onChange={e => updateSetting('service_wechat_qr', e.target.value)}
+                placeholder="输入微信二维码图片URL"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
+              />
+              {settings['service_wechat_qr'] && (
+                <div className="mt-2 rounded-lg overflow-hidden bg-gray-50 inline-block">
+                  <img src={settings['service_wechat_qr']} alt="微信客服二维码" className="h-32 object-contain" onError={e => (e.target as HTMLImageElement).style.display = 'none'} />
+                </div>
+              )}
             </div>
-          )}
+
+            {/* Line 客服二维码 */}
+            <div className="border border-gray-100 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-xl">💙</span>
+                <span className="font-medium text-gray-900">Line 客服二维码</span>
+              </div>
+              <input
+                type="text"
+                value={settings['service_line_qr'] || ''}
+                onChange={e => updateSetting('service_line_qr', e.target.value)}
+                placeholder="输入Line二维码图片URL"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
+              />
+              {settings['service_line_qr'] && (
+                <div className="mt-2 rounded-lg overflow-hidden bg-gray-50 inline-block">
+                  <img src={settings['service_line_qr']} alt="Line客服二维码" className="h-32 object-contain" onError={e => (e.target as HTMLImageElement).style.display = 'none'} />
+                </div>
+              )}
+            </div>
+          </div>
+          <p className="text-xs text-gray-400">设置后将在定制旅行提交成功页面显示，方便客户添加客服好友</p>
         </div>
       </div>
 

@@ -156,6 +156,9 @@ CREATE TABLE orders (
     -- 客服信息
     customer_service_notes TEXT,
 
+    -- 联系状态（定制旅行专用）: 'pending_contact', 'contacted'
+    contact_status VARCHAR(50) DEFAULT 'pending_contact',
+
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -205,6 +208,7 @@ CREATE INDEX idx_orders_type ON orders(type);
 CREATE INDEX idx_orders_status ON orders(status);
 CREATE INDEX idx_orders_created_at ON orders(created_at DESC);
 CREATE INDEX idx_orders_payment_status ON orders(payment_status);
+CREATE INDEX idx_orders_contact_status ON orders(contact_status);
 CREATE INDEX idx_orders_user_id ON orders(user_id);
 CREATE INDEX idx_order_travelers_order_id ON order_travelers(order_id);
 CREATE INDEX idx_diving_packages_type ON diving_packages(type);
@@ -496,6 +500,8 @@ INSERT INTO system_settings (key, value, description) VALUES
 ('phone', '', '联系电话'),
 ('email', '', '邮箱'),
 ('service_qr', '', '客服二维码URL'),
+('service_wechat_qr', '', '客服微信二维码URL'),
+('service_line_qr', '', '客服Line二维码URL'),
 ('alipay_qr', '', '支付宝收款码URL'),
 ('wechat_qr', '', '微信收款码URL'),
 ('thai_qr', '', '泰国QR码收款URL');
