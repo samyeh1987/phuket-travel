@@ -55,7 +55,7 @@ export default function AdminOrdersPage() {
     try {
       // 检查并提交订单状态修改
       if (editStatus.status !== (selectedOrder.status || 'pending')) {
-        console.log('更新订单状态:', selectedOrder.id, editStatus.status);
+        console.log('>>> 更新订单状态:', selectedOrder.id, '->', editStatus.status);
         const res1 = await fetch('/api/admin/orders', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -63,14 +63,17 @@ export default function AdminOrdersPage() {
           body: JSON.stringify({ action: 'update_status', orderId: selectedOrder.id, status: editStatus.status }),
         });
         const result1 = await res1.json();
+        console.log('>>> 订单状态更新结果:', res1.status, result1);
         if (result1.error) {
           console.error('订单状态更新失败:', result1.error);
         }
+      } else {
+        console.log('>>> 订单状态无变化，跳过');
       }
 
       // 检查并提交付款状态修改
       if (editStatus.payment_status !== (selectedOrder.payment_status || 'unpaid')) {
-        console.log('更新付款状态:', selectedOrder.id, editStatus.payment_status);
+        console.log('>>> 更新付款状态:', selectedOrder.id, '->', editStatus.payment_status);
         const res2 = await fetch('/api/admin/orders', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -83,14 +86,17 @@ export default function AdminOrdersPage() {
           }),
         });
         const result2 = await res2.json();
+        console.log('>>> 付款状态更新结果:', res2.status, result2);
         if (result2.error) {
           console.error('付款状态更新失败:', result2.error);
         }
+      } else {
+        console.log('>>> 付款状态无变化，跳过');
       }
 
       // 检查并提交联系状态修改
       if (selectedOrder.type === 'custom' && editStatus.contact_status !== (selectedOrder.contact_status || 'pending_contact')) {
-        console.log('更新联系状态:', selectedOrder.id, editStatus.contact_status);
+        console.log('>>> 更新联系状态:', selectedOrder.id, '->', editStatus.contact_status);
         const res3 = await fetch('/api/admin/orders', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -102,15 +108,20 @@ export default function AdminOrdersPage() {
           }),
         });
         const result3 = await res3.json();
+        console.log('>>> 联系状态更新结果:', res3.status, result3);
         if (result3.error) {
           console.error('联系状态更新失败:', result3.error);
         }
+      } else {
+        console.log('>>> 联系状态无变化，跳过');
       }
 
       // 成功后刷新列表
+      console.log('>>> 开始刷新订单列表...');
       await fetchOrders();
+      console.log('>>> 订单列表已刷新');
     } catch (err) {
-      console.error('提交失败:', err);
+      console.error('>>> 提交失败:', err);
     }
 
     closeDetail();
