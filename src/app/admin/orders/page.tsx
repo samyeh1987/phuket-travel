@@ -81,6 +81,10 @@ export default function AdminOrdersPage() {
           alert(`订单状态更新失败: ${result1.error || `HTTP ${res1.status}`}`);
         } else {
           successMessages.push('订单状态');
+          // 直接使用 API 返回的更新后数据更新本地状态
+          if (result1.updated) {
+            setOrders(prev => prev.map(o => o.id === result1.updated.id ? result1.updated : o));
+          }
         }
       }
 
@@ -106,6 +110,10 @@ export default function AdminOrdersPage() {
           alert(`付款状态更新失败: ${result2.error || `HTTP ${res2.status}`}`);
         } else {
           successMessages.push('付款状态');
+          // 直接使用 API 返回的更新后数据更新本地状态
+          if (result2.updated) {
+            setOrders(prev => prev.map(o => o.id === result2.updated.id ? result2.updated : o));
+          }
         }
       }
 
@@ -130,13 +138,12 @@ export default function AdminOrdersPage() {
           alert(`联系状态更新失败: ${result3.error || `HTTP ${res3.status}`}`);
         } else {
           successMessages.push('联系状态');
+          // 直接使用 API 返回的更新后数据更新本地状态
+          if (result3.updated) {
+            setOrders(prev => prev.map(o => o.id === result3.updated.id ? result3.updated : o));
+          }
         }
       }
-
-      // 无论成功失败，都刷新列表
-      console.log('>>> 开始刷新订单列表...');
-      await fetchOrders();
-      console.log('>>> 订单列表已刷新');
 
       if (!hasError && successMessages.length > 0) {
         alert(`${successMessages.join('、')}更新成功！`);

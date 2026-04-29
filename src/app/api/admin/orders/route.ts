@@ -5,7 +5,6 @@ export async function GET() {
   const supabase = createAdminClient();
 
   try {
-    // 直接查詢 orders 表，不關聯 profiles
     const { data, error } = await supabase
       .from('orders')
       .select('*')
@@ -34,32 +33,66 @@ export async function PATCH(req: NextRequest) {
     
     const { action, orderId, ...payload } = body;
 
-    console.log('>>> action:', action, 'orderId:', orderId);
+    console.log('>>> 解析后 - action:', action, 'orderId:', orderId, 'payload:', JSON.stringify(payload));
+
+    // 先查询当前订单状态
+    console.log('>>> 查询当前订单状态...');
+    const { data: currentOrder, error: queryError } = await supabase
+      .from('orders')
+      .select('id, status, payment_status, contact_status')
+      .eq('id', orderId)
+      .single();
+    
+    console.log('>>> 当前订单:', JSON.stringify(currentOrder), '错误:', queryError);
+
+    if (queryError) {
+      console.error('>>> 查询订单失败:', queryError);
+      return NextResponse.json({ error: queryError.message }, { status: 500 });
+    }
+
+    let updatedFields: Record<string, any> = {};
 
     if (action === 'update_status') {
-      console.log('>>> 执行 update_status:', payload.status);
-      const { error } = await supabase
+      console.log('>>> 执行 update_status: 新状态 =', payload.status);
+      updatedFields.status = payload.status;
+      
+      const { data, error } = await supabase
         .from('orders')
-        .update({ status: payload.status })
-        .eq('id', orderId);
+        .update(updatedFields)
+        .eq('id', orderId)
+        .select()
+        .single();
+      
+      console.log('>>> update_status 结果 - data:', JSON.stringify(data), 'error:', error);
+      
       if (error) {
         console.error('>>> update_status 失败:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
       console.log('>>> update_status 成功');
+      
+      return NextResponse.json({ success: true, updated: data });
+      
     } else if (action === 'update_payment') {
-      console.log('>>> 执行 update_payment:', payload.payment_status);
-      const updateData: any = { payment_status: payload.payment_status };
+      console.log('>>> 执行 update_payment: 新状态 =', payload.payment_status);
+      updatedFields.payment_status = payload.payment_status;
+      
       if (payload.payment_status === 'paid') {
-        updateData.paid_at = new Date().toISOString();
+        updatedFields.paid_at = new Date().toISOString();
       }
       if (payload.notes) {
-        updateData.customer_service_notes = payload.notes;
+        updatedFields.customer_service_notes = payload.notes;
       }
-      const { error } = await supabase
+      
+      const { data, error } = await supabase
         .from('orders')
-        .update(updateData)
-        .eq('id', orderId);
+        .update(updatedFields)
+        .eq('id', orderId)
+        .select()
+        .single();
+      
+      console.log('>>> update_payment 结果 - data:', JSON.stringify(data), 'error:', error);
+      
       if (error) {
         console.error('>>> update_payment 失败:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
@@ -79,23 +112,35 @@ export async function PATCH(req: NextRequest) {
           status: 'completed',
         });
       }
+      
+      return NextResponse.json({ success: true, updated: data });
+      
     } else if (action === 'update_contact') {
-      console.log('>>> 执行 update_contact:', payload.contact_status);
-      const { error } = await supabase
+      console.log('>>> 执行 update_contact: 新状态 =', payload.contact_status);
+      updatedFields.contact_status = payload.contact_status;
+      
+      const { data, error } = await supabase
         .from('orders')
-        .update({ contact_status: payload.contact_status })
-        .eq('id', orderId);
+        .update(updatedFields)
+        .eq('id', orderId)
+        .select()
+        .single();
+      
+      console.log('>>> update_contact 结果 - data:', JSON.stringify(data), 'error:', error);
+      
       if (error) {
         console.error('>>> update_contact 失败:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
       console.log('>>> update_contact 成功');
+      
+      return NextResponse.json({ success: true, updated: data });
+      
     } else {
       console.log('>>> 未知 action:', action);
       return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
     }
 
-    return NextResponse.json({ success: true });
   } catch (e: any) {
     console.error('>>> PATCH 异常:', e);
     return NextResponse.json({ error: e.message }, { status: 500 });
