@@ -1,12 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Search, Eye, RefreshCw, X, Calendar, Check, XCircle, Image as ImageIcon } from 'lucide-react';
+import { Search, Eye, RefreshCw, X, Calendar, Check, XCircle, Image as ImageIcon, ChevronDown } from 'lucide-react';
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('全部');
+  const [orderStatusFilter, setOrderStatusFilter] = useState('全部');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState('全部');
   const [search, setSearch] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -78,6 +80,18 @@ export default function AdminOrdersPage() {
     diving: '深潜', island: '跳岛游', show: '秀场', custom: '定制旅行',
   };
 
+  // 订单状态筛选
+  const orderStatuses = ['全部', 'pending', 'confirmed', 'completed', 'cancelled'];
+  const orderStatusLabels: Record<string, string> = {
+    全部: '全部状态', pending: '待付款', confirmed: '已确认', completed: '已完成', cancelled: '已取消',
+  };
+
+  // 付款状态筛选
+  const paymentStatuses = ['全部', 'unpaid', 'pending_review', 'paid', 'rejected'];
+  const paymentStatusFilterLabels: Record<string, string> = {
+    全部: '全部状态', unpaid: '未付款', pending_review: '待审核', paid: '已付款', rejected: '已拒绝',
+  };
+
   const statusConfig: Record<string, { color: string; bg: string }> = {
     pending: { color: 'text-amber-600', bg: 'bg-amber-50' },
     confirmed: { color: 'text-blue-600', bg: 'bg-blue-50' },
@@ -113,6 +127,8 @@ export default function AdminOrdersPage() {
 
   const filtered = orders.filter(o => {
     const typeMatch = filter === '全部' || o.type === filter;
+    const orderStatusMatch = orderStatusFilter === '全部' || o.status === orderStatusFilter;
+    const paymentStatusMatch = paymentStatusFilter === '全部' || o.payment_status === paymentStatusFilter;
     const q = search.toLowerCase();
     const searchMatch = !q ||
       (o.order_number || '').toLowerCase().includes(q) ||
@@ -124,7 +140,7 @@ export default function AdminOrdersPage() {
     const fromMatch = !dateFrom || orderDate >= new Date(dateFrom);
     const toMatch = !dateTo || orderDate <= new Date(dateTo + 'T23:59:59');
 
-    return typeMatch && searchMatch && fromMatch && toMatch;
+    return typeMatch && orderStatusMatch && paymentStatusMatch && searchMatch && fromMatch && toMatch;
   });
 
   const statusLabels: Record<string, string> = {
@@ -167,6 +183,50 @@ export default function AdminOrdersPage() {
               className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
             />
           </div>
+        </div>
+
+        {/* 状态筛选 */}
+        <div className="flex flex-wrap gap-4 items-center border-t pt-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500 font-medium">订单状态：</span>
+            <div className="relative">
+              <select
+                value={orderStatusFilter}
+                onChange={e => setOrderStatusFilter(e.target.value)}
+                className="appearance-none pl-3 pr-8 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ocean-500 cursor-pointer hover:border-ocean-300 transition-colors"
+              >
+                {orderStatuses.map(s => (
+                  <option key={s} value={s}>{orderStatusLabels[s]}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500 font-medium">付款状态：</span>
+            <div className="relative">
+              <select
+                value={paymentStatusFilter}
+                onChange={e => setPaymentStatusFilter(e.target.value)}
+                className="appearance-none pl-3 pr-8 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ocean-500 cursor-pointer hover:border-ocean-300 transition-colors"
+              >
+                {paymentStatuses.map(s => (
+                  <option key={s} value={s}>{paymentStatusFilterLabels[s]}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            </div>
+          </div>
+
+          {(orderStatusFilter !== '全部' || paymentStatusFilter !== '全部') && (
+            <button
+              onClick={() => { setOrderStatusFilter('全部'); setPaymentStatusFilter('全部'); }}
+              className="px-2 py-1 text-xs text-gray-400 hover:text-red-500 flex items-center gap-1"
+            >
+              <X className="w-3 h-3" /> 清除筛选
+            </button>
+          )}
         </div>
 
         <div className="flex flex-wrap gap-3 items-center">
@@ -275,9 +335,21 @@ export default function AdminOrdersPage() {
                       <td className="px-5 py-3.5 text-gray-500">{o.quantity || 1}人</td>
                       <td className="px-5 py-3.5 font-semibold text-ocean-600">¥{Number(o.total_price || 0).toLocaleString()}</td>
                       <td className="px-5 py-3.5">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${paymentStatusConfig[o.payment_status]?.color || 'text-gray-600'} ${paymentStatusConfig[o.payment_status]?.bg || 'bg-gray-100'}`}>
-                          {paymentStatusConfig[o.payment_status]?.label || '未付款'}
-                        </span>
+                        <select
+                          value={o.payment_status || 'unpaid'}
+                          onChange={async (e) => {
+                            if (e.target.value !== o.payment_status) {
+                              await updatePaymentStatus(o.id, e.target.value);
+                            }
+                          }}
+                          disabled={updating}
+                          className={`px-2 py-1 rounded-full text-xs font-medium border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-ocean-500 ${paymentStatusConfig[o.payment_status]?.color || 'text-gray-600'} ${paymentStatusConfig[o.payment_status]?.bg || 'bg-gray-100'}`}
+                        >
+                          <option value="unpaid">未付款</option>
+                          <option value="pending_review">待审核</option>
+                          <option value="paid">已付款</option>
+                          <option value="rejected">已拒绝</option>
+                        </select>
                         {o.payment_proof_url && (
                           <a href={o.payment_proof_url} target="_blank" rel="noopener noreferrer" className="ml-1 text-ocean-500 hover:text-ocean-700">
                             <ImageIcon className="w-3.5 h-3.5 inline" />
@@ -286,17 +358,39 @@ export default function AdminOrdersPage() {
                       </td>
                       <td className="px-5 py-3.5">
                         {isCustomOrder ? (
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${contactStatusConfig[o.contact_status]?.color || 'text-gray-600'} ${contactStatusConfig[o.contact_status]?.bg || 'bg-gray-100'}`}>
-                            {contactStatusConfig[o.contact_status]?.label || '待联系'}
-                          </span>
+                          <select
+                            value={o.contact_status || 'pending_contact'}
+                            onChange={async (e) => {
+                              if (e.target.value !== o.contact_status) {
+                                await updateContactStatus(o.id, e.target.value);
+                              }
+                            }}
+                            disabled={updating}
+                            className={`px-2 py-1 rounded-full text-xs font-medium border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-ocean-500 ${contactStatusConfig[o.contact_status]?.color || 'text-gray-600'} ${contactStatusConfig[o.contact_status]?.bg || 'bg-gray-100'}`}
+                          >
+                            <option value="pending_contact">待联系</option>
+                            <option value="contacted">已联系</option>
+                          </select>
                         ) : (
                           <span className="text-gray-300">—</span>
                         )}
                       </td>
                       <td className="px-5 py-3.5">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${status.color} ${status.bg}`}>
-                          {statusLabels[o.status] || o.status}
-                        </span>
+                        <select
+                          value={o.status || 'pending'}
+                          onChange={async (e) => {
+                            if (e.target.value !== o.status) {
+                              await updateStatus(o.id, e.target.value);
+                            }
+                          }}
+                          disabled={updating}
+                          className={`px-2 py-1 rounded-full text-xs font-medium border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-ocean-500 ${status.color} ${status.bg}`}
+                        >
+                          <option value="pending">待付款</option>
+                          <option value="confirmed">已确认</option>
+                          <option value="completed">已完成</option>
+                          <option value="cancelled">已取消</option>
+                        </select>
                       </td>
                       <td className="px-5 py-3.5 text-gray-400 text-xs">{new Date(o.created_at).toLocaleDateString('zh-CN')}</td>
                       <td className="px-5 py-3.5">
@@ -384,9 +478,52 @@ export default function AdminOrdersPage() {
               {selectedOrder.extra_data && (
                 <div>
                   <span className="text-gray-500">附加信息</span>
-                  <pre className="mt-1 p-2 bg-gray-50 rounded-lg text-xs text-gray-700 overflow-auto">
-                    {JSON.stringify(selectedOrder.extra_data, null, 2)}
-                  </pre>
+                  <div className="mt-1 p-3 bg-gray-50 rounded-lg text-sm space-y-2">
+                    {Object.entries(selectedOrder.extra_data).map(([key, value]) => {
+                      // 跳过内部字段，只显示有意义的信息
+                      if (key === 'package_details' && typeof value === 'object') {
+                        return (
+                          <div key={key}>
+                            <span className="text-gray-500 font-medium">套餐详情：</span>
+                            <div className="mt-1 pl-3 space-y-1">
+                              {Object.entries(value as object).map(([k, v]) => (
+                                <div key={k} className="text-gray-700">
+                                  <span className="text-gray-400">{k}：</span>
+                                  {typeof v === 'object' ? JSON.stringify(v) : String(v)}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      }
+                      // 跳过空值
+                      if (value === null || value === undefined || value === '') return null;
+                      // 显示字段名映射
+                      const labelMap: Record<string, string> = {
+                        contact_method: '联系方式',
+                        contact_value: '联系账号',
+                        is_first_time: '首次体验',
+                        diving_experience: '深潜经验',
+                        participants: '参与人数',
+                        pickup_location: '接车地点',
+                        special_requests: '特殊要求',
+                        selected_extras: '附加选项',
+                        selected_time: '选择时间',
+                        island_name: '岛屿名称',
+                        boat_name: '船型名称',
+                        show_name: '秀场名称',
+                        show_type: '秀场类型',
+                        ticket_count: '票数',
+                      };
+                      const label = labelMap[key] || key;
+                      return (
+                        <div key={key} className="text-gray-700">
+                          <span className="text-gray-500 font-medium">{label}：</span>
+                          {typeof value === 'boolean' ? (value ? '是' : '否') : String(value)}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
               {selectedOrder.customer_service_notes && (
