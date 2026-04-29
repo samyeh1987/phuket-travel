@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase-admin';
+import { verifyAdmin } from '@/lib/admin-auth';
 
 export async function GET() {
+  const auth = await verifyAdmin();
+  if (!('user' in auth)) {
+    return auth.response;
+  }
+  const { supabase } = auth;
+
   try {
-    const supabase = await createServerSupabaseClient();
     const { data, error } = await supabase
       .from('diving_packages')
       .select('*')
@@ -16,8 +21,13 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await verifyAdmin();
+  if (!('user' in auth)) {
+    return auth.response;
+  }
+  const { supabase } = auth;
+
   try {
-    const supabase = await createServerSupabaseClient();
     const payload = await req.json();
     const { error } = await supabase.from('diving_packages').insert(payload);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -28,8 +38,13 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
+  const auth = await verifyAdmin();
+  if (!('user' in auth)) {
+    return auth.response;
+  }
+  const { supabase } = auth;
+
   try {
-    const supabase = await createServerSupabaseClient();
     const { id, ...payload } = await req.json();
     const { error } = await supabase
       .from('diving_packages')
@@ -43,8 +58,13 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const auth = await verifyAdmin();
+  if (!('user' in auth)) {
+    return auth.response;
+  }
+  const { supabase } = auth;
+
   try {
-    const supabase = await createServerSupabaseClient();
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });

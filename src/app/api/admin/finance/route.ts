@@ -1,9 +1,14 @@
 import { NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase-admin';
+import { verifyAdmin } from '@/lib/admin-auth';
 
 export async function GET() {
+  const auth = await verifyAdmin();
+  if (!('user' in auth)) {
+    return auth.response;
+  }
+  const { supabase } = auth;
+
   try {
-    const supabase = await createServerSupabaseClient();
     const { data, error } = await supabase
       .from('payment_transactions')
       .select('*, admin_users(email)')

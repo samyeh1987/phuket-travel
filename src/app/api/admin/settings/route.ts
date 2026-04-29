@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase-admin';
+import { verifyAdmin } from '@/lib/admin-auth';
 
 export async function GET() {
+  const auth = await verifyAdmin();
+  if (!('user' in auth)) {
+    return auth.response;
+  }
+  const { supabase } = auth;
+
   try {
-    const supabase = await createServerSupabaseClient();
     const [settings, banners] = await Promise.all([
       supabase.from('system_settings').select('key, value'),
       supabase.from('banners').select('*').order('sort_order'),
@@ -17,8 +22,13 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await verifyAdmin();
+  if (!('user' in auth)) {
+    return auth.response;
+  }
+  const { supabase } = auth;
+
   try {
-    const supabase = await createServerSupabaseClient();
     const { action, table, id, ...payload } = await req.json();
 
     if (action === 'upsert_setting') {

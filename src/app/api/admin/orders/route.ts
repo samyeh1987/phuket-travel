@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase-admin';
+import { verifyAdmin } from '@/lib/admin-auth';
 
 export async function GET() {
+  const auth = await verifyAdmin();
+  if (!('user' in auth)) {
+    return auth.response;
+  }
+  const { supabase } = auth;
+
   try {
-    const supabase = await createServerSupabaseClient();
     const { data, error } = await supabase
       .from('orders')
       .select('*, profiles(name_cn, email)')
@@ -19,8 +24,13 @@ export async function GET() {
 }
 
 export async function PATCH(req: NextRequest) {
+  const auth = await verifyAdmin();
+  if (!('user' in auth)) {
+    return auth.response;
+  }
+  const { supabase } = auth;
+
   try {
-    const supabase = await createServerSupabaseClient();
     const body = await req.json();
     const { action, orderId, ...payload } = body;
 

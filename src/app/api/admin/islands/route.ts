@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase-admin';
+import { verifyAdmin } from '@/lib/admin-auth';
 
 export async function GET() {
+  const auth = await verifyAdmin();
+  if (!('user' in auth)) {
+    return auth.response;
+  }
+  const { supabase } = auth;
+
   try {
-    const supabase = await createServerSupabaseClient();
     const [islands, boats] = await Promise.all([
       supabase.from('islands').select('*').order('sort_order'),
       supabase.from('island_boats').select('*').order('sort_order'),
@@ -17,8 +22,13 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await verifyAdmin();
+  if (!('user' in auth)) {
+    return auth.response;
+  }
+  const { supabase } = auth;
+
   try {
-    const supabase = await createServerSupabaseClient();
     const { table, ...payload } = await req.json();
     const { error } = await supabase.from(table).insert(payload);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -29,8 +39,13 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
+  const auth = await verifyAdmin();
+  if (!('user' in auth)) {
+    return auth.response;
+  }
+  const { supabase } = auth;
+
   try {
-    const supabase = await createServerSupabaseClient();
     const { table, id, ...payload } = await req.json();
     const { error } = await supabase.from(table).update(payload).eq('id', id);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -41,8 +56,13 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const auth = await verifyAdmin();
+  if (!('user' in auth)) {
+    return auth.response;
+  }
+  const { supabase } = auth;
+
   try {
-    const supabase = await createServerSupabaseClient();
     const { searchParams } = new URL(req.url);
     const table = searchParams.get('table');
     const id = searchParams.get('id');
