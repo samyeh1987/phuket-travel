@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient, createAdminClient } from '@/lib/supabase-admin';
+import { createServerSupabaseClient } from '@/lib/supabase-admin';
 
 /**
  * Lightweight endpoint for verifying admin session.
@@ -7,6 +7,15 @@ import { createServerSupabaseClient, createAdminClient } from '@/lib/supabase-ad
  */
 export async function GET(req: NextRequest) {
   try {
+    // 檢查環境變量
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('[verify] SUPABASE_SERVICE_ROLE_KEY not configured');
+      return NextResponse.json({ error: 'Server config error', reason: 'service_role_missing' }, { status: 500 });
+    }
+
+    // 動態導入 admin client
+    const { createAdminClient } = await import('@/lib/supabase-admin');
+
     // 讀取 cookies
     const cookies = req.cookies.getAll();
     console.log('[verify] Cookies received:', cookies.map(c => c.name));
