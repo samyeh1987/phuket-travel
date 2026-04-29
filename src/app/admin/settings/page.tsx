@@ -138,18 +138,16 @@ export default function AdminSettingsPage() {
       <div className="bg-white rounded-2xl p-6 shadow-sm">
         <h2 className="text-lg font-bold text-gray-900 mb-4">客服二维码</h2>
         <p className="text-xs text-gray-400 mb-4">设置后将在定制旅行提交成功页面显示，方便客户添加客服好友</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="flex gap-6">
           <ImageUpload
             label="微信客服二维码"
             value={settings['service_wechat_qr'] || ''}
             onChange={v => updateSetting('service_wechat_qr', v)}
-            aspectRatio="square"
           />
           <ImageUpload
             label="Line 客服二维码"
             value={settings['service_line_qr'] || ''}
             onChange={v => updateSetting('service_line_qr', v)}
-            aspectRatio="square"
           />
         </div>
       </div>
@@ -158,24 +156,21 @@ export default function AdminSettingsPage() {
       <div className="bg-white rounded-2xl p-6 shadow-sm">
         <h2 className="text-lg font-bold text-gray-900 mb-4">收款码</h2>
         <p className="text-xs text-gray-400 mb-4">建议图片尺寸 300x400 像素，背景透明或浅色为佳</p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div className="flex gap-6">
           <ImageUpload
             label="支付宝收款码"
             value={settings['alipay_qr'] || ''}
             onChange={v => updateSetting('alipay_qr', v)}
-            aspectRatio="portrait"
           />
           <ImageUpload
             label="微信收款码"
             value={settings['wechat_qr'] || ''}
             onChange={v => updateSetting('wechat_qr', v)}
-            aspectRatio="portrait"
           />
           <ImageUpload
             label="泰国QR码"
             value={settings['thai_qr'] || ''}
             onChange={v => updateSetting('thai_qr', v)}
-            aspectRatio="portrait"
           />
         </div>
       </div>
@@ -206,7 +201,6 @@ export default function AdminSettingsPage() {
                       <ImageUpload
                         value={banner.image_url}
                         onChange={v => updateBanner(i, 'image_url', v)}
-                        aspectRatio="landscape"
                       />
                     </div>
                     <div>
