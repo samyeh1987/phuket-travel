@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState, useCallback } from 'react';
-import { LayoutDashboard, Anchor, Sailboat, Ticket, ShoppingBag, Settings, LogOut, Menu, X, Sailboat as SailboatIcon } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { useState } from 'react';
+import { LayoutDashboard, Anchor, Sailboat, Ticket, ShoppingBag, Settings, Menu, X, Sailboat as SailboatIcon } from 'lucide-react';
 
 const adminNav = [
   { href: '/admin', label: '控制台', icon: LayoutDashboard },
@@ -16,64 +16,7 @@ const adminNav = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [checking, setChecking] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  const checkAdmin = useCallback(async () => {
-    // 登入頁不需要驗證
-    if (pathname === '/admin/auth/login') {
-      setChecking(false);
-      setIsAdmin(false);
-      return;
-    }
-
-    try {
-      const res = await fetch('/api/admin/verify', {
-        credentials: 'include',
-      });
-      
-      if (res.ok) {
-        setIsAdmin(true);
-        setChecking(false);
-      } else {
-        router.push('/admin/auth/login');
-      }
-    } catch (e) {
-      console.error('驗證失敗:', e);
-      router.push('/admin/auth/login');
-    }
-  }, [pathname, router]);
-
-  useEffect(() => {
-    checkAdmin();
-  }, [checkAdmin]);
-
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/admin/logout', { method: 'POST', credentials: 'include' });
-    } catch (e) {
-      console.error('登出失敗:', e);
-    }
-    window.location.href = '/admin/auth/login';
-  };
-
-  if (checking) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-10 h-10 border-3 border-ocean-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-sm text-gray-500">驗證身份中...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // 未授權或登入頁，顯示簡化佈局
-  if (!isAdmin || pathname === '/admin/auth/login') {
-    return <>{children}</>;
-  }
 
   return (
     <div className="min-h-screen bg-gray-100 flex">
@@ -103,13 +46,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           })}
         </nav>
         <div className="p-4 border-t border-gray-800">
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 rounded-xl transition-colors text-sm"
-          >
-            <LogOut className="w-5 h-5" />
-            登出
-          </button>
           <Link href="/" className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white rounded-xl transition-colors text-sm mt-1">
             <SailboatIcon className="w-5 h-5" />
             返回首页

@@ -7,9 +7,6 @@ export async function middleware(request: NextRequest) {
   // 保护 /profile 和 /my 路由
   const isProtected = pathname.startsWith('/profile') || pathname.startsWith('/my');
 
-  // 保护 /admin 路由（除了登录页）
-  const isAdminRoute = pathname.startsWith('/admin') && !pathname.startsWith('/admin/auth');
-
   const response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -36,13 +33,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  // Admin 路由：如果未登录，跳转到登录页
-  if (isAdminRoute && !user) {
-    const redirectUrl = new URL('/admin/auth/login', request.url);
-    redirectUrl.searchParams.set('next', pathname);
-    return NextResponse.redirect(redirectUrl);
-  }
-
   // 如果已登录访问 auth 页面，跳转到首页
   if (!isProtected && pathname.startsWith('/auth') && user) {
     return NextResponse.redirect(new URL('/', request.url));
@@ -52,5 +42,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/profile/:path*', '/my/:path*', '/auth/:path*', '/admin/:path*'],
+  matcher: ['/profile/:path*', '/my/:path*', '/auth/:path*'],
 };
