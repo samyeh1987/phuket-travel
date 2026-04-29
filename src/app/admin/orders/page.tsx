@@ -33,11 +33,11 @@ export default function AdminOrdersPage() {
 
   // 打开详情弹窗，初始化编辑状态
   const openDetail = (order: any) => {
-    setSelectedOrder(order);
+    setSelectedOrder({ ...order });
     setEditStatus({
-      status: order.status,
-      payment_status: order.payment_status,
-      contact_status: order.contact_status,
+      status: order.status || 'pending',
+      payment_status: order.payment_status || 'unpaid',
+      contact_status: order.contact_status || 'pending_contact',
     });
   };
 
@@ -52,46 +52,67 @@ export default function AdminOrdersPage() {
     if (!selectedOrder || !editStatus) return;
     setUpdating(true);
 
-    // 检查并提交订单状态修改
-    if (editStatus.status !== selectedOrder.status) {
-      await fetch('/api/admin/orders', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ action: 'update_status', orderId: selectedOrder.id, status: editStatus.status }),
-      });
+    try {
+      // 检查并提交订单状态修改
+      if (editStatus.status !== (selectedOrder.status || 'pending')) {
+        console.log('更新订单状态:', selectedOrder.id, editStatus.status);
+        const res1 = await fetch('/api/admin/orders', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ action: 'update_status', orderId: selectedOrder.id, status: editStatus.status }),
+        });
+        const result1 = await res1.json();
+        if (result1.error) {
+          console.error('订单状态更新失败:', result1.error);
+        }
+      }
+
+      // 检查并提交付款状态修改
+      if (editStatus.payment_status !== (selectedOrder.payment_status || 'unpaid')) {
+        console.log('更新付款状态:', selectedOrder.id, editStatus.payment_status);
+        const res2 = await fetch('/api/admin/orders', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            action: 'update_payment',
+            orderId: selectedOrder.id,
+            payment_status: editStatus.payment_status,
+            orderData: { ...selectedOrder, payment_status: editStatus.payment_status },
+          }),
+        });
+        const result2 = await res2.json();
+        if (result2.error) {
+          console.error('付款状态更新失败:', result2.error);
+        }
+      }
+
+      // 检查并提交联系状态修改
+      if (selectedOrder.type === 'custom' && editStatus.contact_status !== (selectedOrder.contact_status || 'pending_contact')) {
+        console.log('更新联系状态:', selectedOrder.id, editStatus.contact_status);
+        const res3 = await fetch('/api/admin/orders', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            action: 'update_contact',
+            orderId: selectedOrder.id,
+            contact_status: editStatus.contact_status,
+          }),
+        });
+        const result3 = await res3.json();
+        if (result3.error) {
+          console.error('联系状态更新失败:', result3.error);
+        }
+      }
+
+      // 成功后刷新列表
+      await fetchOrders();
+    } catch (err) {
+      console.error('提交失败:', err);
     }
 
-    // 检查并提交付款状态修改
-    if (editStatus.payment_status !== selectedOrder.payment_status) {
-      await fetch('/api/admin/orders', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          action: 'update_payment',
-          orderId: selectedOrder.id,
-          payment_status: editStatus.payment_status,
-          orderData: { ...selectedOrder, payment_status: editStatus.payment_status },
-        }),
-      });
-    }
-
-    // 检查并提交联系状态修改
-    if (selectedOrder.type === 'custom' && editStatus.contact_status !== selectedOrder.contact_status) {
-      await fetch('/api/admin/orders', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          action: 'update_contact',
-          orderId: selectedOrder.id,
-          contact_status: editStatus.contact_status,
-        }),
-      });
-    }
-
-    await fetchOrders();
     closeDetail();
     setUpdating(false);
   };
@@ -170,9 +191,9 @@ export default function AdminOrdersPage() {
 
   // 检查是否有未保存的修改
   const hasChanges = editStatus && selectedOrder && (
-    editStatus.status !== selectedOrder.status ||
-    editStatus.payment_status !== selectedOrder.payment_status ||
-    (selectedOrder.type === 'custom' && editStatus.contact_status !== selectedOrder.contact_status)
+    editStatus.status !== (selectedOrder.status || 'pending') ||
+    editStatus.payment_status !== (selectedOrder.payment_status || 'unpaid') ||
+    (selectedOrder.type === 'custom' && editStatus.contact_status !== (selectedOrder.contact_status || 'pending_contact'))
   );
 
   return (
@@ -434,26 +455,26 @@ export default function AdminOrdersPage() {
                 )}
               </div>
 
-              {/* 状态显示区 */}
+              {/* 状态显示区 - 显示当前修改后的值 */}
               <div className="border-t pt-3 mt-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <span className="text-gray-500">订单状态</span>
-                    <div className={`mt-0.5 px-2 py-1 rounded-lg text-xs font-medium ${statusConfig[selectedOrder.status]?.color} ${statusConfig[selectedOrder.status]?.bg}`}>
-                      {statusLabels[selectedOrder.status] || selectedOrder.status}
+                    <div className={`mt-0.5 px-2 py-1 rounded-lg text-xs font-medium ${statusConfig[editStatus?.status]?.color} ${statusConfig[editStatus?.status]?.bg}`}>
+                      {statusLabels[editStatus?.status] || editStatus?.status}
                     </div>
                   </div>
                   <div>
                     <span className="text-gray-500">付款状态</span>
-                    <div className={`mt-0.5 px-2 py-1 rounded-lg text-xs font-medium ${paymentStatusConfig[selectedOrder.payment_status]?.color} ${paymentStatusConfig[selectedOrder.payment_status]?.bg}`}>
-                      {paymentStatusConfig[selectedOrder.payment_status]?.label || '未付款'}
+                    <div className={`mt-0.5 px-2 py-1 rounded-lg text-xs font-medium ${paymentStatusConfig[editStatus?.payment_status]?.color} ${paymentStatusConfig[editStatus?.payment_status]?.bg}`}>
+                      {paymentStatusConfig[editStatus?.payment_status]?.label || '未付款'}
                     </div>
                   </div>
                   {selectedOrder.type === 'custom' && (
                     <div>
                       <span className="text-gray-500">联系状态</span>
-                      <div className={`mt-0.5 px-2 py-1 rounded-lg text-xs font-medium ${contactStatusConfig[selectedOrder.contact_status]?.color} ${contactStatusConfig[selectedOrder.contact_status]?.bg}`}>
-                        {contactStatusConfig[selectedOrder.contact_status]?.label || '待联系'}
+                      <div className={`mt-0.5 px-2 py-1 rounded-lg text-xs font-medium ${contactStatusConfig[editStatus?.contact_status]?.color} ${contactStatusConfig[editStatus?.contact_status]?.bg}`}>
+                        {contactStatusConfig[editStatus?.contact_status]?.label || '待联系'}
                       </div>
                     </div>
                   )}
