@@ -5,14 +5,17 @@ export async function GET() {
   const supabase = createAdminClient();
 
   try {
+    // 直接查詢 orders 表，不關聯 profiles
     const { data, error } = await supabase
       .from('orders')
-      .select('*, profiles(name_cn, email)')
+      .select('*')
       .order('created_at', { ascending: false });
 
     if (error) {
+      console.error('Query error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+    console.log('Orders found:', data?.length);
     return NextResponse.json({ data });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });

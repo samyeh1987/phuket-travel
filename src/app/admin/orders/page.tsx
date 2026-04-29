@@ -269,7 +269,7 @@ export default function AdminOrdersPage() {
                       <td className="px-5 py-3.5 font-mono text-xs text-gray-600">{o.order_number}</td>
                       <td className="px-5 py-3.5"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${typeColors[o.type] || 'bg-gray-50 text-gray-600'}`}>{typeLabels[o.type] || o.type}</span></td>
                       <td className="px-5 py-3.5">
-                        <div className="font-medium">{o.profiles?.name_cn || o.contact_name_cn || '—'}</div>
+                        <div className="font-medium">{o.contact_name_cn || '—'}</div>
                         <div className="text-xs text-gray-400">{o.contact_phone || o.contact_email || ''}</div>
                       </td>
                       <td className="px-5 py-3.5 text-gray-500">{o.quantity || 1}人</td>
@@ -342,7 +342,7 @@ export default function AdminOrdersPage() {
                 </div>
                 <div><span className="text-gray-500">类型</span><div className="font-medium mt-0.5">{typeLabels[selectedOrder.type] || selectedOrder.type}</div></div>
                 <div><span className="text-gray-500">旅行日期</span><div className="font-medium mt-0.5">{selectedOrder.travel_date || '—'}</div></div>
-                <div><span className="text-gray-500">姓名</span><div className="font-medium mt-0.5">{selectedOrder.profiles?.name_cn || selectedOrder.contact_name_cn || '—'}</div></div>
+                <div><span className="text-gray-500">姓名</span><div className="font-medium mt-0.5">{selectedOrder.contact_name_cn || '—'}</div></div>
                 <div><span className="text-gray-500">电话</span><div className="font-medium mt-0.5">{selectedOrder.contact_phone || '—'}</div></div>
                 <div><span className="text-gray-500">微信</span><div className="font-medium mt-0.5">{selectedOrder.contact_wechat || '—'}</div></div>
                 <div><span className="text-gray-500">邮箱</span><div className="font-medium mt-0.5 text-xs">{selectedOrder.contact_email || '—'}</div></div>
