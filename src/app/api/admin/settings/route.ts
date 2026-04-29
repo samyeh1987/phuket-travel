@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdmin } from '@/lib/admin-auth';
 
-export async function GET() {
-  const auth = await verifyAdmin();
+export async function GET(req: NextRequest) {
+  const auth = await verifyAdmin(req);
   if (!('user' in auth)) {
     return auth.response;
   }
@@ -22,7 +22,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await verifyAdmin();
+  const auth = await verifyAdmin(req);
   if (!('user' in auth)) {
     return auth.response;
   }
