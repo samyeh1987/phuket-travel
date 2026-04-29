@@ -2,9 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { LayoutDashboard, Anchor, Sailboat, Ticket, ShoppingBag, Settings, LogOut, Menu, X, Sailboat as SailboatIcon } from 'lucide-react';
-import { createClient } from '@/lib/supabase';
 
 const adminNav = [
   { href: '/admin', label: '控制台', icon: LayoutDashboard },
@@ -20,38 +19,37 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  const checkAdmin = useCallback(async () => {
+    // 登入頁不需要驗證
+    if (pathname === '/admin/auth/login') {
+      setChecking(false);
+      setIsAdmin(false);
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/admin/verify', {
+        credentials: 'include',
+      });
+      
+      if (res.ok) {
+        setIsAdmin(true);
+        setChecking(false);
+      } else {
+        // 未授權，重定向到登入頁
+        router.push('/admin/auth/login');
+      }
+    } catch (e) {
+      console.error('驗證失敗:', e);
+      router.push('/admin/auth/login');
+    }
+  }, [pathname, router]);
 
   useEffect(() => {
-    const checkAdmin = async () => {
-      // 排除登入頁
-      if (pathname === '/admin/auth/login') {
-        setChecking(false);
-        return;
-      }
-
-      // 只檢查用戶是否已登入（通過 API 驗證）
-      // 避免前端直接查詢 admin_users 表（可能有 RLS 問題）
-      try {
-        const res = await fetch('/api/admin/dashboard', {
-          credentials: 'include', // 确保发送 cookies
-        });
-        
-        if (!res.ok) {
-          // API 返回非 200，說明未登入或不是管理員
-          router.push('/admin/auth/login');
-          return;
-        }
-      } catch (e) {
-        console.error('驗證失敗:', e);
-        router.push('/admin/auth/login');
-        return;
-      }
-
-      setChecking(false);
-    };
-
     checkAdmin();
-  }, [pathname, router]);
+  }, [checkAdmin]);
 
   if (checking) {
     return (
@@ -64,8 +62,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  // 登入頁不需要側邊欄
-  if (pathname === '/admin/auth/login') {
+  // 未授權或登入頁，顯示簡化佈局
+  if (!isAdmin || pathname === '/admin/auth/login') {
     return <>{children}</>;
   }
 

@@ -46,9 +46,8 @@ export default function AdminLoginPage() {
       return;
     }
 
-    // 3. 是管理員，跳轉後台
-    router.push('/admin');
-    router.refresh();
+    // 3. 是管理員，通過 window.location 跳轉（觸發 middleware 驗證）
+    window.location.href = '/admin';
   };
 
   return (
