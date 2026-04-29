@@ -18,12 +18,20 @@ export default function AdminOrdersPage() {
 
   const fetchOrders = async () => {
     setLoading(true);
-    const res = await fetch('/api/admin/orders', { credentials: 'include' });
-    const json = await res.json();
-    if (json.error) {
-      console.error('获取订单失败:', json.error);
+    try {
+      const res = await fetch('/api/admin/orders', { credentials: 'include' });
+      const json = await res.json();
+      
+      if (!res.ok || json.error) {
+        console.error('获取订单失败:', json.error || `HTTP ${res.status}`);
+        setOrders([]);
+      } else {
+        setOrders(json.data || []);
+      }
+    } catch (err) {
+      console.error('获取订单网络错误:', err);
+      setOrders([]);
     }
-    setOrders(json.data || []);
     setLoading(false);
   };
 
@@ -52,6 +60,9 @@ export default function AdminOrdersPage() {
     if (!selectedOrder || !editStatus) return;
     setUpdating(true);
 
+    let hasError = false;
+    let successMessages: string[] = [];
+
     try {
       // 检查并提交订单状态修改
       if (editStatus.status !== (selectedOrder.status || 'pending')) {
@@ -64,11 +75,13 @@ export default function AdminOrdersPage() {
         });
         const result1 = await res1.json();
         console.log('>>> 订单状态更新结果:', res1.status, result1);
-        if (result1.error) {
+        if (!res1.ok || result1.error) {
           console.error('订单状态更新失败:', result1.error);
+          hasError = true;
+          alert(`订单状态更新失败: ${result1.error || `HTTP ${res1.status}`}`);
+        } else {
+          successMessages.push('订单状态');
         }
-      } else {
-        console.log('>>> 订单状态无变化，跳过');
       }
 
       // 检查并提交付款状态修改
@@ -87,11 +100,13 @@ export default function AdminOrdersPage() {
         });
         const result2 = await res2.json();
         console.log('>>> 付款状态更新结果:', res2.status, result2);
-        if (result2.error) {
+        if (!res2.ok || result2.error) {
           console.error('付款状态更新失败:', result2.error);
+          hasError = true;
+          alert(`付款状态更新失败: ${result2.error || `HTTP ${res2.status}`}`);
+        } else {
+          successMessages.push('付款状态');
         }
-      } else {
-        console.log('>>> 付款状态无变化，跳过');
       }
 
       // 检查并提交联系状态修改
@@ -109,19 +124,26 @@ export default function AdminOrdersPage() {
         });
         const result3 = await res3.json();
         console.log('>>> 联系状态更新结果:', res3.status, result3);
-        if (result3.error) {
+        if (!res3.ok || result3.error) {
           console.error('联系状态更新失败:', result3.error);
+          hasError = true;
+          alert(`联系状态更新失败: ${result3.error || `HTTP ${res3.status}`}`);
+        } else {
+          successMessages.push('联系状态');
         }
-      } else {
-        console.log('>>> 联系状态无变化，跳过');
       }
 
-      // 成功后刷新列表
+      // 无论成功失败，都刷新列表
       console.log('>>> 开始刷新订单列表...');
       await fetchOrders();
       console.log('>>> 订单列表已刷新');
+
+      if (!hasError && successMessages.length > 0) {
+        alert(`${successMessages.join('、')}更新成功！`);
+      }
     } catch (err) {
       console.error('>>> 提交失败:', err);
+      alert(`提交失败: ${err}`);
     }
 
     closeDetail();
