@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Anchor, Sailboat, Ticket, ShoppingBag, TrendingUp, Users, Clock, ArrowRight, Settings } from 'lucide-react';
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState({ total: 0, pending: 0, revenue: 0, users: 0 });
+  const [stats, setStats] = useState({ total: 0, pending: 0, revenue: 0, users: 0, todayOrders: 0 });
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -22,6 +22,7 @@ export default function AdminDashboard() {
             pending: d.pendingOrders || 0,
             revenue: d.monthlyRevenue || 0,
             users: d.totalProfiles || 0,
+            todayOrders: d.todayOrders || 0,
           });
           setRecentOrders(d.recentOrders || []);
         }
@@ -49,7 +50,7 @@ export default function AdminDashboard() {
   };
 
   const statCards = [
-    { label: '总订单', value: stats.total, icon: ShoppingBag, color: 'bg-blue-50 text-blue-600' },
+    { label: '本日订单', value: stats.todayOrders, icon: ShoppingBag, color: 'bg-blue-50 text-blue-600' },
     { label: '待处理', value: stats.pending, icon: Clock, color: 'bg-amber-50 text-amber-600' },
     { label: '本月收入', value: `¥${stats.revenue.toLocaleString()}`, icon: TrendingUp, color: 'bg-green-50 text-green-600' },
     { label: '客户总数', value: stats.users, icon: Users, color: 'bg-purple-50 text-purple-600' },
@@ -89,7 +90,7 @@ export default function AdminDashboard() {
       {/* Recent Orders */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b flex items-center justify-between">
-          <h2 className="font-bold text-gray-900">最近订单</h2>
+          <h2 className="font-bold text-gray-900">本日订单</h2>
           <a href="/admin/orders" className="flex items-center gap-1 text-sm text-ocean-500 hover:text-ocean-600 font-medium">
             查看全部 <ArrowRight className="w-4 h-4" />
           </a>

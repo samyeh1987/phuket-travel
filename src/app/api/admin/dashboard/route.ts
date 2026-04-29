@@ -7,17 +7,20 @@ export async function GET() {
   try {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
 
     const [
       { count: totalOrders },
       { count: pendingOrders },
       { count: totalProfiles },
+      { count: todayOrders },
       revenueData,
       recentOrders,
     ] = await Promise.all([
       supabase.from('orders').select('*', { count: 'exact', head: true }),
       supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
       supabase.from('profiles').select('*', { count: 'exact', head: true }),
+      supabase.from('orders').select('*', { count: 'exact', head: true }).gte('created_at', startOfDay),
       supabase.from('orders')
         .select('total_price')
         .gte('created_at', startOfMonth)
@@ -25,8 +28,8 @@ export async function GET() {
       supabase
         .from('orders')
         .select('*, profiles(name_cn, email)')
-        .order('created_at', { ascending: false })
-        .limit(5),
+        .gte('created_at', startOfDay)
+        .order('created_at', { ascending: false }),
     ]);
 
     const monthlyRevenue = revenueData.data?.reduce((sum: number, o: any) => sum + (Number(o.total_price) || 0), 0) || 0;
@@ -37,6 +40,7 @@ export async function GET() {
         pendingOrders: pendingOrders || 0,
         totalProfiles: totalProfiles || 0,
         monthlyRevenue,
+        todayOrders: todayOrders || 0,
         recentOrders: recentOrders.data || [],
       },
     });
