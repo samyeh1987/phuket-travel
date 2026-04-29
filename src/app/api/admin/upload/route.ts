@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase-admin';
-import { v4 as uuidv4 } from 'uuid';
+
+// 生成唯一ID（不依赖外部包）
+function generateId() {
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,7 +20,7 @@ export async function POST(req: NextRequest) {
     
     // 生成唯一文件名
     const ext = file.name.split('.').pop() || 'png';
-    const fileName = `${folder}/${uuidv4()}.${ext}`;
+    const fileName = `${folder}/${generateId()}.${ext}`;
     
     // 将文件转换为 ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();
