@@ -20,6 +20,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [checking, setChecking] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const checkAdmin = useCallback(async () => {
     // 登入頁不需要驗證
@@ -38,11 +39,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         setIsAdmin(true);
         setChecking(false);
       } else {
-        // 未授權，重定向到登入頁
+        const data = await res.json();
+        setError(data.error || '驗證失敗');
         router.push('/admin/auth/login');
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('驗證失敗:', e);
+      setError(e.message);
       router.push('/admin/auth/login');
     }
   }, [pathname, router]);
@@ -57,6 +60,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="text-center">
           <div className="w-10 h-10 border-3 border-ocean-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
           <p className="text-sm text-gray-500">驗證身份中...</p>
+          {error && <p className="text-xs text-red-500 mt-2">錯誤: {error}</p>}
         </div>
       </div>
     );
