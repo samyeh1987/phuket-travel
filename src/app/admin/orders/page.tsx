@@ -60,12 +60,26 @@ export default function AdminOrdersPage() {
     if (!selectedOrder || !editStatus) return;
     setUpdating(true);
 
-    let hasError = false;
-    let successMessages: string[] = [];
+    // 创建一个新的订单副本用于更新
+    const updatedOrders = [...orders];
+    const orderIndex = updatedOrders.findIndex(o => o.id === selectedOrder.id);
+    
+    if (orderIndex === -1) {
+      console.error('>>> 未找到订单:', selectedOrder.id);
+      alert('未找到订单');
+      setUpdating(false);
+      return;
+    }
+
+    let hasChanges = false;
 
     try {
       // 检查并提交订单状态修改
-      if (editStatus.status !== (selectedOrder.status || 'pending')) {
+      const newStatus = editStatus.status !== (selectedOrder.status || 'pending');
+      const newPaymentStatus = editStatus.payment_status !== (selectedOrder.payment_status || 'unpaid');
+      const newContactStatus = selectedOrder.type === 'custom' && editStatus.contact_status !== (selectedOrder.contact_status || 'pending_contact');
+
+      if (newStatus) {
         console.log('>>> 更新订单状态:', selectedOrder.id, '->', editStatus.status);
         const res1 = await fetch('/api/admin/orders', {
           method: 'PATCH',
@@ -75,21 +89,22 @@ export default function AdminOrdersPage() {
         });
         const result1 = await res1.json();
         console.log('>>> 订单状态更新结果:', res1.status, result1);
+        
         if (!res1.ok || result1.error) {
           console.error('订单状态更新失败:', result1.error);
-          hasError = true;
           alert(`订单状态更新失败: ${result1.error || `HTTP ${res1.status}`}`);
-        } else {
-          successMessages.push('订单状态');
-          // 直接使用 API 返回的更新后数据更新本地状态
-          if (result1.updated) {
-            setOrders(prev => prev.map(o => o.id === result1.updated.id ? result1.updated : o));
-          }
+          setUpdating(false);
+          return;
         }
+        
+        // 直接更新本地数据
+        updatedOrders[orderIndex] = { ...updatedOrders[orderIndex], status: editStatus.status };
+        hasChanges = true;
+        console.log('>>> 订单状态已更新到本地');
       }
 
       // 检查并提交付款状态修改
-      if (editStatus.payment_status !== (selectedOrder.payment_status || 'unpaid')) {
+      if (newPaymentStatus) {
         console.log('>>> 更新付款状态:', selectedOrder.id, '->', editStatus.payment_status);
         const res2 = await fetch('/api/admin/orders', {
           method: 'PATCH',
@@ -104,21 +119,26 @@ export default function AdminOrdersPage() {
         });
         const result2 = await res2.json();
         console.log('>>> 付款状态更新结果:', res2.status, result2);
+        
         if (!res2.ok || result2.error) {
           console.error('付款状态更新失败:', result2.error);
-          hasError = true;
           alert(`付款状态更新失败: ${result2.error || `HTTP ${res2.status}`}`);
-        } else {
-          successMessages.push('付款状态');
-          // 直接使用 API 返回的更新后数据更新本地状态
-          if (result2.updated) {
-            setOrders(prev => prev.map(o => o.id === result2.updated.id ? result2.updated : o));
-          }
+          setUpdating(false);
+          return;
         }
+        
+        // 直接更新本地数据
+        const updatedOrder = { ...updatedOrders[orderIndex], payment_status: editStatus.payment_status };
+        if (editStatus.payment_status === 'paid') {
+          updatedOrder.paid_at = new Date().toISOString();
+        }
+        updatedOrders[orderIndex] = updatedOrder;
+        hasChanges = true;
+        console.log('>>> 付款状态已更新到本地');
       }
 
       // 检查并提交联系状态修改
-      if (selectedOrder.type === 'custom' && editStatus.contact_status !== (selectedOrder.contact_status || 'pending_contact')) {
+      if (newContactStatus) {
         console.log('>>> 更新联系状态:', selectedOrder.id, '->', editStatus.contact_status);
         const res3 = await fetch('/api/admin/orders', {
           method: 'PATCH',
@@ -132,22 +152,29 @@ export default function AdminOrdersPage() {
         });
         const result3 = await res3.json();
         console.log('>>> 联系状态更新结果:', res3.status, result3);
+        
         if (!res3.ok || result3.error) {
           console.error('联系状态更新失败:', result3.error);
-          hasError = true;
           alert(`联系状态更新失败: ${result3.error || `HTTP ${res3.status}`}`);
-        } else {
-          successMessages.push('联系状态');
-          // 直接使用 API 返回的更新后数据更新本地状态
-          if (result3.updated) {
-            setOrders(prev => prev.map(o => o.id === result3.updated.id ? result3.updated : o));
-          }
+          setUpdating(false);
+          return;
         }
+        
+        // 直接更新本地数据
+        updatedOrders[orderIndex] = { ...updatedOrders[orderIndex], contact_status: editStatus.contact_status };
+        hasChanges = true;
+        console.log('>>> 联系状态已更新到本地');
       }
 
-      if (!hasError && successMessages.length > 0) {
-        alert(`${successMessages.join('、')}更新成功！`);
+      // 统一更新所有本地状态
+      if (hasChanges) {
+        console.log('>>> 更新本地 orders 状态, 新数据:', updatedOrders[orderIndex]);
+        setOrders(updatedOrders);
+        alert('状态更新成功！');
+      } else {
+        console.log('>>> 没有需要更新的状态');
       }
+      
     } catch (err) {
       console.error('>>> 提交失败:', err);
       alert(`提交失败: ${err}`);
