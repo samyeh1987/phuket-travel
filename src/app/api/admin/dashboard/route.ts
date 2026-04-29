@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAdmin } from '@/lib/admin-auth';
+import { createAdminClient } from '@/lib/supabase-admin';
 
-export async function GET(req: NextRequest) {
-  const auth = await verifyAdmin(req);
-  if (!auth.authorized) {
-    return auth.response;
-  }
-  const { supabase } = auth;
+export async function GET() {
+  const supabase = createAdminClient();
 
   try {
     const now = new Date();

@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAdmin } from '@/lib/admin-auth';
+import { createAdminClient } from '@/lib/supabase-admin';
 
-export async function GET(req: NextRequest) {
-  const auth = await verifyAdmin(req);
-  if (!auth.authorized) {
-    return auth.response;
-  }
-  const { supabase } = auth;
+export async function GET() {
+  const supabase = createAdminClient();
 
   try {
     const [islands, boats] = await Promise.all([
@@ -22,11 +18,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await verifyAdmin(req);
-  if (!auth.authorized) {
-    return auth.response;
-  }
-  const { supabase } = auth;
+  const supabase = createAdminClient();
 
   try {
     const { table, ...payload } = await req.json();
@@ -39,11 +31,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  const auth = await verifyAdmin(req);
-  if (!auth.authorized) {
-    return auth.response;
-  }
-  const { supabase } = auth;
+  const supabase = createAdminClient();
 
   try {
     const { table, id, ...payload } = await req.json();
@@ -56,11 +44,7 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const auth = await verifyAdmin(req);
-  if (!auth.authorized) {
-    return auth.response;
-  }
-  const { supabase } = auth;
+  const supabase = createAdminClient();
 
   try {
     const { searchParams } = new URL(req.url);
