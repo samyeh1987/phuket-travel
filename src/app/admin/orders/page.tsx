@@ -13,6 +13,7 @@ export default function AdminOrdersPage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+  const [editStatus, setEditStatus] = useState<any | null>(null); // 用于追踪修改
   const [updating, setUpdating] = useState(false);
 
   const fetchOrders = async () => {
@@ -30,48 +31,68 @@ export default function AdminOrdersPage() {
     fetchOrders();
   }, []);
 
-  const updateStatus = async (orderId: string, status: string) => {
-    setUpdating(true);
-    await fetch('/api/admin/orders', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ action: 'update_status', orderId, status }),
+  // 打开详情弹窗，初始化编辑状态
+  const openDetail = (order: any) => {
+    setSelectedOrder(order);
+    setEditStatus({
+      status: order.status,
+      payment_status: order.payment_status,
+      contact_status: order.contact_status,
     });
-    setSelectedOrder(null);
-    await fetchOrders();
-    setUpdating(false);
   };
 
-  const updatePaymentStatus = async (orderId: string, paymentStatus: string, notes?: string) => {
-    setUpdating(true);
-    await fetch('/api/admin/orders', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({
-        action: 'update_payment',
-        orderId,
-        payment_status: paymentStatus,
-        notes,
-        orderData: selectedOrder,
-      }),
-    });
+  // 关闭弹窗，重置编辑状态
+  const closeDetail = () => {
     setSelectedOrder(null);
-    await fetchOrders();
-    setUpdating(false);
+    setEditStatus(null);
   };
 
-  const updateContactStatus = async (orderId: string, contactStatus: string) => {
+  // 提交所有修改
+  const submitChanges = async () => {
+    if (!selectedOrder || !editStatus) return;
     setUpdating(true);
-    await fetch('/api/admin/orders', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ action: 'update_contact', orderId, contact_status: contactStatus }),
-    });
-    setSelectedOrder(null);
+
+    // 检查并提交订单状态修改
+    if (editStatus.status !== selectedOrder.status) {
+      await fetch('/api/admin/orders', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'update_status', orderId: selectedOrder.id, status: editStatus.status }),
+      });
+    }
+
+    // 检查并提交付款状态修改
+    if (editStatus.payment_status !== selectedOrder.payment_status) {
+      await fetch('/api/admin/orders', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          action: 'update_payment',
+          orderId: selectedOrder.id,
+          payment_status: editStatus.payment_status,
+          orderData: { ...selectedOrder, payment_status: editStatus.payment_status },
+        }),
+      });
+    }
+
+    // 检查并提交联系状态修改
+    if (selectedOrder.type === 'custom' && editStatus.contact_status !== selectedOrder.contact_status) {
+      await fetch('/api/admin/orders', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          action: 'update_contact',
+          orderId: selectedOrder.id,
+          contact_status: editStatus.contact_status,
+        }),
+      });
+    }
+
     await fetchOrders();
+    closeDetail();
     setUpdating(false);
   };
 
@@ -146,6 +167,13 @@ export default function AdminOrdersPage() {
   const statusLabels: Record<string, string> = {
     pending: '待付款', confirmed: '已确认', completed: '已完成', cancelled: '已取消',
   };
+
+  // 检查是否有未保存的修改
+  const hasChanges = editStatus && selectedOrder && (
+    editStatus.status !== selectedOrder.status ||
+    editStatus.payment_status !== selectedOrder.payment_status ||
+    (selectedOrder.type === 'custom' && editStatus.contact_status !== selectedOrder.contact_status)
+  );
 
   return (
     <div className="space-y-6">
@@ -335,21 +363,9 @@ export default function AdminOrdersPage() {
                       <td className="px-5 py-3.5 text-gray-500">{o.quantity || 1}人</td>
                       <td className="px-5 py-3.5 font-semibold text-ocean-600">¥{Number(o.total_price || 0).toLocaleString()}</td>
                       <td className="px-5 py-3.5">
-                        <select
-                          value={o.payment_status || 'unpaid'}
-                          onChange={async (e) => {
-                            if (e.target.value !== o.payment_status) {
-                              await updatePaymentStatus(o.id, e.target.value);
-                            }
-                          }}
-                          disabled={updating}
-                          className={`px-2 py-1 rounded-full text-xs font-medium border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-ocean-500 ${paymentStatusConfig[o.payment_status]?.color || 'text-gray-600'} ${paymentStatusConfig[o.payment_status]?.bg || 'bg-gray-100'}`}
-                        >
-                          <option value="unpaid">未付款</option>
-                          <option value="pending_review">待审核</option>
-                          <option value="paid">已付款</option>
-                          <option value="rejected">已拒绝</option>
-                        </select>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${paymentStatusConfig[o.payment_status]?.color || 'text-gray-600'} ${paymentStatusConfig[o.payment_status]?.bg || 'bg-gray-100'}`}>
+                          {paymentStatusConfig[o.payment_status]?.label || '未付款'}
+                        </span>
                         {o.payment_proof_url && (
                           <a href={o.payment_proof_url} target="_blank" rel="noopener noreferrer" className="ml-1 text-ocean-500 hover:text-ocean-700">
                             <ImageIcon className="w-3.5 h-3.5 inline" />
@@ -358,44 +374,22 @@ export default function AdminOrdersPage() {
                       </td>
                       <td className="px-5 py-3.5">
                         {isCustomOrder ? (
-                          <select
-                            value={o.contact_status || 'pending_contact'}
-                            onChange={async (e) => {
-                              if (e.target.value !== o.contact_status) {
-                                await updateContactStatus(o.id, e.target.value);
-                              }
-                            }}
-                            disabled={updating}
-                            className={`px-2 py-1 rounded-full text-xs font-medium border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-ocean-500 ${contactStatusConfig[o.contact_status]?.color || 'text-gray-600'} ${contactStatusConfig[o.contact_status]?.bg || 'bg-gray-100'}`}
-                          >
-                            <option value="pending_contact">待联系</option>
-                            <option value="contacted">已联系</option>
-                          </select>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${contactStatusConfig[o.contact_status]?.color || 'text-gray-600'} ${contactStatusConfig[o.contact_status]?.bg || 'bg-gray-100'}`}>
+                            {contactStatusConfig[o.contact_status]?.label || '待联系'}
+                          </span>
                         ) : (
                           <span className="text-gray-300">—</span>
                         )}
                       </td>
                       <td className="px-5 py-3.5">
-                        <select
-                          value={o.status || 'pending'}
-                          onChange={async (e) => {
-                            if (e.target.value !== o.status) {
-                              await updateStatus(o.id, e.target.value);
-                            }
-                          }}
-                          disabled={updating}
-                          className={`px-2 py-1 rounded-full text-xs font-medium border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-ocean-500 ${status.color} ${status.bg}`}
-                        >
-                          <option value="pending">待付款</option>
-                          <option value="confirmed">已确认</option>
-                          <option value="completed">已完成</option>
-                          <option value="cancelled">已取消</option>
-                        </select>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${status.color} ${status.bg}`}>
+                          {statusLabels[o.status] || o.status}
+                        </span>
                       </td>
                       <td className="px-5 py-3.5 text-gray-400 text-xs">{new Date(o.created_at).toLocaleDateString('zh-CN')}</td>
                       <td className="px-5 py-3.5">
                         <button
-                          onClick={() => setSelectedOrder(o)}
+                          onClick={() => openDetail(o)}
                           className="p-1.5 text-gray-400 hover:text-ocean-500 hover:bg-ocean-50 rounded-lg transition-colors"
                         >
                           <Eye className="w-4 h-4" />
@@ -416,7 +410,7 @@ export default function AdminOrdersPage() {
           <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-gray-900">订单详情</h2>
-              <button onClick={() => setSelectedOrder(null)} className="p-1 text-gray-400 hover:text-gray-600">
+              <button onClick={closeDetail} className="p-1 text-gray-400 hover:text-gray-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -424,16 +418,6 @@ export default function AdminOrdersPage() {
             <div className="space-y-3 text-sm">
               <div className="grid grid-cols-2 gap-3">
                 <div><span className="text-gray-500">订单号</span><div className="font-mono text-xs font-medium mt-0.5">{selectedOrder.order_number}</div></div>
-                <div><span className="text-gray-500">状态</span>
-                  <select
-                    value={selectedOrder.status}
-                    onChange={async (e) => { await updateStatus(selectedOrder.id, e.target.value); }}
-                    disabled={updating}
-                    className={`mt-0.5 w-full px-2 py-1 rounded-lg text-xs font-medium border ${statusConfig[selectedOrder.status]?.color} ${statusConfig[selectedOrder.status]?.bg}`}
-                  >
-                    {statusOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                  </select>
-                </div>
                 <div><span className="text-gray-500">类型</span><div className="font-medium mt-0.5">{typeLabels[selectedOrder.type] || selectedOrder.type}</div></div>
                 <div><span className="text-gray-500">旅行日期</span><div className="font-medium mt-0.5">{selectedOrder.travel_date || '—'}</div></div>
                 <div><span className="text-gray-500">姓名</span><div className="font-medium mt-0.5">{selectedOrder.contact_name_cn || '—'}</div></div>
@@ -443,30 +427,39 @@ export default function AdminOrdersPage() {
                 <div><span className="text-gray-500">人数</span><div className="font-medium mt-0.5">{selectedOrder.quantity || 1}人</div></div>
                 <div><span className="text-gray-500">金额</span><div className="font-semibold text-ocean-600 mt-0.5">¥{Number(selectedOrder.total_price || 0).toLocaleString()}</div></div>
                 <div><span className="text-gray-500">付款方式</span><div className="font-medium mt-0.5">{selectedOrder.payment_method === 'alipay' ? '支付宝' : selectedOrder.payment_method === 'wechat' ? '微信支付' : selectedOrder.payment_method === 'thai_qr' ? '泰国QR码' : '—'}</div></div>
-                <div><span className="text-gray-500">付款状态</span>
-                  <span className={`inline-block mt-0.5 px-2 py-1 rounded-full text-xs font-medium ${paymentStatusConfig[selectedOrder.payment_status]?.color || 'text-gray-600'} ${paymentStatusConfig[selectedOrder.payment_status]?.bg || 'bg-gray-100'}`}>
-                    {paymentStatusConfig[selectedOrder.payment_status]?.label || '未付款'}
-                  </span>
-                </div>
-                {selectedOrder.type === 'custom' && (
-                  <div><span className="text-gray-500">联系状态</span>
-                    <select
-                      value={selectedOrder.contact_status || 'pending_contact'}
-                      onChange={async (e) => { await updateContactStatus(selectedOrder.id, e.target.value); }}
-                      disabled={updating}
-                      className={`mt-0.5 w-full px-2 py-1 rounded-lg text-xs font-medium border ${contactStatusConfig[selectedOrder.contact_status]?.color} ${contactStatusConfig[selectedOrder.contact_status]?.bg}`}
-                    >
-                      <option value="pending_contact">待联系</option>
-                      <option value="contacted">已联系</option>
-                    </select>
-                  </div>
-                )}
                 <div><span className="text-gray-500">酒店</span><div className="font-medium mt-0.5">{selectedOrder.hotel_name || '—'}</div></div>
                 <div><span className="text-gray-500">创建时间</span><div className="font-medium mt-0.5">{new Date(selectedOrder.created_at).toLocaleString('zh-CN')}</div></div>
                 {selectedOrder.paid_at && (
                   <div><span className="text-gray-500">付款时间</span><div className="font-medium mt-0.5 text-green-600">{new Date(selectedOrder.paid_at).toLocaleString('zh-CN')}</div></div>
                 )}
               </div>
+
+              {/* 状态显示区 */}
+              <div className="border-t pt-3 mt-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <span className="text-gray-500">订单状态</span>
+                    <div className={`mt-0.5 px-2 py-1 rounded-lg text-xs font-medium ${statusConfig[selectedOrder.status]?.color} ${statusConfig[selectedOrder.status]?.bg}`}>
+                      {statusLabels[selectedOrder.status] || selectedOrder.status}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">付款状态</span>
+                    <div className={`mt-0.5 px-2 py-1 rounded-lg text-xs font-medium ${paymentStatusConfig[selectedOrder.payment_status]?.color} ${paymentStatusConfig[selectedOrder.payment_status]?.bg}`}>
+                      {paymentStatusConfig[selectedOrder.payment_status]?.label || '未付款'}
+                    </div>
+                  </div>
+                  {selectedOrder.type === 'custom' && (
+                    <div>
+                      <span className="text-gray-500">联系状态</span>
+                      <div className={`mt-0.5 px-2 py-1 rounded-lg text-xs font-medium ${contactStatusConfig[selectedOrder.contact_status]?.color} ${contactStatusConfig[selectedOrder.contact_status]?.bg}`}>
+                        {contactStatusConfig[selectedOrder.contact_status]?.label || '待联系'}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {selectedOrder.payment_proof_url && (
                 <div>
                   <span className="text-gray-500">付款凭证</span>
@@ -480,7 +473,6 @@ export default function AdminOrdersPage() {
                   <span className="text-gray-500">附加信息</span>
                   <div className="mt-1 p-3 bg-gray-50 rounded-lg text-sm space-y-2">
                     {Object.entries(selectedOrder.extra_data).map(([key, value]) => {
-                      // 跳过内部字段，只显示有意义的信息
                       if (key === 'package_details' && typeof value === 'object') {
                         return (
                           <div key={key}>
@@ -496,9 +488,7 @@ export default function AdminOrdersPage() {
                           </div>
                         );
                       }
-                      // 跳过空值
                       if (value === null || value === undefined || value === '') return null;
-                      // 显示字段名映射
                       const labelMap: Record<string, string> = {
                         contact_method: '联系方式',
                         contact_value: '联系账号',
@@ -534,36 +524,77 @@ export default function AdminOrdersPage() {
               )}
             </div>
 
-            <div className="mt-6">
-              <p className="text-xs text-gray-400 mb-2">修改状态</p>
-              <div className="flex flex-wrap gap-2">
-                {statusOptions.map(s => (
-                  <button
-                    key={s.value}
-                    onClick={() => updateStatus(selectedOrder.id, s.value)}
-                    disabled={updating || selectedOrder.status === s.value}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${selectedOrder.status === s.value ? `${s.color} border-current opacity-50` : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'}`}
-                  >
-                    {s.label}
-                  </button>
-                ))}
+            {/* 状态修改区域 */}
+            <div className="mt-6 border-t pt-4">
+              <p className="text-xs text-gray-400 mb-3">修改状态（选择后需点击确认按钮保存）</p>
+
+              {/* 订单状态修改 */}
+              <div className="mb-4">
+                <p className="text-xs text-gray-500 mb-2">订单状态：</p>
+                <div className="flex flex-wrap gap-2">
+                  {statusOptions.map(s => (
+                    <button
+                      key={s.value}
+                      onClick={() => setEditStatus({ ...editStatus, status: s.value })}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border-2 transition-colors ${
+                        editStatus?.status === s.value
+                          ? `${s.color} border-current bg-opacity-10`
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
+              {/* 付款状态修改 */}
+              <div className="mb-4">
+                <p className="text-xs text-gray-500 mb-2">付款状态：</p>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { value: 'unpaid', label: '未付款', color: 'text-gray-600', bg: 'bg-gray-100' },
+                    { value: 'pending_review', label: '待审核', color: 'text-orange-600', bg: 'bg-orange-100' },
+                    { value: 'paid', label: '已付款', color: 'text-green-600', bg: 'bg-green-100' },
+                    { value: 'rejected', label: '已拒绝', color: 'text-red-600', bg: 'bg-red-100' },
+                  ].map(s => (
+                    <button
+                      key={s.value}
+                      onClick={() => setEditStatus({ ...editStatus, payment_status: s.value })}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border-2 transition-colors ${
+                        editStatus?.payment_status === s.value
+                          ? `${s.color} border-current bg-opacity-10`
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 联系状态修改（仅定制旅行） */}
               {selectedOrder.type === 'custom' && (
-                <div className="mt-4 pt-4 border-t">
-                  <p className="text-xs text-gray-400 mb-2">联系状态（定制旅行）</p>
+                <div className="mb-4">
+                  <p className="text-xs text-gray-500 mb-2">联系状态：</p>
                   <div className="flex flex-wrap gap-2">
                     <button
-                      onClick={() => updateContactStatus(selectedOrder.id, 'pending_contact')}
-                      disabled={updating || selectedOrder.contact_status === 'pending_contact'}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${selectedOrder.contact_status === 'pending_contact' ? 'text-amber-600 border-amber-300 opacity-50' : 'border-gray-200 text-amber-600 hover:border-amber-300 hover:bg-amber-50'}`}
+                      onClick={() => setEditStatus({ ...editStatus, contact_status: 'pending_contact' })}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border-2 transition-colors ${
+                        editStatus?.contact_status === 'pending_contact'
+                          ? 'text-amber-600 border-amber-400 bg-amber-50'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
                     >
                       待联系
                     </button>
                     <button
-                      onClick={() => updateContactStatus(selectedOrder.id, 'contacted')}
-                      disabled={updating || selectedOrder.contact_status === 'contacted'}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${selectedOrder.contact_status === 'contacted' ? 'text-green-600 border-green-300 opacity-50' : 'border-gray-200 text-green-600 hover:border-green-300 hover:bg-green-50'}`}
+                      onClick={() => setEditStatus({ ...editStatus, contact_status: 'contacted' })}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border-2 transition-colors ${
+                        editStatus?.contact_status === 'contacted'
+                          ? 'text-green-600 border-green-400 bg-green-50'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
                     >
                       已联系
                     </button>
@@ -572,31 +603,53 @@ export default function AdminOrdersPage() {
               )}
             </div>
 
-            {selectedOrder.payment_status !== 'paid' && (
-              <div className="mt-6 pt-6 border-t">
-                <p className="text-xs text-gray-400 mb-2">付款审核</p>
-                <div className="flex flex-wrap gap-2">
-                  {selectedOrder.payment_proof_url ? (
-                    <>
-                      <button
-                        onClick={() => updatePaymentStatus(selectedOrder.id, 'paid')}
-                        disabled={updating}
-                        className="px-4 py-2 rounded-lg text-sm font-medium bg-green-500 text-white hover:bg-green-600 transition-colors flex items-center gap-1 disabled:opacity-50"
-                      >
-                        <Check className="w-4 h-4" /> 确认收款
-                      </button>
-                      <button
-                        onClick={() => updatePaymentStatus(selectedOrder.id, 'rejected')}
-                        disabled={updating}
-                        className="px-4 py-2 rounded-lg text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-colors flex items-center gap-1 disabled:opacity-50"
-                      >
-                        <XCircle className="w-4 h-4" /> 拒绝
-                      </button>
-                    </>
-                  ) : (
-                    <span className="text-sm text-gray-400">等待客户上传付款凭证</span>
-                  )}
+            {/* 确认按钮 */}
+            {hasChanges && (
+              <div className="mt-6 pt-4 border-t border-blue-200 bg-blue-50 -mx-6 -mb-6 px-6 pb-6 rounded-b-2xl">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-blue-700">
+                    <span className="font-medium">有未保存的修改</span>
+                    <p className="text-xs mt-0.5 opacity-75">请确认后再提交</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={closeDetail}
+                      disabled={updating}
+                      className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-50"
+                    >
+                      取消
+                    </button>
+                    <button
+                      onClick={submitChanges}
+                      disabled={updating}
+                      className="px-4 py-2 rounded-lg text-sm font-medium bg-ocean-500 text-white hover:bg-ocean-600 transition-colors flex items-center gap-2 disabled:opacity-50"
+                    >
+                      {updating ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          保存中...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="w-4 h-4" />
+                          确认保存
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
+              </div>
+            )}
+
+            {/* 没有修改时显示关闭按钮 */}
+            {!hasChanges && (
+              <div className="mt-6 pt-4 border-t">
+                <button
+                  onClick={closeDetail}
+                  className="w-full px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 text-gray-600 hover:bg-gray-100 transition-colors"
+                >
+                  关闭
+                </button>
               </div>
             )}
           </div>
