@@ -24,6 +24,10 @@ export async function GET() {
 
 export async function PATCH(req: NextRequest) {
   console.log('>>> PATCH /api/admin/orders 被调用');
+  console.log('>>> 环境变量检查:',
+    'NEXT_PUBLIC_SUPABASE_URL =', process.env.NEXT_PUBLIC_SUPABASE_URL ? '已设置' : '未设置!',
+    'SUPABASE_SERVICE_ROLE_KEY =', process.env.SUPABASE_SERVICE_ROLE_KEY ? '已设置' : '未设置!'
+  );
   
   const supabase = createAdminClient();
 
@@ -65,6 +69,9 @@ export async function PATCH(req: NextRequest) {
       console.log('>>> 执行 update_status: 当前状态 =', currentOrder.status, '-> 新状态 =', payload.status);
       updatedFields.status = payload.status;
       
+      // 详细日志：打印要更新的字段
+      console.log('>>> update_status 准备更新:', { id: orderId, fields: updatedFields });
+      
       // 使用 select 获取更新结果，并使用.returning() 或 .select('*')
       const result = await supabase
         .from('orders')
@@ -80,10 +87,20 @@ export async function PATCH(req: NextRequest) {
         return NextResponse.json({ error: result.error.message }, { status: 500 });
       }
 
-      // 验证更新是否成功
+      // 验证更新是否成功 - 检查是否有数据返回
       if (!result?.data) {
-        console.error('>>> update_status 没有返回数据，可能更新失败');
-        return NextResponse.json({ error: 'Update failed - no rows affected' }, { status: 500 });
+        // 尝试单独查询看订单是否存在
+        const checkResult = await supabase.from('orders').select('id, status').eq('id', orderId).maybeSingle();
+        console.log('>>> 更新后查询订单:', JSON.stringify(checkResult));
+        
+        if (checkResult?.data) {
+          // 订单存在但返回null，可能是权限问题
+          console.error('>>> 订单存在但更新返回null，可能是 RLS 策略问题');
+          return NextResponse.json({ error: 'Update blocked by RLS policy', detail: 'Order exists but update was blocked' }, { status: 500 });
+        } else {
+          console.error('>>> update_status 没有返回数据，订单可能不存在');
+          return NextResponse.json({ error: 'Update failed - no rows affected' }, { status: 500 });
+        }
       }
       
       console.log('>>> update_status 成功, 更新后订单状态:', result.data.status);
