@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { Save, Plus, Trash2, CheckCircle } from 'lucide-react';
-import { createClient } from '@/lib/supabase';
 
 interface Setting { key: string; value: string; }
 interface Banner { id?: string; title: string; image_url: string; link_url: string; sort_order: number; is_active: boolean; }
@@ -13,16 +12,18 @@ export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const supabase = createClient();
+  const [bannerSaving, setBannerSaving] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
-    const { data: settingsData } = await supabase.from('system_settings').select('key, value');
-    const settingsMap: Record<string, string> = {};
-    (settingsData || []).forEach((s: Setting) => { settingsMap[s.key] = s.value || ''; });
-    setSettings(settingsMap);
-    const { data: bannersData } = await supabase.from('banners').select('*').order('sort_order');
-    setBanners(bannersData || []);
+    const res = await fetch('/api/admin/settings');
+    const json = await res.json();
+    if (json.data) {
+      const settingsMap: Record<string, string> = {};
+      (json.data.settings || []).forEach((s: Setting) => { settingsMap[s.key] = s.value || ''; });
+      setSettings(settingsMap);
+      setBanners(json.data.banners || []);
+    }
     setLoading(false);
   };
 
@@ -33,10 +34,11 @@ export default function AdminSettingsPage() {
   const saveSettings = async () => {
     setSaving(true);
     for (const [key, value] of Object.entries(settings)) {
-      await supabase.from('system_settings').upsert(
-        { key, value, updated_at: new Date().toISOString() },
-        { onConflict: 'key' }
-      );
+      await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'upsert_setting', key, value }),
+      });
     }
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -51,27 +53,42 @@ export default function AdminSettingsPage() {
 
   const deleteBanner = async (index: number, id?: string) => {
     if (!confirm('確定刪除此Banner？')) return;
-    if (id) await supabase.from('banners').delete().eq('id', id);
+    if (id) {
+      await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', table: 'banners', id }),
+      });
+    }
     setBanners(prev => prev.filter((_, i) => i !== index));
   };
 
   const saveBanners = async () => {
+    setBannerSaving(true);
     for (const banner of banners) {
       const payload = { title: banner.title, image_url: banner.image_url, link_url: banner.link_url, sort_order: banner.sort_order, is_active: banner.is_active };
-      if (banner.id) {
-        await supabase.from('banners').update(payload).eq('id', banner.id);
-      } else {
-        await supabase.from('banners').insert(payload);
-      }
+      await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(banner.id
+          ? { action: 'update', table: 'banners', id: banner.id, ...payload }
+          : { action: 'insert', table: 'banners', ...payload }
+        ),
+      });
     }
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
     await fetchData();
+    setBannerSaving(false);
   };
 
   const toggleBanner = async (banner: Banner) => {
     if (!banner.id) return;
-    await supabase.from('banners').update({ is_active: !banner.is_active }).eq('id', banner.id);
+    await fetch('/api/admin/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'update', table: 'banners', id: banner.id, is_active: !banner.is_active }),
+    });
     fetchData();
   };
 
@@ -114,49 +131,32 @@ export default function AdminSettingsPage() {
             </div>
           ))}
         </div>
-        {/* 客服二维码 */}
         <div className="mt-4 space-y-4">
           <label className="text-sm font-medium text-gray-700 mb-1 block">客服二维码图片（定制旅行页面使用）</label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* 微信客服二维码 */}
-            <div className="border border-gray-100 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-xl">💚</span>
-                <span className="font-medium text-gray-900">微信客服二维码</span>
-              </div>
-              <input
-                type="text"
-                value={settings['service_wechat_qr'] || ''}
-                onChange={e => updateSetting('service_wechat_qr', e.target.value)}
-                placeholder="输入微信二维码图片URL"
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
-              />
-              {settings['service_wechat_qr'] && (
-                <div className="mt-2 rounded-lg overflow-hidden bg-gray-50 inline-block">
-                  <img src={settings['service_wechat_qr']} alt="微信客服二维码" className="h-32 object-contain" onError={e => (e.target as HTMLImageElement).style.display = 'none'} />
+            {[
+              { key: 'service_wechat_qr', label: '微信客服二维码', emoji: '💚' },
+              { key: 'service_line_qr', label: 'Line 客服二维码', emoji: '💙' },
+            ].map(f => (
+              <div key={f.key} className="border border-gray-100 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xl">{f.emoji}</span>
+                  <span className="font-medium text-gray-900">{f.label}</span>
                 </div>
-              )}
-            </div>
-
-            {/* Line 客服二维码 */}
-            <div className="border border-gray-100 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-xl">💙</span>
-                <span className="font-medium text-gray-900">Line 客服二维码</span>
+                <input
+                  type="text"
+                  value={settings[f.key] || ''}
+                  onChange={e => updateSetting(f.key, e.target.value)}
+                  placeholder="输入二维码图片URL"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
+                />
+                {settings[f.key] && (
+                  <div className="mt-2 rounded-lg overflow-hidden bg-gray-50 inline-block">
+                    <img src={settings[f.key]} alt={f.label} className="h-32 object-contain" onError={e => (e.target as HTMLImageElement).style.display = 'none'} />
+                  </div>
+                )}
               </div>
-              <input
-                type="text"
-                value={settings['service_line_qr'] || ''}
-                onChange={e => updateSetting('service_line_qr', e.target.value)}
-                placeholder="输入Line二维码图片URL"
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
-              />
-              {settings['service_line_qr'] && (
-                <div className="mt-2 rounded-lg overflow-hidden bg-gray-50 inline-block">
-                  <img src={settings['service_line_qr']} alt="Line客服二维码" className="h-32 object-contain" onError={e => (e.target as HTMLImageElement).style.display = 'none'} />
-                </div>
-              )}
-            </div>
+            ))}
           </div>
           <p className="text-xs text-gray-400">设置后将在定制旅行提交成功页面显示，方便客户添加客服好友</p>
         </div>
@@ -244,8 +244,9 @@ export default function AdminSettingsPage() {
         </div>
         {banners.length > 0 && (
           <div className="mt-4 flex justify-end">
-            <button onClick={saveBanners} className="flex items-center gap-2 px-4 py-2 bg-ocean-500 text-white rounded-xl text-sm font-medium hover:bg-ocean-600 transition-colors">
-              <Save className="w-4 h-4" /> 保存Banner
+            <button onClick={saveBanners} disabled={bannerSaving} className="flex items-center gap-2 px-4 py-2 bg-ocean-500 text-white rounded-xl text-sm font-medium hover:bg-ocean-600 disabled:opacity-50 transition-colors">
+              {bannerSaving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
+              {bannerSaving ? '保存中...' : '保存Banner'}
             </button>
           </div>
         )}

@@ -2,58 +2,44 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { LayoutDashboard, Anchor, Sailboat, Ticket, ShoppingBag, TrendingUp, Users, Clock, ArrowRight, Settings } from 'lucide-react';
-import { createClient } from '@/lib/supabase';
+import { Anchor, Sailboat, Ticket, ShoppingBag, TrendingUp, Users, Clock, ArrowRight, Settings } from 'lucide-react';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({ total: 0, pending: 0, revenue: 0, users: 0 });
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  const router = useRouter();
 
   useEffect(() => {
     const fetchData = async () => {
-      const today = new Date();
-      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
-
-      // 訂單統計
-      const { count: total } = await supabase
-        .from('orders').select('*', { count: 'exact', head: true });
-
-      const { count: pending } = await supabase
-        .from('orders').select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
-
-      const { data: monthOrders } = await supabase
-        .from('orders').select('total_price')
-        .gte('created_at', startOfMonth)
-        .eq('status', 'completed');
-
-      const revenue = monthOrders?.reduce((sum, o) => sum + (o.total_price || 0), 0) || 0;
-
-      const { count: users } = await supabase
-        .from('profiles').select('*', { count: 'exact', head: true });
-
-      setStats({
-        total: total || 0,
-        pending: pending || 0,
-        revenue,
-        users: users || 0,
-      });
-
-      // 最近 5 筆訂單
-      const { data: orders } = await supabase
-        .from('orders')
-        .select('*, profiles(name_cn, email)')
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      setRecentOrders(orders || []);
+      try {
+        const res = await fetch('/api/admin/dashboard');
+        if (!res.ok) {
+          router.push('/admin/auth/login');
+          return;
+        }
+        const json = await res.json();
+        if (json.error) {
+          console.error('获取数据失败:', json.error);
+          setLoading(false);
+          return;
+        }
+        const d = json.data;
+        setStats({
+          total: d.totalOrders || 0,
+          pending: d.pendingOrders || 0,
+          revenue: d.monthlyRevenue || 0,
+          users: d.totalProfiles || 0,
+        });
+        setRecentOrders(d.recentOrders || []);
+      } catch (e) {
+        console.error('获取数据失败:', e);
+      }
       setLoading(false);
     };
 
     fetchData();
-  }, []);
+  }, [router]);
 
   const statusMap: Record<string, { color: string; bg: string }> = {
     pending: { color: 'text-amber-600', bg: 'bg-amber-50' },
@@ -70,24 +56,18 @@ export default function AdminDashboard() {
   };
 
   const statCards = [
-    { label: '总订单', value: stats.total, icon: ShoppingBag, color: 'bg-blue-50 text-blue-600', prefix: '' },
-    { label: '待处理', value: stats.pending, icon: Clock, color: 'bg-amber-50 text-amber-600', prefix: '' },
-    { label: '本月收入', value: `¥${stats.revenue.toLocaleString()}`, icon: TrendingUp, color: 'bg-green-50 text-green-600', prefix: '' },
-    { label: '客户总数', value: stats.users, icon: Users, color: 'bg-purple-50 text-purple-600', prefix: '' },
+    { label: '总订单', value: stats.total, icon: ShoppingBag, color: 'bg-blue-50 text-blue-600' },
+    { label: '待处理', value: stats.pending, icon: Clock, color: 'bg-amber-50 text-amber-600' },
+    { label: '本月收入', value: `¥${stats.revenue.toLocaleString()}`, icon: TrendingUp, color: 'bg-green-50 text-green-600' },
+    { label: '客户总数', value: stats.users, icon: Users, color: 'bg-purple-50 text-purple-600' },
   ];
 
   const typeLabels: Record<string, string> = {
-    diving: '深潜',
-    island: '跳岛游',
-    show: '秀场',
-    custom: '定制旅行',
+    diving: '深潜', island: '跳岛游', show: '秀场', custom: '定制旅行',
   };
 
   const statusLabels: Record<string, string> = {
-    pending: '待付款',
-    confirmed: '已确认',
-    completed: '已完成',
-    cancelled: '已取消',
+    pending: '待付款', confirmed: '已确认', completed: '已完成', cancelled: '已取消',
   };
 
   return (

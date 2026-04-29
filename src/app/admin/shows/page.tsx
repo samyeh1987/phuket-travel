@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, X, Save } from 'lucide-react';
-import { createClient } from '@/lib/supabase';
 
 interface ShowPackage { id?: string; show_id: string; name: string; description: string; price: string; is_active: boolean; }
 
@@ -15,19 +14,18 @@ export default function AdminShowsPage() {
   const [editShow, setEditShow] = useState<any>(null);
   const [editPkg, setEditPkg] = useState<ShowPackage>({ show_id: '', name: '', description: '', price: '', is_active: true });
   const [saving, setSaving] = useState(false);
-  const supabase = createClient();
 
   const fetchAll = async () => {
     setLoading(true);
-    const [{ data: showsData }, { data: pkgsData }] = await Promise.all([
-      supabase.from('shows').select('*').order('sort_order'),
-      supabase.from('show_packages').select('*').order('sort_order'),
-    ]);
-    const merged = (showsData || []).map(show => ({
-      ...show,
-      packages: (pkgsData || []).filter((p: any) => p.show_id === show.id),
-    }));
-    setShows(merged);
+    const res = await fetch('/api/admin/shows');
+    const json = await res.json();
+    if (json.data) {
+      const merged = (json.data.shows || []).map((show: any) => ({
+        ...show,
+        packages: (json.data.packages || []).filter((p: any) => p.show_id === show.id),
+      }));
+      setShows(merged);
+    }
     setLoading(false);
   };
 
@@ -44,9 +42,13 @@ export default function AdminShowsPage() {
     e.preventDefault();
     if (!editShow) return;
     setSaving(true);
-    const payload = { name: editShow.name, slug: editShow.slug || generateSlug(editShow.name), description: editShow.description, image_url: editShow.image_url, is_active: editShow.is_active };
-    if (editShow.id) await supabase.from('shows').update(payload).eq('id', editShow.id);
-    else await supabase.from('shows').insert(payload);
+    const payload = { table: 'shows', name: editShow.name, slug: editShow.slug || generateSlug(editShow.name), description: editShow.description, image_url: editShow.image_url, is_active: editShow.is_active };
+    const method = editShow.id ? 'PUT' : 'POST';
+    await fetch('/api/admin/shows', {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editShow.id ? { id: editShow.id, ...payload } : payload),
+    });
     setShowShowModal(false);
     await fetchAll();
     setSaving(false);
@@ -55,9 +57,13 @@ export default function AdminShowsPage() {
   const savePkg = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    const payload = { ...editPkg, price: Number(editPkg.price) };
-    if (editPkg.id) await supabase.from('show_packages').update(payload).eq('id', editPkg.id);
-    else await supabase.from('show_packages').insert(payload);
+    const payload = { table: 'show_packages', show_id: editPkg.show_id, name: editPkg.name, description: editPkg.description, price: Number(editPkg.price), is_active: editPkg.is_active };
+    const method = editPkg.id ? 'PUT' : 'POST';
+    await fetch('/api/admin/shows', {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editPkg.id ? { id: editPkg.id, ...payload } : payload),
+    });
     setShowPkgModal(false);
     await fetchAll();
     setSaving(false);
@@ -65,23 +71,31 @@ export default function AdminShowsPage() {
 
   const deleteShow = async (id: string) => {
     if (!confirm('刪除秀場會連帶刪除所有套餐，確定？')) return;
-    await supabase.from('shows').delete().eq('id', id);
+    await fetch(`/api/admin/shows?table=shows&id=${id}`, { method: 'DELETE' });
     await fetchAll();
   };
 
   const deletePkg = async (id: string) => {
     if (!confirm('確定刪除此套餐？')) return;
-    await supabase.from('show_packages').delete().eq('id', id);
+    await fetch(`/api/admin/shows?table=show_packages&id=${id}`, { method: 'DELETE' });
     await fetchAll();
   };
 
   const toggleShow = async (show: any) => {
-    await supabase.from('shows').update({ is_active: !show.is_active }).eq('id', show.id);
+    await fetch('/api/admin/shows', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ table: 'shows', id: show.id, is_active: !show.is_active }),
+    });
     fetchAll();
   };
 
   const togglePkg = async (pkg: any) => {
-    await supabase.from('show_packages').update({ is_active: !pkg.is_active }).eq('id', pkg.id);
+    await fetch('/api/admin/shows', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ table: 'show_packages', id: pkg.id, is_active: !pkg.is_active }),
+    });
     fetchAll();
   };
 
@@ -221,7 +235,7 @@ export default function AdminShowsPage() {
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowPkgModal(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-gray-600 font-medium hover:bg-gray-50">取消</button>
-                <button type="submit" disabled={saving} className="flex-1 py-2.5 bg-ocean-500 text-white rounded-xl font-medium hover:bg-ocean-600 flex items-center justify-center gap-2 disabled:opacity-50">
+                <button type="submit" disabled={saving} className="flex-1 py-2-5 bg-ocean-500 text-white rounded-xl font-medium hover:bg-ocean-600 flex items-center justify-center gap-2 disabled:opacity-50">
                   {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
                   {saving ? '保存中...' : '保存'}
                 </button>

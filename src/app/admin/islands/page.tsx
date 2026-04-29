@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, X, Save } from 'lucide-react';
-import { createClient } from '@/lib/supabase';
 
 interface Boat { id?: string; island_id: string; name: string; description: string; price: string; duration: string; is_active: boolean; }
 
@@ -15,19 +14,18 @@ export default function AdminIslandsPage() {
   const [editIsland, setEditIsland] = useState<any>(null);
   const [editBoat, setEditBoat] = useState<Boat>({ island_id: '', name: '', description: '', price: '', duration: '', is_active: true });
   const [saving, setSaving] = useState(false);
-  const supabase = createClient();
 
   const fetchAll = async () => {
     setLoading(true);
-    const [{ data: islandsData }, { data: boatsData }] = await Promise.all([
-      supabase.from('islands').select('*').order('sort_order'),
-      supabase.from('island_boats').select('*').order('sort_order'),
-    ]);
-    const merged = (islandsData || []).map(island => ({
-      ...island,
-      boats: (boatsData || []).filter((b: any) => b.island_id === island.id),
-    }));
-    setIslands(merged);
+    const res = await fetch('/api/admin/islands');
+    const json = await res.json();
+    if (json.data) {
+      const merged = (json.data.islands || []).map((island: any) => ({
+        ...island,
+        boats: (json.data.boats || []).filter((b: any) => b.island_id === island.id),
+      }));
+      setIslands(merged);
+    }
     setLoading(false);
   };
 
@@ -44,9 +42,13 @@ export default function AdminIslandsPage() {
     e.preventDefault();
     if (!editIsland) return;
     setSaving(true);
-    const payload = { name: editIsland.name, slug: editIsland.slug || generateSlug(editIsland.name), description: editIsland.description, image_url: editIsland.image_url, is_active: editIsland.is_active };
-    if (editIsland.id) await supabase.from('islands').update(payload).eq('id', editIsland.id);
-    else await supabase.from('islands').insert(payload);
+    const payload = { table: 'islands', name: editIsland.name, slug: editIsland.slug || generateSlug(editIsland.name), description: editIsland.description, image_url: editIsland.image_url, is_active: editIsland.is_active };
+    const method = editIsland.id ? 'PUT' : 'POST';
+    await fetch('/api/admin/islands', {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editIsland.id ? { id: editIsland.id, ...payload } : payload),
+    });
     setShowIslandModal(false);
     await fetchAll();
     setSaving(false);
@@ -55,9 +57,13 @@ export default function AdminIslandsPage() {
   const saveBoat = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    const payload = { ...editBoat, price: Number(editBoat.price) };
-    if (editBoat.id) await supabase.from('island_boats').update(payload).eq('id', editBoat.id);
-    else await supabase.from('island_boats').insert(payload);
+    const payload = { table: 'island_boats', island_id: editBoat.island_id, name: editBoat.name, description: editBoat.description, price: Number(editBoat.price), duration: editBoat.duration, is_active: editBoat.is_active };
+    const method = editBoat.id ? 'PUT' : 'POST';
+    await fetch('/api/admin/islands', {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editBoat.id ? { id: editBoat.id, ...payload } : payload),
+    });
     setShowBoatModal(false);
     await fetchAll();
     setSaving(false);
@@ -65,23 +71,31 @@ export default function AdminIslandsPage() {
 
   const deleteIsland = async (id: string) => {
     if (!confirm('刪除島嶼會連帶刪除所有關聯船隻，確定？')) return;
-    await supabase.from('islands').delete().eq('id', id);
+    await fetch(`/api/admin/islands?table=islands&id=${id}`, { method: 'DELETE' });
     await fetchAll();
   };
 
   const deleteBoat = async (id: string) => {
     if (!confirm('確定刪除此船隻？')) return;
-    await supabase.from('island_boats').delete().eq('id', id);
+    await fetch(`/api/admin/islands?table=island_boats&id=${id}`, { method: 'DELETE' });
     await fetchAll();
   };
 
   const toggleIsland = async (island: any) => {
-    await supabase.from('islands').update({ is_active: !island.is_active }).eq('id', island.id);
+    await fetch('/api/admin/islands', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ table: 'islands', id: island.id, is_active: !island.is_active }),
+    });
     fetchAll();
   };
 
   const toggleBoat = async (boat: any) => {
-    await supabase.from('island_boats').update({ is_active: !boat.is_active }).eq('id', boat.id);
+    await fetch('/api/admin/islands', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ table: 'island_boats', id: boat.id, is_active: !boat.is_active }),
+    });
     fetchAll();
   };
 

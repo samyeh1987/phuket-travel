@@ -1,55 +1,62 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Search, Eye, RefreshCw, X, Calendar, Filter, Check, XCircle, Image as ImageIcon } from 'lucide-react';
-import { createClient } from '@/lib/supabase';
-import { useAuth } from '@/components/AuthProvider';
+import { Search, Eye, RefreshCw, X, Calendar, Check, XCircle, Image as ImageIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function AdminOrdersPage() {
-  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [checking, setChecking] = useState(true);
   const [filter, setFilter] = useState('全部');
   const [search, setSearch] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [updating, setUpdating] = useState(false);
-  const supabase = createClient();
 
-  // Redirect if not logged in
+  // 验证管理员身份（通过调用 API 间接验证）
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/auth/login?next=/admin/orders');
-    }
-  }, [user, authLoading, router]);
+    const checkAdmin = async () => {
+      try {
+        const res = await fetch('/api/admin/orders');
+        if (!res.ok) {
+          router.push('/admin/auth/login?next=/admin/orders');
+          return;
+        }
+        setChecking(false);
+      } catch {
+        router.push('/admin/auth/login?next=/admin/orders');
+      }
+    };
+    checkAdmin();
+  }, [router]);
 
   const fetchOrders = async () => {
     setLoading(true);
-    let query = supabase
-      .from('orders')
-      .select('*, profiles(name_cn, email)')
-      .order('created_at', { ascending: false });
-
-    const { data, error } = await query;
-    if (error) {
-      console.error('获取订单失败:', error);
+    const res = await fetch('/api/admin/orders');
+    const json = await res.json();
+    if (json.error) {
+      console.error('获取订单失败:', json.error);
     }
-    setOrders(data || []);
+    setOrders(json.data || []);
     setLoading(false);
   };
 
   useEffect(() => {
-    if (user) {
+    if (!checking) {
       fetchOrders();
     }
-  }, [user]);
+  }, [checking]);
 
   const updateStatus = async (orderId: string, status: string) => {
     setUpdating(true);
-    await supabase.from('orders').update({ status }).eq('id', orderId);
+    await fetch('/api/admin/orders', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'update_status', orderId, status }),
+    });
     setSelectedOrder(null);
     await fetchOrders();
     setUpdating(false);
@@ -57,32 +64,17 @@ export default function AdminOrdersPage() {
 
   const updatePaymentStatus = async (orderId: string, paymentStatus: string, notes?: string) => {
     setUpdating(true);
-    const updateData: any = { payment_status: paymentStatus };
-    if (paymentStatus === 'paid') {
-      updateData.paid_at = new Date().toISOString();
-      updateData.reviewed_by = user?.id;
-      updateData.reviewed_at = new Date().toISOString();
-    }
-    if (notes) {
-      updateData.customer_service_notes = notes;
-    }
-    await supabase.from('orders').update(updateData).eq('id', orderId);
-
-    // 如果是确认付款，同时写入财务流水
-    if (paymentStatus === 'paid' && selectedOrder) {
-      const order = selectedOrder;
-      await supabase.from('payment_transactions').insert({
-        order_id: orderId,
-        order_number: order.order_number,
-        order_type: order.type,
-        amount: order.total_price,
-        payment_method: order.payment_method || 'unknown',
-        proof_url: order.payment_proof_url,
-        status: 'completed',
-        admin_id: user?.id,
-      });
-    }
-
+    await fetch('/api/admin/orders', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'update_payment',
+        orderId,
+        payment_status: paymentStatus,
+        notes,
+        orderData: selectedOrder,
+      }),
+    });
     setSelectedOrder(null);
     await fetchOrders();
     setUpdating(false);
@@ -91,7 +83,11 @@ export default function AdminOrdersPage() {
   // 更新联系状态（定制旅行专用）
   const updateContactStatus = async (orderId: string, contactStatus: string) => {
     setUpdating(true);
-    await supabase.from('orders').update({ contact_status: contactStatus }).eq('id', orderId);
+    await fetch('/api/admin/orders', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'update_contact', orderId, contact_status: contactStatus }),
+    });
     setSelectedOrder(null);
     await fetchOrders();
     setUpdating(false);
@@ -109,7 +105,6 @@ export default function AdminOrdersPage() {
     cancelled: { color: 'text-red-600', bg: 'bg-red-50' },
   };
 
-  // 付款状态配置
   const paymentStatusConfig: Record<string, { color: string; bg: string; label: string }> = {
     unpaid: { color: 'text-gray-600', bg: 'bg-gray-100', label: '未付款' },
     pending_review: { color: 'text-orange-600', bg: 'bg-orange-100', label: '待审核' },
@@ -117,7 +112,6 @@ export default function AdminOrdersPage() {
     rejected: { color: 'text-red-600', bg: 'bg-red-100', label: '已拒绝' },
   };
 
-  // 联系状态配置（定制旅行专用）
   const contactStatusConfig: Record<string, { color: string; bg: string; label: string }> = {
     pending_contact: { color: 'text-amber-600', bg: 'bg-amber-100', label: '待联系' },
     contacted: { color: 'text-green-600', bg: 'bg-green-100', label: '已联系' },
@@ -145,18 +139,28 @@ export default function AdminOrdersPage() {
       (o.profiles?.name_cn || o.contact_name_cn || '').toLowerCase().includes(q) ||
       (o.contact_phone || '').includes(q) ||
       (o.contact_email || '').toLowerCase().includes(q);
-    
-    // 日期筛选
+
     const orderDate = new Date(o.created_at);
     const fromMatch = !dateFrom || orderDate >= new Date(dateFrom);
     const toMatch = !dateTo || orderDate <= new Date(dateTo + 'T23:59:59');
-    
+
     return typeMatch && searchMatch && fromMatch && toMatch;
   });
 
   const statusLabels: Record<string, string> = {
     pending: '待付款', confirmed: '已确认', completed: '已完成', cancelled: '已取消',
   };
+
+  if (checking) {
+    return (
+      <div className="flex items-center justify-center min-h-64">
+        <div className="text-center">
+          <div className="w-8 h-8 border-3 border-ocean-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-sm text-gray-500">加载中...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -195,8 +199,7 @@ export default function AdminOrdersPage() {
             />
           </div>
         </div>
-        
-        {/* 日期筛选 */}
+
         <div className="flex flex-wrap gap-3 items-center">
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-gray-400" />
@@ -208,7 +211,6 @@ export default function AdminOrdersPage() {
               value={dateFrom}
               onChange={e => setDateFrom(e.target.value)}
               className="px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
-              placeholder="开始日期"
             />
             <span className="text-gray-400">至</span>
             <input
@@ -216,7 +218,6 @@ export default function AdminOrdersPage() {
               value={dateTo}
               onChange={e => setDateTo(e.target.value)}
               className="px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
-              placeholder="结束日期"
             />
             {(dateFrom || dateTo) && (
               <button
@@ -314,7 +315,6 @@ export default function AdminOrdersPage() {
                           </a>
                         )}
                       </td>
-                      {/* 联系状态 - 仅定制旅行显示 */}
                       <td className="px-5 py-3.5">
                         {isCustomOrder ? (
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${contactStatusConfig[o.contact_status]?.color || 'text-gray-600'} ${contactStatusConfig[o.contact_status]?.bg || 'bg-gray-100'}`}>
@@ -385,7 +385,6 @@ export default function AdminOrdersPage() {
                     {paymentStatusConfig[selectedOrder.payment_status]?.label || '未付款'}
                   </span>
                 </div>
-                {/* 联系状态 - 定制旅行 */}
                 {selectedOrder.type === 'custom' && (
                   <div><span className="text-gray-500">联系状态</span>
                     <select
@@ -444,7 +443,6 @@ export default function AdminOrdersPage() {
                 ))}
               </div>
 
-              {/* 联系状态快捷按钮 - 定制旅行 */}
               {selectedOrder.type === 'custom' && (
                 <div className="mt-4 pt-4 border-t">
                   <p className="text-xs text-gray-400 mb-2">联系状态（定制旅行）</p>
@@ -468,7 +466,6 @@ export default function AdminOrdersPage() {
               )}
             </div>
 
-            {/* 付款审核区域 */}
             {selectedOrder.payment_status !== 'paid' && (
               <div className="mt-6 pt-6 border-t">
                 <p className="text-xs text-gray-400 mb-2">付款审核</p>

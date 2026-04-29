@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2, CheckCircle, X, Save } from 'lucide-react';
-import { createClient } from '@/lib/supabase';
+import { Plus, Pencil, Trash2, X, Save } from 'lucide-react';
 
 interface DivingPackage {
   id?: string;
@@ -22,15 +21,12 @@ export default function AdminDivingPage() {
   const [editItem, setEditItem] = useState<DivingPackage | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
-  const supabase = createClient();
 
   const fetchPackages = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('diving_packages')
-      .select('*')
-      .order('sort_order');
-    setPackages(data || []);
+    const res = await fetch('/api/admin/diving');
+    const json = await res.json();
+    setPackages(json.data || []);
     setLoading(false);
   };
 
@@ -45,11 +41,13 @@ export default function AdminDivingPage() {
     setSaving(true);
     const { name, slug, description, price, type, duration, is_active } = editItem;
     const payload = { name, slug, description, price: Number(price), type, duration, is_active };
-    if (editItem.id) {
-      await supabase.from('diving_packages').update(payload).eq('id', editItem.id);
-    } else {
-      await supabase.from('diving_packages').insert(payload);
-    }
+    const url = editItem.id ? '/api/admin/diving' : '/api/admin/diving';
+    const method = editItem.id ? 'PUT' : 'POST';
+    await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editItem.id ? { id: editItem.id, ...payload } : payload),
+    });
     setShowModal(false);
     await fetchPackages();
     setSaving(false);
@@ -58,13 +56,17 @@ export default function AdminDivingPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('確定刪除此套餐？')) return;
     setDeleting(id);
-    await supabase.from('diving_packages').delete().eq('id', id);
+    await fetch(`/api/admin/diving?id=${id}`, { method: 'DELETE' });
     await fetchPackages();
     setDeleting(null);
   };
 
   const handleToggle = async (pkg: any) => {
-    await supabase.from('diving_packages').update({ is_active: !pkg.is_active }).eq('id', pkg.id);
+    await fetch('/api/admin/diving', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: pkg.id, is_active: !pkg.is_active }),
+    });
     fetchPackages();
   };
 
@@ -83,7 +85,6 @@ export default function AdminDivingPage() {
         </button>
       </div>
 
-      {/* Table */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-12 text-center text-gray-400"><div className="w-6 h-6 border-2 border-ocean-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" /><p className="text-sm">加载中...</p></div>
@@ -130,7 +131,6 @@ export default function AdminDivingPage() {
         )}
       </div>
 
-      {/* Add/Edit Modal */}
       {showModal && editItem && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md">
