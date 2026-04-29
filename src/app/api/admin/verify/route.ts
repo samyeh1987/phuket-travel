@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase-admin';
+import { createAdminClient } from '@/lib/supabase-admin';
 
 /**
- * Lightweight endpoint for verifying admin session.
- * Returns 200 if authenticated, 401/403 otherwise.
+ * 驗證管理員會話
+ * 使用獨立的管理員 session cookie
  */
 export async function GET(req: NextRequest) {
   try {
@@ -13,53 +13,56 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Server config error', reason: 'service_role_missing' }, { status: 500 });
     }
 
-    // 動態導入 admin client
-    const { createAdminClient } = await import('@/lib/supabase-admin');
+    // 讀取 admin session cookie
+    const adminId = req.cookies.get('admin_id')?.value;
+    const adminSession = req.cookies.get('admin_session')?.value;
 
-    // 讀取 cookies
-    const cookies = req.cookies.getAll();
-    console.log('[verify] Cookies received:', cookies.map(c => c.name));
-    
-    // 創建服務端客戶端（使用 ANON_KEY 讀取 session）
-    const supabase = createServerSupabaseClient({
-      getAll() {
-        return cookies;
-      },
-    });
+    console.log('[verify] Admin ID from cookie:', adminId);
+    console.log('[verify] Admin session exists:', !!adminSession);
 
-    // 獲取用戶 session
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError) {
-      console.log('[verify] Auth error:', authError.message);
-    }
-    
-    if (!user) {
-      console.log('[verify] No user found in session');
+    if (!adminId || !adminSession) {
+      console.log('[verify] No admin session found');
       return NextResponse.json({ error: 'Unauthorized', reason: 'no_session' }, { status: 401 });
     }
-    
-    console.log('[verify] User found:', user.email);
 
-    // 使用 SERVICE_ROLE_KEY 客戶端檢查 admin_users 表
+    // 驗證 session 是否有效（基本檢查）
+    try {
+      const decoded = Buffer.from(adminSession, 'base64').toString('utf-8');
+      const [sessionId, timestamp] = decoded.split(':');
+      
+      // 檢查 session 是否過期（7天）
+      const sessionAge = Date.now() - parseInt(timestamp);
+      const maxAge = 7 * 24 * 60 * 60 * 1000;
+      
+      if (sessionAge > maxAge) {
+        console.log('[verify] Session expired');
+        return NextResponse.json({ error: 'Unauthorized', reason: 'session_expired' }, { status: 401 });
+      }
+
+      if (sessionId !== adminId) {
+        console.log('[verify] Session ID mismatch');
+        return NextResponse.json({ error: 'Unauthorized', reason: 'invalid_session' }, { status: 401 });
+      }
+    } catch (e) {
+      console.log('[verify] Invalid session format');
+      return NextResponse.json({ error: 'Unauthorized', reason: 'invalid_session' }, { status: 401 });
+    }
+
+    // 使用 SERVICE_ROLE_KEY 驗證管理員是否存在
     const adminDb = createAdminClient();
     const { data: adminUser, error: adminError } = await adminDb
       .from('admin_users')
-      .select('id')
-      .eq('id', user.id)
+      .select('id, email, name')
+      .eq('id', adminId)
       .single();
 
-    if (adminError) {
-      console.log('[verify] Admin check error:', adminError.message);
-    }
-    
-    if (!adminUser) {
-      console.log('[verify] User is not an admin:', user.id);
+    if (adminError || !adminUser) {
+      console.log('[verify] Admin not found in database');
       return NextResponse.json({ error: 'Forbidden', reason: 'not_admin' }, { status: 403 });
     }
 
-    console.log('[verify] Admin verified successfully');
-    return NextResponse.json({ success: true }, { status: 200 });
+    console.log('[verify] Admin verified:', adminUser.email);
+    return NextResponse.json({ success: true, admin: adminUser }, { status: 200 });
   } catch (e: any) {
     console.error('[verify] Unexpected error:', e);
     return NextResponse.json({ error: e.message }, { status: 500 });

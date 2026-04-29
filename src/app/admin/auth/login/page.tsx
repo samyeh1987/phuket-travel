@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase';
 import { Eye, EyeOff, LogIn, Sailboat, AlertCircle } from 'lucide-react';
 
 export default function AdminLoginPage() {
@@ -12,42 +11,35 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
-  const supabase = createClient();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    // 1. 登入 Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      // 調用後端 API 驗證管理員登入
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (authError || !authData.user) {
-      setError(authError?.message || '登入失敗');
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || '登入失敗');
+        setLoading(false);
+        return;
+      }
+
+      // 登入成功，跳轉後台
+      window.location.href = '/admin';
+    } catch (err: any) {
+      setError(err.message || '網絡錯誤');
       setLoading(false);
-      return;
     }
-
-    // 2. 檢查是否為管理員
-    const { data: adminUser, error: adminError } = await supabase
-      .from('admin_users')
-      .select('id')
-      .eq('id', authData.user.id)
-      .single();
-
-    if (adminError || !adminUser) {
-      // 不是管理員，退出並提示
-      await supabase.auth.signOut();
-      setError('您沒有後台管理權限');
-      setLoading(false);
-      return;
-    }
-
-    // 3. 是管理員，通過 window.location 跳轉（觸發 middleware 驗證）
-    window.location.href = '/admin';
   };
 
   return (

@@ -20,7 +20,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [checking, setChecking] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const checkAdmin = useCallback(async () => {
     // 登入頁不需要驗證
@@ -39,13 +38,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         setIsAdmin(true);
         setChecking(false);
       } else {
-        const data = await res.json();
-        setError(data.error || '驗證失敗');
         router.push('/admin/auth/login');
       }
-    } catch (e: any) {
+    } catch (e) {
       console.error('驗證失敗:', e);
-      setError(e.message);
       router.push('/admin/auth/login');
     }
   }, [pathname, router]);
@@ -54,13 +50,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     checkAdmin();
   }, [checkAdmin]);
 
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/admin/logout', { method: 'POST', credentials: 'include' });
+    } catch (e) {
+      console.error('登出失敗:', e);
+    }
+    window.location.href = '/admin/auth/login';
+  };
+
   if (checking) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
           <div className="w-10 h-10 border-3 border-ocean-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
           <p className="text-sm text-gray-500">驗證身份中...</p>
-          {error && <p className="text-xs text-red-500 mt-2">錯誤: {error}</p>}
         </div>
       </div>
     );
@@ -99,8 +103,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           })}
         </nav>
         <div className="p-4 border-t border-gray-800">
-          <Link href="/" className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white rounded-xl transition-colors text-sm">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 rounded-xl transition-colors text-sm"
+          >
             <LogOut className="w-5 h-5" />
+            登出
+          </button>
+          <Link href="/" className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white rounded-xl transition-colors text-sm mt-1">
+            <SailboatIcon className="w-5 h-5" />
             返回首页
           </Link>
         </div>
