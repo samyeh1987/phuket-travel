@@ -29,24 +29,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         return;
       }
 
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
+      // 只檢查用戶是否已登入（通過 API 驗證）
+      // 避免前端直接查詢 admin_users 表（可能有 RLS 問題）
+      try {
+        const res = await fetch('/api/admin/dashboard', {
+          credentials: 'include', // 确保发送 cookies
+        });
+        
+        if (!res.ok) {
+          // API 返回非 200，說明未登入或不是管理員
+          router.push('/admin/auth/login');
+          return;
+        }
+      } catch (e) {
+        console.error('驗證失敗:', e);
         router.push('/admin/auth/login');
-        return;
-      }
-
-      // 檢查是否為管理員
-      const { data: adminUser } = await supabase
-        .from('admin_users')
-        .select('id')
-        .eq('id', user.id)
-        .single();
-
-      if (!adminUser) {
-        await supabase.auth.signOut();
-        router.push('/admin/auth/login?error=unauthorized');
         return;
       }
 

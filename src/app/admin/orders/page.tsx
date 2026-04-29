@@ -2,13 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { Search, Eye, RefreshCw, X, Calendar, Check, XCircle, Image as ImageIcon } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 
 export default function AdminOrdersPage() {
-  const router = useRouter();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [checking, setChecking] = useState(true);
   const [filter, setFilter] = useState('全部');
   const [search, setSearch] = useState('');
   const [dateFrom, setDateFrom] = useState('');
@@ -16,26 +13,9 @@ export default function AdminOrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [updating, setUpdating] = useState(false);
 
-  // 验证管理员身份（通过调用 API 间接验证）
-  useEffect(() => {
-    const checkAdmin = async () => {
-      try {
-        const res = await fetch('/api/admin/orders');
-        if (!res.ok) {
-          router.push('/admin/auth/login?next=/admin/orders');
-          return;
-        }
-        setChecking(false);
-      } catch {
-        router.push('/admin/auth/login?next=/admin/orders');
-      }
-    };
-    checkAdmin();
-  }, [router]);
-
   const fetchOrders = async () => {
     setLoading(true);
-    const res = await fetch('/api/admin/orders');
+    const res = await fetch('/api/admin/orders', { credentials: 'include' });
     const json = await res.json();
     if (json.error) {
       console.error('获取订单失败:', json.error);
@@ -45,16 +25,15 @@ export default function AdminOrdersPage() {
   };
 
   useEffect(() => {
-    if (!checking) {
-      fetchOrders();
-    }
-  }, [checking]);
+    fetchOrders();
+  }, []);
 
   const updateStatus = async (orderId: string, status: string) => {
     setUpdating(true);
     await fetch('/api/admin/orders', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ action: 'update_status', orderId, status }),
     });
     setSelectedOrder(null);
@@ -67,6 +46,7 @@ export default function AdminOrdersPage() {
     await fetch('/api/admin/orders', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({
         action: 'update_payment',
         orderId,
@@ -80,12 +60,12 @@ export default function AdminOrdersPage() {
     setUpdating(false);
   };
 
-  // 更新联系状态（定制旅行专用）
   const updateContactStatus = async (orderId: string, contactStatus: string) => {
     setUpdating(true);
     await fetch('/api/admin/orders', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ action: 'update_contact', orderId, contact_status: contactStatus }),
     });
     setSelectedOrder(null);
@@ -150,17 +130,6 @@ export default function AdminOrdersPage() {
   const statusLabels: Record<string, string> = {
     pending: '待付款', confirmed: '已确认', completed: '已完成', cancelled: '已取消',
   };
-
-  if (checking) {
-    return (
-      <div className="flex items-center justify-center min-h-64">
-        <div className="text-center">
-          <div className="w-8 h-8 border-3 border-ocean-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-sm text-gray-500">加载中...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">

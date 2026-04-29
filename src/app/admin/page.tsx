@@ -1,37 +1,30 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Anchor, Sailboat, Ticket, ShoppingBag, TrendingUp, Users, Clock, ArrowRight, Settings } from 'lucide-react';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({ total: 0, pending: 0, revenue: 0, users: 0 });
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch('/api/admin/dashboard');
-        if (!res.ok) {
-          router.push('/admin/auth/login');
-          return;
-        }
+        const res = await fetch('/api/admin/dashboard', { credentials: 'include' });
         const json = await res.json();
         if (json.error) {
           console.error('获取数据失败:', json.error);
-          setLoading(false);
-          return;
+        } else {
+          const d = json.data;
+          setStats({
+            total: d.totalOrders || 0,
+            pending: d.pendingOrders || 0,
+            revenue: d.monthlyRevenue || 0,
+            users: d.totalProfiles || 0,
+          });
+          setRecentOrders(d.recentOrders || []);
         }
-        const d = json.data;
-        setStats({
-          total: d.totalOrders || 0,
-          pending: d.pendingOrders || 0,
-          revenue: d.monthlyRevenue || 0,
-          users: d.totalProfiles || 0,
-        });
-        setRecentOrders(d.recentOrders || []);
       } catch (e) {
         console.error('获取数据失败:', e);
       }
@@ -39,7 +32,7 @@ export default function AdminDashboard() {
     };
 
     fetchData();
-  }, [router]);
+  }, []);
 
   const statusMap: Record<string, { color: string; bg: string }> = {
     pending: { color: 'text-amber-600', bg: 'bg-amber-50' },
