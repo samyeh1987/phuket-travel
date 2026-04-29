@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Save, Plus, Trash2, CheckCircle } from 'lucide-react';
+import { Save, Plus, Trash2, CheckCircle, Image as ImageIcon } from 'lucide-react';
+import ImageUpload from '@/components/admin/ImageUpload';
 
 interface Setting { key: string; value: string; }
 interface Banner { id?: string; title: string; image_url: string; link_url: string; sort_order: number; is_active: boolean; }
@@ -131,67 +132,52 @@ export default function AdminSettingsPage() {
             </div>
           ))}
         </div>
-        <div className="mt-4 space-y-4">
-          <label className="text-sm font-medium text-gray-700 mb-1 block">客服二维码图片（定制旅行页面使用）</label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {[
-              { key: 'service_wechat_qr', label: '微信客服二维码', emoji: '💚' },
-              { key: 'service_line_qr', label: 'Line 客服二维码', emoji: '💙' },
-            ].map(f => (
-              <div key={f.key} className="border border-gray-100 rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-xl">{f.emoji}</span>
-                  <span className="font-medium text-gray-900">{f.label}</span>
-                </div>
-                <input
-                  type="text"
-                  value={settings[f.key] || ''}
-                  onChange={e => updateSetting(f.key, e.target.value)}
-                  placeholder="输入二维码图片URL"
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
-                />
-                {settings[f.key] && (
-                  <div className="mt-2 rounded-lg overflow-hidden bg-gray-50 inline-block">
-                    <img src={settings[f.key]} alt={f.label} className="h-32 object-contain" onError={e => (e.target as HTMLImageElement).style.display = 'none'} />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-          <p className="text-xs text-gray-400">设置后将在定制旅行提交成功页面显示，方便客户添加客服好友</p>
+      </div>
+
+      {/* 客服二维码 - 图片上传 */}
+      <div className="bg-white rounded-2xl p-6 shadow-sm">
+        <h2 className="text-lg font-bold text-gray-900 mb-4">客服二维码</h2>
+        <p className="text-xs text-gray-400 mb-4">设置后将在定制旅行提交成功页面显示，方便客户添加客服好友</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <ImageUpload
+            label="微信客服二维码"
+            value={settings['service_wechat_qr'] || ''}
+            onChange={v => updateSetting('service_wechat_qr', v)}
+            aspectRatio="square"
+          />
+          <ImageUpload
+            label="Line 客服二维码"
+            value={settings['service_line_qr'] || ''}
+            onChange={v => updateSetting('service_line_qr', v)}
+            aspectRatio="square"
+          />
         </div>
       </div>
 
-      {/* 收款方式 */}
+      {/* 收款码 - 图片上传 */}
       <div className="bg-white rounded-2xl p-6 shadow-sm">
-        <h2 className="text-lg font-bold text-gray-900 mb-4">收款方式</h2>
-        <div className="space-y-4">
-          {[
-            { key: 'alipay_qr', label: '支付宝收款码', emoji: '💙', placeholder: '输入支付宝收款码图片URL' },
-            { key: 'wechat_qr', label: '微信收款码', emoji: '💚', placeholder: '输入微信收款码图片URL' },
-            { key: 'thai_qr', label: '泰国QR码', emoji: '🇹🇭', placeholder: '输入泰国收款码图片URL' },
-          ].map(f => (
-            <div key={f.key} className="border border-gray-100 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-xl">{f.emoji}</span>
-                <span className="font-medium text-gray-900">{f.label}</span>
-              </div>
-              <input
-                type="text"
-                value={settings[f.key] || ''}
-                onChange={e => updateSetting(f.key, e.target.value)}
-                placeholder={f.placeholder}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
-              />
-              {settings[f.key] && (
-                <div className="mt-2 rounded-lg overflow-hidden bg-gray-50 inline-block">
-                  <img src={settings[f.key]} alt={f.label} className="h-32 object-contain" onError={e => (e.target as HTMLImageElement).style.display = 'none'} />
-                </div>
-              )}
-            </div>
-          ))}
+        <h2 className="text-lg font-bold text-gray-900 mb-4">收款码</h2>
+        <p className="text-xs text-gray-400 mb-4">建议图片尺寸 300x400 像素，背景透明或浅色为佳</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <ImageUpload
+            label="支付宝收款码"
+            value={settings['alipay_qr'] || ''}
+            onChange={v => updateSetting('alipay_qr', v)}
+            aspectRatio="portrait"
+          />
+          <ImageUpload
+            label="微信收款码"
+            value={settings['wechat_qr'] || ''}
+            onChange={v => updateSetting('wechat_qr', v)}
+            aspectRatio="portrait"
+          />
+          <ImageUpload
+            label="泰国QR码"
+            value={settings['thai_qr'] || ''}
+            onChange={v => updateSetting('thai_qr', v)}
+            aspectRatio="portrait"
+          />
         </div>
-        <p className="text-xs text-gray-400 mt-3">建议图片尺寸 300x400 像素，背景透明或浅色为佳</p>
       </div>
 
       {/* 首页Banner */}
@@ -216,19 +202,18 @@ export default function AdminSettingsPage() {
                       <input type="text" value={banner.title} onChange={e => updateBanner(i, 'title', e.target.value)} placeholder="Banner标题" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
                     </div>
                     <div>
-                      <label className="text-xs text-gray-500 mb-1 block">图片URL</label>
-                      <input type="text" value={banner.image_url} onChange={e => updateBanner(i, 'image_url', e.target.value)} placeholder="https://..." className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
+                      <label className="text-xs text-gray-500 mb-1 block">图片</label>
+                      <ImageUpload
+                        value={banner.image_url}
+                        onChange={v => updateBanner(i, 'image_url', v)}
+                        aspectRatio="landscape"
+                      />
                     </div>
                     <div>
                       <label className="text-xs text-gray-500 mb-1 block">链接URL</label>
                       <input type="text" value={banner.link_url} onChange={e => updateBanner(i, 'link_url', e.target.value)} placeholder="/diving 或 https://..." className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
                     </div>
                   </div>
-                  {banner.image_url && (
-                    <div className="rounded-lg overflow-hidden bg-gray-50">
-                      <img src={banner.image_url} alt={banner.title} className="h-32 w-full object-cover" onError={e => (e.target as HTMLImageElement).style.display = 'none'} />
-                    </div>
-                  )}
                 </div>
                 <div className="flex flex-col gap-1">
                   <button onClick={() => toggleBanner(banner)} className={`p-1.5 rounded-lg text-xs font-medium ${banner.is_active ? 'text-green-600 bg-green-50' : 'text-gray-400 bg-gray-50'}`}>
