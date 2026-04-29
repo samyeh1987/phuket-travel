@@ -1,8 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
+import { ClientShell } from '@/components/layout/ClientShell';
 import { AuthProvider } from '@/components/AuthProvider';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -28,9 +27,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.className} antialiased`}>
         <AuthProvider>
-          <Navbar />
-          <main className="min-h-screen pb-32 md:pb-0">{children}</main>
-          <Footer />
+          <ClientShell>{children}</ClientShell>
         </AuthProvider>
       </body>
     </html>
