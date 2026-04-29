@@ -17,7 +17,7 @@ export function createServerSupabaseClient(cookies: {
         getAll() {
           return cookies.getAll();
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: { name: string; value: string; options?: CookieOptions }[]) {
           if (cookies.setAll) {
             cookies.setAll(cookiesToSet);
           }
