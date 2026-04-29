@@ -3,7 +3,7 @@ import { verifyAdmin } from '@/lib/admin-auth';
 
 export async function GET(req: NextRequest) {
   const auth = await verifyAdmin(req);
-  if (!('user' in auth)) {
+  if (!auth.authorized) {
     return auth.response;
   }
   const { supabase } = auth;
@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const auth = await verifyAdmin(req);
-  if (!('user' in auth)) {
+  if (!auth.authorized) {
     return auth.response;
   }
   const { supabase } = auth;

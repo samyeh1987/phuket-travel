@@ -3,9 +3,11 @@ import { createServerSupabaseClient, createAdminClient } from './supabase-admin'
 
 /**
  * Verify that the current request is from an authenticated admin user.
- * Returns the user object if valid, or a 401 NextResponse if not.
  */
-export async function verifyAdmin(req?: NextRequest) {
+export async function verifyAdmin(req?: NextRequest): Promise<
+  { authorized: true; user: any; supabase: ReturnType<typeof createAdminClient> } |
+  { authorized: false; response: NextResponse }
+> {
   // Use ANON_KEY client to read user session from cookies
   const supabase = createServerSupabaseClient({
     getAll() {
@@ -44,9 +46,10 @@ export async function verifyAdmin(req?: NextRequest) {
     };
   }
 
-  // Return both clients - auth client for user session, admin client for data operations
+  // Return admin client for data operations (bypasses RLS)
   return { 
+    authorized: true,
     user, 
-    supabase: adminDb  // Use admin client for data operations (bypasses RLS)
+    supabase: adminDb
   };
 }
