@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { RefreshCw, Calendar, X, Search, TrendingUp, CreditCard, CheckCircle } from 'lucide-react';
+import { RefreshCw, Calendar, X, Search, TrendingUp, CreditCard, User, Phone } from 'lucide-react';
 
 export default function AdminFinancePage() {
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -35,7 +35,9 @@ export default function AdminFinancePage() {
     const q = search.toLowerCase();
     const searchMatch = !q ||
       (t.order_number || '').toLowerCase().includes(q) ||
-      (t.order_type || '').toLowerCase().includes(q);
+      (t.order_type || '').toLowerCase().includes(q) ||
+      (t.contact_name_cn || '').toLowerCase().includes(q) ||
+      (t.contact_phone || '').toLowerCase().includes(q);
 
     const txDate = new Date(t.created_at);
     const fromMatch = !dateFrom || txDate >= new Date(dateFrom);
@@ -44,7 +46,7 @@ export default function AdminFinancePage() {
     return searchMatch && fromMatch && toMatch;
   });
 
-  const typeLabels: Record<string, string> = { diving: '深潜', island: '跳岛游', show: '秀场', custom: '定制旅行' };
+  const typeLabels: Record<string, string> = { diving: '深潜', diving_experience: '深潜体验', diving_cert: '潜水考证', island: '跳岛游', show: '秀场', custom: '定制旅行' };
   const methodLabels: Record<string, string> = { alipay: '支付宝', wechat: '微信支付', thai_qr: '泰国QR码', unknown: '未知' };
 
   return (
@@ -52,7 +54,7 @@ export default function AdminFinancePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">财务流水</h1>
-          <p className="text-sm text-gray-500 mt-1">共 {filtered.length} 笔交易</p>
+          <p className="text-sm text-gray-500 mt-1">共 {filtered.length} 笔已付款订单</p>
         </div>
         <button onClick={fetchTransactions} className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-500 hover:text-ocean-500 border border-gray-200 rounded-xl hover:border-ocean-300 transition-colors">
           <RefreshCw className="w-4 h-4" /> 刷新
@@ -66,7 +68,7 @@ export default function AdminFinancePage() {
             <span className="text-sm opacity-80">总收入</span>
           </div>
           <div className="text-2xl font-bold">¥{stats.total.toLocaleString()}</div>
-          <div className="text-xs opacity-70 mt-1">{stats.count} 笔交易</div>
+          <div className="text-xs opacity-70 mt-1">{stats.count} 笔订单</div>
         </div>
         <div className="bg-white rounded-2xl p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
@@ -105,7 +107,7 @@ export default function AdminFinancePage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="搜索订单号/类型"
+              placeholder="搜索订单号/姓名/电话"
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
@@ -158,30 +160,42 @@ export default function AdminFinancePage() {
             <p className="text-sm">加载中...</p>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="p-12 text-center text-gray-400 text-sm">暂无交易记录</div>
+          <div className="p-12 text-center text-gray-400 text-sm">暂无已付款订单</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50">
                 <tr className="text-left text-gray-500">
-                  <th className="px-5 py-3.5 font-medium">时间</th>
+                  <th className="px-5 py-3.5 font-medium">付款时间</th>
                   <th className="px-5 py-3.5 font-medium">订单号</th>
                   <th className="px-5 py-3.5 font-medium">类型</th>
+                  <th className="px-5 py-3.5 font-medium">联系人</th>
+                  <th className="px-5 py-3.5 font-medium">电话</th>
                   <th className="px-5 py-3.5 font-medium">金额</th>
                   <th className="px-5 py-3.5 font-medium">支付方式</th>
                   <th className="px-5 py-3.5 font-medium">凭证</th>
-                  <th className="px-5 py-3.5 font-medium">操作员</th>
+                  <th className="px-5 py-3.5 font-medium">审核人</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {filtered.map(tx => (
                   <tr key={tx.id} className="hover:bg-gray-50">
-                    <td className="px-5 py-3.5 text-gray-400 text-xs">{new Date(tx.created_at).toLocaleString('zh-CN')}</td>
+                    <td className="px-5 py-3.5 text-gray-400 text-xs">
+                      {tx.created_at ? new Date(tx.created_at).toLocaleString('zh-CN') : '-'}
+                    </td>
                     <td className="px-5 py-3.5 font-mono text-xs text-gray-600">{tx.order_number}</td>
                     <td className="px-5 py-3.5">
                       <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
                         {typeLabels[tx.order_type] || tx.order_type}
                       </span>
+                    </td>
+                    <td className="px-5 py-3.5 flex items-center gap-1.5 text-gray-600">
+                      <User className="w-3.5 h-3.5 text-gray-400" />
+                      {tx.contact_name_cn || '-'}
+                    </td>
+                    <td className="px-5 py-3.5 flex items-center gap-1.5 text-gray-600">
+                      <Phone className="w-3.5 h-3.5 text-gray-400" />
+                      {tx.contact_phone || '-'}
                     </td>
                     <td className="px-5 py-3.5 font-semibold text-green-600">+¥{Number(tx.amount || 0).toLocaleString()}</td>
                     <td className="px-5 py-3.5 text-gray-600">{methodLabels[tx.payment_method] || tx.payment_method}</td>
