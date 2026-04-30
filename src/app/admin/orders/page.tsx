@@ -566,7 +566,7 @@ export default function AdminOrdersPage() {
                               {Object.entries(value as object).map(([k, v]) => (
                                 <div key={k} className="text-gray-700">
                                   <span className="text-gray-400">{k}：</span>
-                                  {typeof v === 'object' ? JSON.stringify(v) : String(v)}
+                                  <pre className="inline ml-1 text-xs text-gray-700">{typeof v === 'object' ? JSON.stringify(v, null, 1) : String(v)}</pre>
                                 </div>
                               ))}
                             </div>
@@ -591,10 +591,16 @@ export default function AdminOrdersPage() {
                         ticket_count: '票数',
                       };
                       const label = labelMap[key] || key;
+                      const displayValue = (v: any): string => {
+                        if (v === null || v === undefined || v === '') return '-';
+                        if (typeof v === 'boolean') return v ? '是' : '否';
+                        if (typeof v === 'object') return JSON.stringify(v, null, 1);
+                        return String(v);
+                      };
                       return (
                         <div key={key} className="text-gray-700">
                           <span className="text-gray-500 font-medium">{label}：</span>
-                          {typeof value === 'boolean' ? (value ? '是' : '否') : String(value)}
+                          <pre className="inline ml-1 text-sm text-gray-700">{displayValue(value)}</pre>
                         </div>
                       );
                     })}
