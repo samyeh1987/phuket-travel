@@ -35,9 +35,15 @@ export async function PUT(req: NextRequest) {
 
   try {
     const { table, id, ...payload } = await req.json();
-    const { data, error } = await supabase.from(table).update(payload).eq('id', id).select().single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ success: true, data });
+    // Check if record exists
+    const { data: existing } = await supabase.from(table).select('id').eq('id', id).maybeSingle();
+    if (!existing) return NextResponse.json({ error: '记录不存在' }, { status: 404 });
+    // Update
+    const { error: updateError } = await supabase.from(table).update(payload).eq('id', id);
+    if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
+    // Fetch updated record
+    const { data: updated } = await supabase.from(table).select('*').eq('id', id).single();
+    return NextResponse.json({ success: true, data: updated });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }

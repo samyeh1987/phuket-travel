@@ -34,14 +34,26 @@ export async function PUT(req: NextRequest) {
 
   try {
     const { id, ...payload } = await req.json();
-    const { data, error } = await supabase
+    // First check if record exists
+    const { data: existing } = await supabase
+      .from('diving_packages')
+      .select('id')
+      .eq('id', id)
+      .maybeSingle();
+    if (!existing) return NextResponse.json({ error: '记录不存在' }, { status: 404 });
+    // Update
+    const { error: updateError } = await supabase
       .from('diving_packages')
       .update(payload)
+      .eq('id', id);
+    if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
+    // Fetch updated record
+    const { data: updated } = await supabase
+      .from('diving_packages')
+      .select('*')
       .eq('id', id)
-      .select()
       .single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ success: true, data });
+    return NextResponse.json({ success: true, data: updated });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
