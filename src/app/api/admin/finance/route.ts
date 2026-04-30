@@ -15,7 +15,8 @@ export async function GET() {
     if (ordersError) return NextResponse.json({ error: ordersError.message }, { status: 500 });
 
     // 如果有 reviewed_by，批量查询管理员信息
-    const reviewerIds = [...new Set((orders || []).map((o: any) => o.reviewed_by).filter(Boolean))];
+    const allReviewerIds = (orders || []).map((o: any) => o.reviewed_by).filter(Boolean);
+    const reviewerIds = allReviewerIds.filter((id: string, idx: number) => allReviewerIds.indexOf(id) === idx);
     let adminMap: Record<string, string> = {};
     if (reviewerIds.length > 0) {
       const { data: admins } = await supabase
