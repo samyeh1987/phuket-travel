@@ -35,9 +35,9 @@ export async function PUT(req: NextRequest) {
 
   try {
     const { table, id, ...payload } = await req.json();
-    const { error } = await supabase.from(table).update(payload).eq('id', id);
+    const { data, error } = await supabase.from(table).update(payload).eq('id', id).select().single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, data });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }

@@ -37,11 +37,13 @@ export default function AdminDivingPage() {
   const openEdit = (pkg: any) => { setEditItem({ ...pkg, price: String(pkg.price || ''), price_cny: String(pkg.price_cny || '') }); setShowModal(true); };
 
   const [saveError, setSaveError] = useState('');
+  const [saveSuccess, setSaveSuccess] = useState('');
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!editItem) return;
     setSaving(true);
     setSaveError('');
+    setSaveSuccess('');
     const { name, slug, description, price, price_cny, type, duration, is_active } = editItem;
     const payload = { name, slug, description, price: Number(price), price_cny: Number(price_cny) || null, type, duration, is_active };
     const res = await fetch(editItem.id ? '/api/admin/diving' : '/api/admin/diving', {
@@ -55,7 +57,13 @@ export default function AdminDivingPage() {
       setSaving(false);
       return;
     }
-    setShowModal(false);
+    // Show what was actually saved
+    if (json.data) {
+      setSaveSuccess(`✓ 已保存。数据库返回 price_cny = ${json.data.price_cny}`);
+    } else {
+      setSaveSuccess('✓ 保存成功');
+    }
+    setTimeout(() => { setShowModal(false); setSaveSuccess(''); }, 1500);
     await fetchPackages();
     setSaving(false);
   };
@@ -151,6 +159,7 @@ export default function AdminDivingPage() {
             </div>
             <form onSubmit={handleSave} className="space-y-4">
               {saveError && <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3">{saveError}</div>}
+              {saveSuccess && <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-xl px-4 py-3">{saveSuccess}</div>}
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">套餐名称 *</label>
                 <input type="text" required value={editItem.name} onChange={e => setEditItem({ ...editItem, name: e.target.value, slug: generateSlug(e.target.value) })} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" placeholder="例如：体验深潜" />

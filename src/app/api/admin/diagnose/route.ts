@@ -2,57 +2,63 @@ import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase-admin';
 
 export async function GET() {
-  const diagnostics: Record<string, any> = {
-    envCheck: {
-      NEXT_PUBLIC_SUPABASE_URL: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      SUPABASE_SERVICE_ROLE_KEY: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-    },
-    supabaseTest: null,
-    ordersTest: null,
-  };
+  const supabase = createAdminClient();
 
   try {
-    const supabase = createAdminClient();
+    // Check if price_cny column exists in diving_packages
+    const { data: colData, error: colError } = await supabase
+      .from('information_schema.columns')
+      .select('column_name')
+      .eq('table_name', 'diving_packages')
+      .eq('column_name', 'price_cny');
 
-    // 测试数据库连接
-    const { data: orders, error: ordersError } = await supabase
-      .from('orders')
-      .select('id')
-      .limit(1);
-
-    if (ordersError) {
-      diagnostics.ordersTest = {
-        success: false,
-        error: ordersError.message,
-        code: ordersError.code,
-      };
-    } else {
-      diagnostics.ordersTest = {
-        success: true,
-        count: orders?.length || 0,
-      };
-    }
-
-    // 测试更新
-    if (orders && orders.length > 0) {
-      const testOrder = orders[0];
-      const { error: updateError } = await supabase
-        .from('orders')
-        .update({ updated_at: new Date().toISOString() })
-        .eq('id', testOrder.id);
-
-      diagnostics.updateTest = {
-        success: !updateError,
-        error: updateError?.message,
-      };
-    }
-  } catch (e: any) {
-    diagnostics.supabaseTest = {
-      success: false,
-      error: e.message,
+    // Try to insert a test record with price_cny and immediately read it back
+    const testPayload = {
+      name: '__TEST_PRICE_CNY__',
+      slug: '__test-price-cny__',
+      description: 'Test',
+      price: 0,
+      price_cny: 999.88,
+      type: 'experience',
+      duration: 'test',
+      is_active: false,
     };
-  }
 
-  return NextResponse.json(diagnostics);
+    // First try INSERT with price_cny
+    const { data: insertData, error: insertError } = await supabase
+      .from('diving_packages')
+      .insert(testPayload)
+      .select()
+      .single();
+
+    // Try UPDATE existing record with price_cny if insert has no error
+    let updateTest = null;
+    if (!insertError && insertData?.id) {
+      const { data: updateData, error: updateError } = await supabase
+        .from('diving_packages')
+        .update({ price_cny: 888.77 })
+        .eq('id', insertData.id)
+        .select()
+        .single();
+
+      // Delete the test record
+      await supabase.from('diving_packages').delete().eq('id', insertData.id);
+
+      updateTest = { updatedValue: updateData?.price_cny, updateError: updateError?.message };
+    }
+
+    return NextResponse.json({
+      columnExists: colData && colData.length > 0,
+      columnQueryError: colError?.message,
+      columnData: colData,
+      insertTest: {
+        insertedPriceCny: insertData?.price_cny,
+        insertError: insertError?.message,
+        fullInsertData: insertData,
+      },
+      updateTest,
+    });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 500 });
+  }
 }
