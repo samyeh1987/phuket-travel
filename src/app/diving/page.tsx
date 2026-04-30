@@ -39,9 +39,15 @@ export default function DivingPage() {
     }));
   };
 
+  const fmtCny = (v: string | number | null | undefined) => {
+    const n = Number(v);
+    return isNaN(n) || n <= 0 ? null : n.toLocaleString();
+  };
+
   const totalPrice = Object.entries(quantities).reduce((sum, [id, qty]) => {
     const pkg = packages.find(d => d.id === id);
-    return sum + (Number(pkg?.price_cny || pkg?.price) || 0) * qty;
+    const price = Number(pkg?.price_cny) || Number(pkg?.price) || 0;
+    return sum + price * qty;
   }, 0);
 
   const totalQty = Object.values(quantities).reduce((a, b) => a + b, 0);
@@ -146,7 +152,7 @@ export default function DivingPage() {
                         </div>
                         <div className="text-right">
                           <div className="text-ocean-600 font-bold text-lg">฿{priceThb.toLocaleString()}</div>
-                          <div className="text-green-600 font-semibold text-sm">¥{priceCny.toLocaleString()}</div>
+                          <div className="text-green-600 font-semibold text-sm">¥{fmtCny(pkg.price_cny) || '-'}</div>
                           <div className="text-xs text-gray-400">/人</div>
                         </div>
                       </div>
@@ -174,7 +180,7 @@ export default function DivingPage() {
                         +
                       </button>
                       {qty > 0 && (
-                        <span className="text-xs text-green-600 font-medium ml-1">= ¥{(priceCny * qty).toLocaleString()}</span>
+                        <span className="text-xs text-green-600 font-medium ml-1">= ¥{fmtCny(priceCny * qty) || '-'}</span>
                       )}
                     </div>
                   </div>
@@ -205,7 +211,7 @@ export default function DivingPage() {
           <div className="max-w-4xl mx-auto flex items-center justify-between">
             <div>
               <div className="text-sm opacity-80">{selectedSummary}</div>
-              <div className="text-2xl font-bold">¥{totalPrice.toLocaleString()}</div>
+              <div className="text-2xl font-bold">¥{fmtCny(totalPrice) || '-'}</div>
             </div>
             <button
               onClick={handleBook}

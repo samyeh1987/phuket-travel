@@ -160,7 +160,7 @@ export default function AdminShowsPage() {
                             <td className="px-5 py-2.5 text-gray-500 text-xs">{pkg.description || '—'}</td>
                             <td className="px-5 py-2.5">
                               <div className="text-ocean-600 font-semibold">฿{Number(pkg.price).toLocaleString()}</div>
-                              <div className="text-green-600 text-xs">¥{Number(pkg.price_cny).toLocaleString() || '-'}</div>
+                              <div className="text-green-600 text-xs">¥{(pkg.price_cny && !isNaN(Number(pkg.price_cny)) && Number(pkg.price_cny) > 0) ? Number(pkg.price_cny).toLocaleString() : '-'}</div>
                             </td>
                             <td className="px-5 py-2.5">
                               <button onClick={() => togglePkg(pkg)} className={`text-xs font-medium ${pkg.is_active ? 'text-green-600' : 'text-gray-400'}`}>

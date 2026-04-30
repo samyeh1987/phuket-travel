@@ -114,7 +114,7 @@ export default function AdminDivingPage() {
                   </td>
                   <td className="px-5 py-3.5 text-gray-500">{pkg.duration || '—'}</td>
                   <td className="px-5 py-3.5 text-ocean-600 font-semibold">฿{Number(pkg.price).toLocaleString()}</td>
-                  <td className="px-5 py-3.5 text-green-600 font-semibold">¥{Number(pkg.price_cny).toLocaleString() || '-'}</td>
+                  <td className="px-5 py-3.5 text-green-600 font-semibold">¥{(pkg.price_cny && !isNaN(Number(pkg.price_cny)) && Number(pkg.price_cny) > 0) ? Number(pkg.price_cny).toLocaleString() : '-'}</td>
                   <td className="px-5 py-3.5">
                     <button onClick={() => handleToggle(pkg)} className={`flex items-center gap-1 text-xs font-medium ${pkg.is_active ? 'text-green-600' : 'text-gray-400'}`}>
                       <div className={`w-2 h-2 rounded-full ${pkg.is_active ? 'bg-green-500' : 'bg-gray-300'}`} />

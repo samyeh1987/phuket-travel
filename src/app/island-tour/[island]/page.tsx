@@ -12,6 +12,11 @@ interface BoatOption {
   departure_time: string; duration: string; includes: string[]; images: string[];
 }
 
+const fmtCny = (v: string | number | null | undefined) => {
+  const n = Number(v);
+  return isNaN(n) || n <= 0 ? null : n.toLocaleString();
+};
+
 const islandData: Record<string, {
   name: string; subtitle: string; description: string;
   heroImage: string; galleryImages: string[];
@@ -128,7 +133,7 @@ export default function IslandDetailPage() {
       `🚢 船只：${selectedBoat?.name ?? '-'}`,
       `📅 出行日期：${travelDate || '待定'}`,
       `👥 人数：${people}人`,
-      `💰 总金额：฿${selectedBoat ? (Number(selectedBoat.price) * people).toLocaleString() : '-'}（¥${selectedBoat ? (Number(selectedBoat.price_cny || selectedBoat.price) * people).toLocaleString() : '-'})`,
+      `💰 总金额：฿${selectedBoat ? (Number(selectedBoat.price) * people).toLocaleString() : '-'}（¥${selectedBoat ? (fmtCny((Number(selectedBoat.price_cny) || Number(selectedBoat.price)) * people) || '-') : '-'})`,
       ``,
       `🏨 酒店：${hotelName || '-'}`,
       `📍 地址：${hotelAddress || '-'}`,
@@ -284,7 +289,7 @@ export default function IslandDetailPage() {
                       <h3 className="font-bold text-gray-900">{boat.name}</h3>
                       <div className="text-right">
                         <div className="text-ocean-600 font-bold">฿{Number(boat.price).toLocaleString()}</div>
-                        <div className="text-green-600 font-semibold text-sm">¥{Number(boat.price_cny).toLocaleString()}</div>
+                        <div className="text-green-600 font-semibold text-sm">¥{fmtCny(boat.price_cny) || '-'}</div>
                         <div className="text-xs text-gray-400">/人</div>
                       </div>
                     </div>
@@ -473,7 +478,7 @@ export default function IslandDetailPage() {
               <div className="flex justify-between items-center mb-4">
                 <div>
                   <div className="text-sm opacity-80">应付总额</div>
-                  <div className="text-3xl font-bold">¥{((Number(selectedBoat.price_cny) || Number(selectedBoat.price)) * people).toLocaleString()}</div>
+                  <div className="text-3xl font-bold">¥{fmtCny((Number(selectedBoat.price_cny) || Number(selectedBoat.price)) * people) || '-'}</div>
                   <div className="text-xs opacity-70 mt-1">{selectedBoat.name} × {people}人</div>
                 </div>
                 <div className="text-right text-xs opacity-70">
@@ -505,7 +510,7 @@ export default function IslandDetailPage() {
             <div>
               <div className="text-sm text-gray-500">已选：{selectedBoat.name}</div>
               <div className="text-ocean-600 font-bold text-xl">฿{Number(selectedBoat.price).toLocaleString()}</div>
-              <div className="text-green-600 font-semibold text-sm">¥{Number(selectedBoat.price_cny).toLocaleString()}起/人</div>
+              <div className="text-green-600 font-semibold text-sm">¥{fmtCny(selectedBoat.price_cny)}起/人</div>
             </div>
             <button
               onClick={() => {

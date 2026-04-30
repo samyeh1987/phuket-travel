@@ -18,6 +18,11 @@ interface ShowInfo {
 
 function genOrderNo() { return 'SW' + Date.now().toString().slice(-8); }
 
+const fmtCny = (v: string | number | null | undefined) => {
+  const n = Number(v);
+  return isNaN(n) || n <= 0 ? null : n.toLocaleString();
+};
+
 export default function ShowDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -154,7 +159,7 @@ export default function ShowDetailPage() {
                   </div>
                   <div className="text-right ml-3 flex-shrink-0">
                     <div className="text-ocean-600 font-bold text-xl">฿{Number(pkg.price).toLocaleString()}</div>
-                    <div className="text-xs text-gray-400">¥{Number(pkg.price_cny).toLocaleString()}/人</div>
+                    <div className="text-xs text-gray-400">¥{fmtCny(pkg.price_cny) || '-'}人</div>
                   </div>
                 </div>
               </div>
@@ -229,7 +234,7 @@ export default function ShowDetailPage() {
                 <div>
                   <div className="text-sm opacity-80">应付总额</div>
                   <div className="text-3xl font-bold">฿{(Number(selectedPkg.price) * quantity).toLocaleString()}</div>
-                  <div className="text-xs opacity-70">约 ¥{(Number(selectedPkg.price_cny) * quantity).toLocaleString()} / {selectedPkg.name} × {quantity}人</div>
+                  <div className="text-xs opacity-70">约 ¥{fmtCny(Number(selectedPkg.price_cny) * quantity) || '-'} / {selectedPkg.name} × {quantity}人</div>
                 </div>
                 <div className="text-right text-xs opacity-70">
                   <div>订单号</div>

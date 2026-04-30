@@ -159,7 +159,7 @@ export default function AdminIslandsPage() {
                             <td className="px-5 py-2.5 font-medium text-gray-900">{boat.name}</td>
                             <td className="px-5 py-2.5">
                               <div className="text-ocean-600 font-semibold">฿{Number(boat.price).toLocaleString()}</div>
-                              <div className="text-green-600 text-xs">¥{Number(boat.price_cny).toLocaleString() || '-'}</div>
+                              <div className="text-green-600 text-xs">¥{(boat.price_cny && !isNaN(Number(boat.price_cny)) && Number(boat.price_cny) > 0) ? Number(boat.price_cny).toLocaleString() : '-'}</div>
                             </td>
                             <td className="px-5 py-2.5 text-gray-500">{boat.duration || '—'}</td>
                             <td className="px-5 py-2.5">
