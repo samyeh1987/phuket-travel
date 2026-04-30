@@ -12,7 +12,7 @@ export default function AdminShowsPage() {
   const [showShowModal, setShowShowModal] = useState(false);
   const [showPkgModal, setShowPkgModal] = useState(false);
   const [editShow, setEditShow] = useState<any>(null);
-  const [editPkg, setEditPkg] = useState<ShowPackage>({ show_id: '', name: '', description: '', price: '', is_active: true });
+  const [editPkg, setEditPkg] = useState<ShowPackage>({ show_id: '', name: '', description: '', price: '', price_cny: '', is_active: true });
   const [saving, setSaving] = useState(false);
 
   const fetchAll = async () => {
