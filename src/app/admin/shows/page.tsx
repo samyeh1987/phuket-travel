@@ -14,6 +14,7 @@ export default function AdminShowsPage() {
   const [editShow, setEditShow] = useState<any>(null);
   const [editPkg, setEditPkg] = useState<ShowPackage>({ show_id: '', name: '', description: '', price: '', price_cny: '', is_active: true });
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const fetchAll = async () => {
     setLoading(true);
@@ -42,13 +43,20 @@ export default function AdminShowsPage() {
     e.preventDefault();
     if (!editShow) return;
     setSaving(true);
+    setSaveError('');
     const payload = { table: 'shows', name: editShow.name, slug: editShow.slug || generateSlug(editShow.name), description: editShow.description, image_url: editShow.image_url, is_active: editShow.is_active };
     const method = editShow.id ? 'PUT' : 'POST';
-    await fetch('/api/admin/shows', {
+    const res = await fetch('/api/admin/shows', {
       method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(editShow.id ? { id: editShow.id, ...payload } : payload),
     });
+    const json = await res.json();
+    if (!res.ok || json.error) {
+      setSaveError(json.error || '保存失败，请重试');
+      setSaving(false);
+      return;
+    }
     setShowShowModal(false);
     await fetchAll();
     setSaving(false);
@@ -57,13 +65,20 @@ export default function AdminShowsPage() {
   const savePkg = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    setSaveError('');
     const payload = { table: 'show_packages', show_id: editPkg.show_id, name: editPkg.name, description: editPkg.description, price: Number(editPkg.price), price_cny: Number(editPkg.price_cny) || null, is_active: editPkg.is_active };
     const method = editPkg.id ? 'PUT' : 'POST';
-    await fetch('/api/admin/shows', {
+    const res = await fetch('/api/admin/shows', {
       method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(editPkg.id ? { id: editPkg.id, ...payload } : payload),
     });
+    const json = await res.json();
+    if (!res.ok || json.error) {
+      setSaveError(json.error || '保存失败，请重试');
+      setSaving(false);
+      return;
+    }
     setShowPkgModal(false);
     await fetchAll();
     setSaving(false);
@@ -227,6 +242,7 @@ export default function AdminShowsPage() {
               <button onClick={() => setShowPkgModal(false)} className="p-1 text-gray-400"><X className="w-5 h-5" /></button>
             </div>
             <form onSubmit={savePkg} className="space-y-4">
+              {saveError && <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3">{saveError}</div>}
               <div><label className="text-sm font-medium text-gray-700 mb-1 block">套餐名称 *</label>
                 <input type="text" required value={editPkg.name} onChange={e => setEditPkg({ ...editPkg, name: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" placeholder="例如：普通票 / VIP票" />
               </div>

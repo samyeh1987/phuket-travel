@@ -36,17 +36,25 @@ export default function AdminDivingPage() {
   const openAdd = () => { setEditItem({ name: '', slug: '', description: '', price: '', price_cny: '', type: 'experience', duration: '', is_active: true }); setShowModal(true); };
   const openEdit = (pkg: any) => { setEditItem({ ...pkg, price: String(pkg.price || ''), price_cny: String(pkg.price_cny || '') }); setShowModal(true); };
 
+  const [saveError, setSaveError] = useState('');
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!editItem) return;
     setSaving(true);
+    setSaveError('');
     const { name, slug, description, price, price_cny, type, duration, is_active } = editItem;
     const payload = { name, slug, description, price: Number(price), price_cny: Number(price_cny) || null, type, duration, is_active };
-    await fetch(editItem.id ? '/api/admin/diving' : '/api/admin/diving', {
+    const res = await fetch(editItem.id ? '/api/admin/diving' : '/api/admin/diving', {
       method: editItem.id ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(editItem.id ? { id: editItem.id, ...payload } : payload),
     });
+    const json = await res.json();
+    if (!res.ok || json.error) {
+      setSaveError(json.error || '保存失败，请重试');
+      setSaving(false);
+      return;
+    }
     setShowModal(false);
     await fetchPackages();
     setSaving(false);
@@ -142,6 +150,7 @@ export default function AdminDivingPage() {
               <button onClick={() => setShowModal(false)} className="p-1 text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
             </div>
             <form onSubmit={handleSave} className="space-y-4">
+              {saveError && <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3">{saveError}</div>}
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">套餐名称 *</label>
                 <input type="text" required value={editItem.name} onChange={e => setEditItem({ ...editItem, name: e.target.value, slug: generateSlug(e.target.value) })} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" placeholder="例如：体验深潜" />

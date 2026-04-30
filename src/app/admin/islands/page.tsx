@@ -14,6 +14,7 @@ export default function AdminIslandsPage() {
   const [editIsland, setEditIsland] = useState<any>(null);
   const [editBoat, setEditBoat] = useState<Boat>({ island_id: '', name: '', description: '', price: '', price_cny: '', duration: '', is_active: true });
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const fetchAll = async () => {
     setLoading(true);
@@ -57,13 +58,20 @@ export default function AdminIslandsPage() {
   const saveBoat = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    setSaveError('');
     const payload = { table: 'island_boats', island_id: editBoat.island_id, name: editBoat.name, description: editBoat.description, price: Number(editBoat.price), price_cny: Number(editBoat.price_cny) || null, duration: editBoat.duration, is_active: editBoat.is_active };
     const method = editBoat.id ? 'PUT' : 'POST';
-    await fetch('/api/admin/islands', {
+    const res = await fetch('/api/admin/islands', {
       method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(editBoat.id ? { id: editBoat.id, ...payload } : payload),
     });
+    const json = await res.json();
+    if (!res.ok || json.error) {
+      setSaveError(json.error || '保存失败，请重试');
+      setSaving(false);
+      return;
+    }
     setShowBoatModal(false);
     await fetchAll();
     setSaving(false);
@@ -228,6 +236,7 @@ export default function AdminIslandsPage() {
               <button onClick={() => setShowBoatModal(false)} className="p-1 text-gray-400"><X className="w-5 h-5" /></button>
             </div>
             <form onSubmit={saveBoat} className="space-y-4">
+              {saveError && <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3">{saveError}</div>}
               <div><label className="text-sm font-medium text-gray-700 mb-1 block">船只名称 *</label>
                 <input type="text" required value={editBoat.name} onChange={e => setEditBoat({ ...editBoat, name: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
               </div>
