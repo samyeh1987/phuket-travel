@@ -204,7 +204,7 @@ export default function AdminFinancePage() {
                         <a href={tx.proof_url} target="_blank" rel="noopener noreferrer" className="text-ocean-500 hover:text-ocean-700">查看</a>
                       ) : '—'}
                     </td>
-                    <td className="px-5 py-3.5 text-gray-400 text-xs">{tx.admin_users?.email || '系统'}</td>
+                    <td className="px-5 py-3.5 text-gray-400 text-xs">{tx.reviewer_email || '系统'}</td>
                   </tr>
                 ))}
               </tbody>
