@@ -34,6 +34,7 @@ export async function PUT(req: NextRequest) {
 
   try {
     const { id, ...payload } = await req.json();
+    console.log('[DEBUG PUT] Received payload:', JSON.stringify(payload));
     // First check if record exists
     const { data: existing } = await supabase
       .from('diving_packages')
@@ -41,20 +42,24 @@ export async function PUT(req: NextRequest) {
       .eq('id', id)
       .maybeSingle();
     if (!existing) return NextResponse.json({ error: '记录不存在' }, { status: 404 });
+    console.log('[DEBUG PUT] Record exists, updating...');
     // Update
     const { error: updateError } = await supabase
       .from('diving_packages')
       .update(payload)
       .eq('id', id);
     if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
+    console.log('[DEBUG PUT] Update complete, fetching...');
     // Fetch updated record
     const { data: updated } = await supabase
       .from('diving_packages')
       .select('*')
       .eq('id', id)
       .single();
+    console.log('[DEBUG PUT] Updated record:', JSON.stringify(updated));
     return NextResponse.json({ success: true, data: updated });
   } catch (e: any) {
+    console.error('[DEBUG PUT] Error:', e.message);
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
