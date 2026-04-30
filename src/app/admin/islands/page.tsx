@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, X, Save } from 'lucide-react';
 
-interface Boat { id?: string; island_id: string; name: string; description: string; price: string; duration: string; is_active: boolean; }
+interface Boat { id?: string; island_id: string; name: string; description: string; price: string; price_cny: string; duration: string; is_active: boolean; }
 
 export default function AdminIslandsPage() {
   const [islands, setIslands] = useState<any[]>([]);
@@ -33,8 +33,8 @@ export default function AdminIslandsPage() {
 
   const openAddIsland = () => { setEditIsland({ name: '', slug: '', description: '', image_url: '', is_active: true }); setShowIslandModal(true); };
   const openEditIsland = (island: any) => { setEditIsland({ ...island }); setShowIslandModal(true); };
-  const openAddBoat = (islandId: string) => { setEditBoat({ island_id: islandId, name: '', description: '', price: '', duration: '', is_active: true }); setShowBoatModal(true); };
-  const openEditBoat = (boat: any) => { setEditBoat({ ...boat, price: String(boat.price) }); setShowBoatModal(true); };
+  const openAddBoat = (islandId: string) => { setEditBoat({ island_id: islandId, name: '', description: '', price: '', price_cny: '', duration: '', is_active: true }); setShowBoatModal(true); };
+  const openEditBoat = (boat: any) => { setEditBoat({ ...boat, price: String(boat.price || ''), price_cny: String(boat.price_cny || '') }); setShowBoatModal(true); };
 
   const generateSlug = (name: string) => name.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]/g, '-').replace(/-+/g, '-');
 
@@ -57,7 +57,7 @@ export default function AdminIslandsPage() {
   const saveBoat = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    const payload = { table: 'island_boats', island_id: editBoat.island_id, name: editBoat.name, description: editBoat.description, price: Number(editBoat.price), duration: editBoat.duration, is_active: editBoat.is_active };
+    const payload = { table: 'island_boats', island_id: editBoat.island_id, name: editBoat.name, description: editBoat.description, price: Number(editBoat.price), price_cny: Number(editBoat.price_cny) || null, duration: editBoat.duration, is_active: editBoat.is_active };
     const method = editBoat.id ? 'PUT' : 'POST';
     await fetch('/api/admin/islands', {
       method,
@@ -157,7 +157,10 @@ export default function AdminIslandsPage() {
                         {island.boats.map((boat: any) => (
                           <tr key={boat.id} className="hover:bg-gray-50">
                             <td className="px-5 py-2.5 font-medium text-gray-900">{boat.name}</td>
-                            <td className="px-5 py-2.5 text-ocean-600 font-semibold">¥{Number(boat.price).toLocaleString()}</td>
+                            <td className="px-5 py-2.5">
+                              <div className="text-ocean-600 font-semibold">฿{Number(boat.price).toLocaleString()}</div>
+                              <div className="text-green-600 text-xs">¥{Number(boat.price_cny).toLocaleString() || '-'}</div>
+                            </td>
                             <td className="px-5 py-2.5 text-gray-500">{boat.duration || '—'}</td>
                             <td className="px-5 py-2.5">
                               <button onClick={() => toggleBoat(boat)} className={`text-xs font-medium ${boat.is_active ? 'text-green-600' : 'text-gray-400'}`}>
@@ -232,12 +235,16 @@ export default function AdminIslandsPage() {
                 <textarea value={editBoat.description} onChange={e => setEditBoat({ ...editBoat, description: e.target.value })} rows={2} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500 resize-none" />
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="text-sm font-medium text-gray-700 mb-1 block">价格（¥）*</label>
-                  <input type="number" required value={editBoat.price} onChange={e => setEditBoat({ ...editBoat, price: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
+                <div><label className="text-sm font-medium text-gray-700 mb-1 block">泰铢价格（฿）*</label>
+                  <input type="number" required step="0.01" value={editBoat.price} onChange={e => setEditBoat({ ...editBoat, price: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
                 </div>
-                <div><label className="text-sm font-medium text-gray-700 mb-1 block">时长</label>
-                  <input type="text" value={editBoat.duration} onChange={e => setEditBoat({ ...editBoat, duration: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
+                <div><label className="text-sm font-medium text-gray-700 mb-1 block">人民币价格（¥）</label>
+                  <input type="number" step="0.01" value={editBoat.price_cny} onChange={e => setEditBoat({ ...editBoat, price_cny: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
                 </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">时长</label>
+                <input type="text" value={editBoat.duration} onChange={e => setEditBoat({ ...editBoat, duration: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowBoatModal(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-gray-600 font-medium hover:bg-gray-50">取消</button>

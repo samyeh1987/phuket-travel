@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, X, Save } from 'lucide-react';
 
-interface ShowPackage { id?: string; show_id: string; name: string; description: string; price: string; is_active: boolean; }
+interface ShowPackage { id?: string; show_id: string; name: string; description: string; price: string; price_cny: string; is_active: boolean; }
 
 export default function AdminShowsPage() {
   const [shows, setShows] = useState<any[]>([]);
@@ -35,8 +35,8 @@ export default function AdminShowsPage() {
 
   const openAddShow = () => { setEditShow({ name: '', slug: '', description: '', image_url: '', is_active: true }); setShowShowModal(true); };
   const openEditShow = (show: any) => { setEditShow({ ...show }); setShowShowModal(true); };
-  const openAddPkg = (showId: string) => { setEditPkg({ show_id: showId, name: '', description: '', price: '', is_active: true }); setShowPkgModal(true); };
-  const openEditPkg = (pkg: any) => { setEditPkg({ ...pkg, price: String(pkg.price) }); setShowPkgModal(true); };
+  const openAddPkg = (showId: string) => { setEditPkg({ show_id: showId, name: '', description: '', price: '', price_cny: '', is_active: true }); setShowPkgModal(true); };
+  const openEditPkg = (pkg: any) => { setEditPkg({ ...pkg, price: String(pkg.price || ''), price_cny: String(pkg.price_cny || '') }); setShowPkgModal(true); };
 
   const saveShow = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,7 +57,7 @@ export default function AdminShowsPage() {
   const savePkg = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    const payload = { table: 'show_packages', show_id: editPkg.show_id, name: editPkg.name, description: editPkg.description, price: Number(editPkg.price), is_active: editPkg.is_active };
+    const payload = { table: 'show_packages', show_id: editPkg.show_id, name: editPkg.name, description: editPkg.description, price: Number(editPkg.price), price_cny: Number(editPkg.price_cny) || null, is_active: editPkg.is_active };
     const method = editPkg.id ? 'PUT' : 'POST';
     await fetch('/api/admin/shows', {
       method,
@@ -126,7 +126,7 @@ export default function AdminShowsPage() {
                   <span className="font-bold text-gray-900">{show.name}</span>
                   <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">/{show.slug}</span>
                   <div className={`w-2 h-2 rounded-full ${show.is_active ? 'bg-green-500' : 'bg-gray-300'}`} />
-                  <span className="text-xs text-gray-400">起价 ¥{show.packages?.[0]?.price || '—'}</span>
+                  <span className="text-xs text-gray-400">起价 ฿{show.packages?.[0]?.price || '—'} / ¥{show.packages?.[0]?.price_cny || '-'}</span>
                 </div>
                 <div className="flex gap-1">
                   <button onClick={(e) => { e.stopPropagation(); openAddPkg(show.id); }} className="p-1.5 text-gray-400 hover:text-ocean-500 hover:bg-ocean-50 rounded-lg"><Plus className="w-4 h-4" /></button>
@@ -158,7 +158,10 @@ export default function AdminShowsPage() {
                           <tr key={pkg.id} className="hover:bg-gray-50">
                             <td className="px-5 py-2.5 font-medium text-gray-900">{pkg.name}</td>
                             <td className="px-5 py-2.5 text-gray-500 text-xs">{pkg.description || '—'}</td>
-                            <td className="px-5 py-2.5 text-ocean-600 font-semibold">¥{Number(pkg.price).toLocaleString()}</td>
+                            <td className="px-5 py-2.5">
+                              <div className="text-ocean-600 font-semibold">฿{Number(pkg.price).toLocaleString()}</div>
+                              <div className="text-green-600 text-xs">¥{Number(pkg.price_cny).toLocaleString() || '-'}</div>
+                            </td>
                             <td className="px-5 py-2.5">
                               <button onClick={() => togglePkg(pkg)} className={`text-xs font-medium ${pkg.is_active ? 'text-green-600' : 'text-gray-400'}`}>
                                 {pkg.is_active ? '上架中' : '已下架'}
@@ -230,8 +233,13 @@ export default function AdminShowsPage() {
               <div><label className="text-sm font-medium text-gray-700 mb-1 block">描述</label>
                 <input type="text" value={editPkg.description} onChange={e => setEditPkg({ ...editPkg, description: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
               </div>
-              <div><label className="text-sm font-medium text-gray-700 mb-1 block">价格（¥）*</label>
-                <input type="number" required value={editPkg.price} onChange={e => setEditPkg({ ...editPkg, price: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="text-sm font-medium text-gray-700 mb-1 block">泰铢价格（฿）*</label>
+                  <input type="number" required step="0.01" value={editPkg.price} onChange={e => setEditPkg({ ...editPkg, price: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
+                </div>
+                <div><label className="text-sm font-medium text-gray-700 mb-1 block">人民币价格（¥）</label>
+                  <input type="number" step="0.01" value={editPkg.price_cny} onChange={e => setEditPkg({ ...editPkg, price_cny: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
+                </div>
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowPkgModal(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-gray-600 font-medium hover:bg-gray-50">取消</button>

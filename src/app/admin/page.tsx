@@ -1,10 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Anchor, Sailboat, Ticket, ShoppingBag, TrendingUp, Users, Clock, ArrowRight, Settings } from 'lucide-react';
+import { Anchor, Sailboat, Ticket, ShoppingBag, TrendingUp, Users, Clock, ArrowRight, Settings, AlertCircle, Calendar, Wallet } from 'lucide-react';
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState({ total: 0, pending: 0, revenue: 0, users: 0, todayOrders: 0 });
+  const [stats, setStats] = useState({
+    todayOrders: 0, todayRevenue: 0, todayNewUsers: 0,
+    pendingContactCount: 0,
+    monthOrders: 0, monthRevenue: 0,
+    totalOrders: 0, totalRevenue: 0, totalProfiles: 0,
+  });
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -16,15 +21,7 @@ export default function AdminDashboard() {
         if (json.error) {
           console.error('获取数据失败:', json.error);
         } else {
-          const d = json.data;
-          setStats({
-            total: d.totalOrders || 0,
-            pending: d.pendingOrders || 0,
-            revenue: d.monthlyRevenue || 0,
-            users: d.totalProfiles || 0,
-            todayOrders: d.todayOrders || 0,
-          });
-          setRecentOrders(d.recentOrders || []);
+          setStats(json.data || {});
         }
       } catch (e) {
         console.error('获取数据失败:', e);
@@ -35,13 +32,6 @@ export default function AdminDashboard() {
     fetchData();
   }, []);
 
-  const statusMap: Record<string, { color: string; bg: string }> = {
-    pending: { color: 'text-amber-600', bg: 'bg-amber-50' },
-    confirmed: { color: 'text-blue-600', bg: 'bg-blue-50' },
-    completed: { color: 'text-green-600', bg: 'bg-green-50' },
-    cancelled: { color: 'text-red-600', bg: 'bg-red-50' },
-  };
-
   const typeColors: Record<string, string> = {
     diving: 'bg-blue-50 text-blue-600',
     island: 'bg-cyan-50 text-cyan-600',
@@ -49,97 +39,111 @@ export default function AdminDashboard() {
     custom: 'bg-orange-50 text-orange-600',
   };
 
-  const statCards = [
-    { label: '本日订单', value: stats.todayOrders, icon: ShoppingBag, color: 'bg-blue-50 text-blue-600' },
-    { label: '待处理', value: stats.pending, icon: Clock, color: 'bg-amber-50 text-amber-600' },
-    { label: '本月收入', value: `¥${stats.revenue.toLocaleString()}`, icon: TrendingUp, color: 'bg-green-50 text-green-600' },
-    { label: '客户总数', value: stats.users, icon: Users, color: 'bg-purple-50 text-purple-600' },
-  ];
-
   const typeLabels: Record<string, string> = {
-    diving: '深潜', island: '跳岛游', show: '秀场', custom: '定制旅行',
+    diving: '深潜', diving_experience: '深潜体验', diving_cert: '潜水考证',
+    island: '跳岛游', show: '秀场', custom: '定制旅行',
   };
 
   const statusLabels: Record<string, string> = {
     pending: '待付款', confirmed: '已确认', completed: '已完成', cancelled: '已取消',
   };
 
+  const today = new Date().toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' });
+  const thisMonth = new Date().toLocaleDateString('zh-CN', { month: 'long' });
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">控制台</h1>
-        <p className="text-sm text-gray-500 mt-1">欢迎回来！以下是今日概览。</p>
+        <p className="text-sm text-gray-500 mt-1">欢迎回来！</p>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map(s => {
-          const Icon = s.icon;
-          return (
-            <div key={s.label} className="bg-white rounded-2xl p-5 shadow-sm">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${s.color}`}>
-                <Icon className="w-5 h-5" />
-              </div>
-              <div className="text-2xl font-bold text-gray-900">{s.value}</div>
-              <div className="text-sm text-gray-500">{s.label}</div>
+      {/* 本日统计 */}
+      <div>
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
+          <Calendar className="w-4 h-4" /> {today}
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="bg-white rounded-2xl p-5 shadow-sm border-l-4 border-ocean-500">
+            <div className="flex items-center gap-2 mb-2">
+              <ShoppingBag className="w-5 h-5 text-ocean-500" />
+              <span className="text-sm text-gray-500">本日订单</span>
             </div>
-          );
-        })}
+            <div className="text-2xl font-bold text-gray-900">{loading ? '-' : stats.todayOrders}</div>
+          </div>
+          <div className="bg-white rounded-2xl p-5 shadow-sm border-l-4 border-green-500">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="w-5 h-5 text-green-500" />
+              <span className="text-sm text-gray-500">本日收入</span>
+            </div>
+            <div className="text-2xl font-bold text-green-600">¥{loading ? '-' : stats.todayRevenue.toLocaleString()}</div>
+          </div>
+          <div className="bg-white rounded-2xl p-5 shadow-sm border-l-4 border-purple-500">
+            <div className="flex items-center gap-2 mb-2">
+              <Users className="w-5 h-5 text-purple-500" />
+              <span className="text-sm text-gray-500">本日新增用户</span>
+            </div>
+            <div className="text-2xl font-bold text-gray-900">{loading ? '-' : stats.todayNewUsers}</div>
+          </div>
+        </div>
       </div>
 
-      {/* Recent Orders */}
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b flex items-center justify-between">
-          <h2 className="font-bold text-gray-900">本日订单</h2>
-          <a href="/admin/orders" className="flex items-center gap-1 text-sm text-ocean-500 hover:text-ocean-600 font-medium">
-            查看全部 <ArrowRight className="w-4 h-4" />
+      {/* 待处理 + 本月统计 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* 待处理 */}
+        <div className="bg-white rounded-2xl p-5 shadow-sm">
+          <div className="flex items-center gap-2 mb-3">
+            <AlertCircle className="w-5 h-5 text-amber-500" />
+            <span className="text-sm font-medium text-gray-700">待处理订单</span>
+            <span className="ml-auto text-xs text-gray-400">未联系</span>
+          </div>
+          <div className="text-4xl font-bold text-amber-600">{loading ? '-' : stats.pendingContactCount}</div>
+          <p className="text-xs text-gray-400 mt-2">需要客服主动联系客户的订单</p>
+          <a href="/admin/orders?filter=pending_contact" className="inline-flex items-center gap-1 mt-3 text-sm text-ocean-500 hover:text-ocean-600 font-medium">
+            查看待处理 <ArrowRight className="w-4 h-4" />
           </a>
         </div>
 
-        {loading ? (
-          <div className="p-8 text-center text-gray-400">
-            <div className="w-6 h-6 border-2 border-ocean-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-            <p className="text-sm">加载中...</p>
+        {/* 本月统计 */}
+        <div>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
+            <Calendar className="w-4 h-4" /> {thisMonth}
+          </h2>
+          <div className="bg-white rounded-2xl p-5 shadow-sm">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="text-sm text-gray-500">本月订单</div>
+                <div className="text-2xl font-bold text-gray-900">{loading ? '-' : stats.monthOrders}</div>
+              </div>
+              <div>
+                <div className="text-sm text-gray-500">本月收入</div>
+                <div className="text-2xl font-bold text-green-600">¥{loading ? '-' : stats.monthRevenue.toLocaleString()}</div>
+              </div>
+            </div>
           </div>
-        ) : recentOrders.length === 0 ? (
-          <div className="p-8 text-center text-gray-400 text-sm">暂无订单数据</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr className="text-left text-gray-500">
-                  <th className="px-5 py-3 font-medium">订单号</th>
-                  <th className="px-5 py-3 font-medium">类型</th>
-                  <th className="px-5 py-3 font-medium">客户</th>
-                  <th className="px-5 py-3 font-medium">人数</th>
-                  <th className="px-5 py-3 font-medium">金额</th>
-                  <th className="px-5 py-3 font-medium">状态</th>
-                  <th className="px-5 py-3 font-medium">时间</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {recentOrders.map(o => {
-                  const status = statusMap[o.status] || statusMap.pending;
-                  const typeLabel = typeLabels[o.type] || o.type;
-                  return (
-                    <tr key={o.id} className="hover:bg-gray-50">
-                      <td className="px-5 py-3 font-mono text-xs text-gray-600">{o.order_number}</td>
-                      <td className="px-5 py-3"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${typeColors[o.type] || 'bg-gray-50 text-gray-600'}`}>{typeLabel}</span></td>
-                      <td className="px-5 py-3">
-                        <div className="font-medium text-gray-800">{o.profiles?.name_cn || o.contact_name_cn || '—'}</div>
-                        <div className="text-xs text-gray-400">{o.contact_email || ''}</div>
-                      </td>
-                      <td className="px-5 py-3 text-gray-500">{o.quantity || 1}人</td>
-                      <td className="px-5 py-3 font-semibold text-ocean-600">¥{Number(o.total_price || 0).toLocaleString()}</td>
-                      <td className="px-5 py-3"><span className={`px-2 py-1 rounded-full text-xs font-medium ${status.color} ${status.bg}`}>{statusLabels[o.status] || o.status}</span></td>
-                      <td className="px-5 py-3 text-gray-400 text-xs">{new Date(o.created_at).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+        </div>
+      </div>
+
+      {/* 总计 */}
+      <div className="bg-gradient-to-br from-ocean-500 to-ocean-600 rounded-2xl p-5 text-white shadow-lg">
+        <div className="flex items-center gap-2 mb-4">
+          <Wallet className="w-5 h-5 opacity-80" />
+          <span className="text-sm opacity-80">累计数据</span>
+        </div>
+        <div className="grid grid-cols-3 gap-6">
+          <div>
+            <div className="text-sm opacity-70">总订单</div>
+            <div className="text-3xl font-bold">{loading ? '-' : stats.totalOrders}</div>
           </div>
-        )}
+          <div>
+            <div className="text-sm opacity-70">总收入</div>
+            <div className="text-3xl font-bold">¥{loading ? '-' : stats.totalRevenue.toLocaleString()}</div>
+          </div>
+          <div>
+            <div className="text-sm opacity-70">客户总数</div>
+            <div className="text-3xl font-bold">{loading ? '-' : stats.totalProfiles}</div>
+          </div>
+        </div>
       </div>
 
       {/* Quick Actions */}

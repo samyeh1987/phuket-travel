@@ -1,72 +1,36 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Anchor, CheckCircle, Clock } from 'lucide-react';
 
-const divingTypes = [
-  {
-    id: 'experience',
-    title: '体验深潜',
-    subtitle: '无需证书，初次体验',
-    price: 1800,
-    unit: '人',
-    image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&q=80',
-    includes: ['专业教练全程陪同', '全套潜水装备', '水下拍照', '午餐供应', '酒店接送'],
-    duration: '约4小时',
-    needEmail: false,
-  },
-  {
-    id: 'ow',
-    title: '水肺OW考证',
-    subtitle: '开放水域潜水员证书',
-    price: 2800,
-    unit: '人',
-    image: 'https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=800&q=80',
-    includes: ['PADI认证课程', '专业教练', '教材与装备', '泳池训练', '开放水域2次', '证书邮寄'],
-    duration: '3天课程',
-    needEmail: true,
-  },
-  {
-    id: 'aow',
-    title: '水肺AOW考证',
-    subtitle: '进阶开放水域潜水员',
-    price: 2500,
-    unit: '人',
-    image: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&q=80',
-    includes: ['PADI认证课程', '5次开放水域', '深潜+导航专长', '专业教练', '全套装备'],
-    duration: '2天课程',
-    needEmail: true,
-  },
-  {
-    id: 'free2',
-    title: '自由潜2星',
-    subtitle: '自由潜水员入门',
-    price: 2200,
-    unit: '人',
-    image: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=800&q=80',
-    includes: ['PADI/SSI认证', '理论课程', '平静水域', '开放水域2次', '装备租用'],
-    duration: '2天课程',
-    needEmail: true,
-  },
-  {
-    id: 'free3',
-    title: '自由潜3星',
-    subtitle: '自由潜水员进阶',
-    price: 3000,
-    unit: '人',
-    image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&q=80',
-    includes: ['PADI/SSI认证', '深度训练', '救援技巧', '理论+实践', '装备全套'],
-    duration: '4天课程',
-    needEmail: true,
-  },
-];
+interface DivingPackage {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  price: string;
+  price_cny: string;
+  type: string;
+  duration: string;
+  is_active: boolean;
+  includes?: string[];
+}
 
 export default function DivingPage() {
   const router = useRouter();
+  const [packages, setPackages] = useState<DivingPackage[]>([]);
+  const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    fetch('/api/packages/diving')
+      .then(r => r.json())
+      .then(j => setPackages(j.data || []))
+      .finally(() => setLoading(false));
+  }, []);
 
   const updateQty = (id: string, delta: number) => {
     setQuantities(prev => ({
@@ -76,24 +40,47 @@ export default function DivingPage() {
   };
 
   const totalPrice = Object.entries(quantities).reduce((sum, [id, qty]) => {
-    const item = divingTypes.find(d => d.id === id);
-    return sum + (item?.price || 0) * qty;
+    const pkg = packages.find(d => d.id === id);
+    return sum + (Number(pkg?.price_cny || pkg?.price) || 0) * qty;
   }, 0);
 
   const totalQty = Object.values(quantities).reduce((a, b) => a + b, 0);
 
-  const selectedSummary = divingTypes
+  const selectedSummary = packages
     .filter(d => (quantities[d.id] || 0) > 0)
-    .map(d => `${d.title}×${quantities[d.id]}`)
+    .map(d => `${d.name}×${quantities[d.id]}`)
     .join('、');
 
   const handleBook = () => {
-    // 将选课信息编码到 URL，传给报名页
-    const items = divingTypes
+    const items = packages
       .filter(d => (quantities[d.id] || 0) > 0)
       .map(d => `${d.id}:${quantities[d.id]}`)
       .join(',');
     router.push(`/diving/book?items=${encodeURIComponent(items)}`);
+  };
+
+  const typeLabels: Record<string, string> = {
+    experience: '体验深潜',
+    ow: '水肺OW考证',
+    aow: 'AOW进阶考证',
+    free2: '自由潜2星',
+    free3: '自由潜3星',
+  };
+
+  const defaultIncludes: Record<string, string[]> = {
+    experience: ['专业教练全程陪同', '全套潜水装备', '水下拍照', '午餐供应', '酒店接送'],
+    ow: ['PADI认证课程', '专业教练', '教材与装备', '泳池训练', '开放水域2次', '证书邮寄'],
+    aow: ['PADI认证课程', '5次开放水域', '深潜+导航专长', '专业教练', '全套装备'],
+    free2: ['PADI/SSI认证', '理论课程', '平静水域', '开放水域2次', '装备租用'],
+    free3: ['PADI/SSI认证', '深度训练', '救援技巧', '理论+实践', '装备全套'],
+  };
+
+  const images: Record<string, string> = {
+    experience: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&q=80',
+    ow: 'https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=800&q=80',
+    aow: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&q=80',
+    free2: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=800&q=80',
+    free3: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&q=80',
   };
 
   return (
@@ -123,80 +110,93 @@ export default function DivingPage() {
 
       {/* Diving Types */}
       <div className="max-w-4xl mx-auto px-4 py-4 space-y-4">
-        {divingTypes.map(item => {
-          const qty = quantities[item.id] || 0;
-          const isExpanded = expandedId === item.id;
+        {loading ? (
+          <div className="p-12 text-center text-gray-400">
+            <div className="w-6 h-6 border-2 border-ocean-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+            <p className="text-sm">加载中...</p>
+          </div>
+        ) : packages.length === 0 ? (
+          <div className="p-12 text-center text-gray-400 bg-white rounded-2xl shadow-sm text-sm">暂无套餐</div>
+        ) : (
+          packages.filter(p => p.is_active).map(pkg => {
+            const qty = quantities[pkg.id] || 0;
+            const isExpanded = expandedId === pkg.id;
+            const priceThb = Number(pkg.price) || 0;
+            const priceCny = Number(pkg.price_cny) || 0;
+            const includes = defaultIncludes[pkg.type] || pkg.description?.split('、') || [];
 
-          return (
-            <div
-              key={item.id}
-              className={`bg-white rounded-2xl overflow-hidden shadow-sm transition-all ${qty > 0 ? 'ring-2 ring-ocean-500' : 'hover:shadow-md'}`}
-            >
+            return (
               <div
-                className="flex cursor-pointer"
-                onClick={() => setExpandedId(isExpanded ? null : item.id)}
+                key={pkg.id}
+                className={`bg-white rounded-2xl overflow-hidden shadow-sm transition-all ${qty > 0 ? 'ring-2 ring-ocean-500' : 'hover:shadow-md'}`}
               >
-                <div className="relative w-28 h-28 sm:w-40 sm:h-32 flex-shrink-0">
-                  <Image src={item.image} alt={item.title} fill className="object-cover" />
-                </div>
-                <div className="flex-1 p-4 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-bold text-gray-900">{item.title}</h3>
-                        <p className="text-xs text-gray-500 mt-0.5">{item.subtitle}</p>
+                <div
+                  className="flex cursor-pointer"
+                  onClick={() => setExpandedId(isExpanded ? null : pkg.id)}
+                >
+                  <div className="relative w-28 h-28 sm:w-40 sm:h-32 flex-shrink-0">
+                    <Image src={images[pkg.type] || images['experience']} alt={pkg.name} fill className="object-cover" />
+                  </div>
+                  <div className="flex-1 p-4 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="font-bold text-gray-900">{pkg.name}</h3>
+                          <p className="text-xs text-gray-500 mt-0.5">{pkg.description}</p>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-ocean-600 font-bold text-lg">฿{priceThb.toLocaleString()}</div>
+                          <div className="text-green-600 font-semibold text-sm">¥{priceCny.toLocaleString()}</div>
+                          <div className="text-xs text-gray-400">/人</div>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-ocean-600 font-bold text-lg">¥{item.price}</div>
-                        <div className="text-xs text-gray-400">/{item.unit}</div>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                        {pkg.duration && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{pkg.duration}</span>}
+                        {['ow', 'aow', 'free2', 'free3'].includes(pkg.type) && (
+                          <span className="bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded text-xs">考证·需邮箱</span>
+                        )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
-                      <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{item.duration}</span>
-                      {item.needEmail && (
-                        <span className="bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded text-xs">考证·需邮箱</span>
+
+                    {/* 数量控制 */}
+                    <div className="mt-3 flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                      <button
+                        onClick={() => updateQty(pkg.id, -1)}
+                        className="w-8 h-8 rounded-full bg-gray-100 text-gray-600 font-bold flex items-center justify-center hover:bg-gray-200"
+                      >
+                        −
+                      </button>
+                      <span className="w-8 text-center font-semibold text-gray-900">{qty}</span>
+                      <button
+                        onClick={() => updateQty(pkg.id, 1)}
+                        className="w-8 h-8 rounded-full bg-ocean-500 text-white font-bold flex items-center justify-center hover:bg-ocean-600"
+                      >
+                        +
+                      </button>
+                      {qty > 0 && (
+                        <span className="text-xs text-green-600 font-medium ml-1">= ¥{(priceCny * qty).toLocaleString()}</span>
                       )}
                     </div>
                   </div>
-
-                  {/* 数量控制 */}
-                  <div className="mt-3 flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                    <button
-                      onClick={() => updateQty(item.id, -1)}
-                      className="w-8 h-8 rounded-full bg-gray-100 text-gray-600 font-bold flex items-center justify-center hover:bg-gray-200"
-                    >
-                      −
-                    </button>
-                    <span className="w-8 text-center font-semibold text-gray-900">{qty}</span>
-                    <button
-                      onClick={() => updateQty(item.id, 1)}
-                      className="w-8 h-8 rounded-full bg-ocean-500 text-white font-bold flex items-center justify-center hover:bg-ocean-600"
-                    >
-                      +
-                    </button>
-                    {qty > 0 && (
-                      <span className="text-xs text-ocean-600 font-medium ml-1">= ¥{(item.price * qty).toLocaleString()}</span>
-                    )}
-                  </div>
                 </div>
+
+                {/* 展开详情 */}
+                {isExpanded && (
+                  <div className="px-4 pb-4 border-t border-gray-100 pt-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {includes.map((inc, i) => (
+                        <div key={i} className="flex items-center gap-1.5 text-xs text-gray-600">
+                          <CheckCircle className="w-3.5 h-3.5 text-ocean-500 flex-shrink-0" />
+                          {inc}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-
-              {/* 展开详情 */}
-              {isExpanded && (
-                <div className="px-4 pb-4 border-t border-gray-100 pt-3">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {item.includes.map((inc, i) => (
-                      <div key={i} className="flex items-center gap-1.5 text-xs text-gray-600">
-                        <CheckCircle className="w-3.5 h-3.5 text-ocean-500 flex-shrink-0" />
-                        {inc}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
 
       {/* Floating CTA */}

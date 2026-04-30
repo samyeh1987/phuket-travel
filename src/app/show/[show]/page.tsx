@@ -1,41 +1,20 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
-import { CheckCircle, Clock, MapPin, ChevronLeft, Loader2 } from 'lucide-react';
+import { CheckCircle, ChevronLeft, Loader2 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { createClient } from '@/lib/supabase';
 
-const showData: Record<string, {
-  name: string; subtitle: string; description: string;
-  heroImage: string; duration: string; location: string;
-  packages: { id: string; name: string; price: number; includes: string[] }[];
-}> = {
-  'korean-show': {
-    name: '天皇秀', subtitle: 'Korean Cabaret Show',
-    description: '天皇秀是普吉最受欢迎的韩国歌舞秀，融合了韩国流行文化元素，演员阵容强大，舞台效果震撼。华丽的服装、热情的舞蹈、精彩的互动环节，适合所有年龄段的观众。秀场提供往返接送服务，专业中文导游陪同。',
-    heroImage: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1920&q=80',
-    duration: '75分钟', location: '普吉镇天皇秀剧场',
-    packages: [
-      { id: 'standard', name: '普通票', price: 380, includes: ['秀场普通区座位', '往返接送', '中文导游'] },
-      { id: 'vip', name: 'VIP票', price: 580, includes: ['VIP专属区域', '优先入场', '往返接送', '中文导游', '纪念品'] },
-      { id: 'vvip', name: 'VVIP票', price: 880, includes: ['VVIP前排座位', '演员合影', 'VIP室休息', '往返接送', '全程中文导游', '定制礼品'] },
-    ],
-  },
-  'simon-show': {
-    name: '西蒙秀', subtitle: 'Simon Cabaret Show',
-    description: '西蒙秀是普吉岛最著名的人妖秀，自1989年开业以来已接待超过千万游客。演员们的变装表演精湛绝伦，服装华丽炫目，舞台效果震撼人心。秀场提供多种座位选择。',
-    heroImage: 'https://images.unsplash.com/photo-1516475429286-465d815a0df7?w=1920&q=80',
-    duration: '70分钟', location: '芭东海滩西蒙秀剧场',
-    packages: [
-      { id: 'standard', name: '普通票', price: 280, includes: ['普通区座位', '往返接送'] },
-      { id: 'vip', name: 'VIP票', price: 480, includes: ['VIP专属区域', '优先入场', '往返接送', '中文导游'] },
-      { id: 'gold', name: '黄金票', price: 680, includes: ['黄金区座位', '演员互动', '往返接送', '中文导游', '合影券'] },
-    ],
-  },
-};
+interface ShowPkg {
+  id: string; show_id: string; name: string; description: string; price: string; price_cny: string;
+}
+
+interface ShowInfo {
+  id: string; name: string; description: string; image_url: string;
+}
 
 function genOrderNo() { return 'SW' + Date.now().toString().slice(-8); }
 
@@ -44,10 +23,13 @@ export default function ShowDetailPage() {
   const router = useRouter();
   const { user } = useAuth();
   const showKey = params.show as string;
-  const info = showData[showKey];
+
+  const [showInfo, setShowInfo] = useState<ShowInfo | null>(null);
+  const [packages, setPackages] = useState<ShowPkg[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const orderNo = useMemo(() => genOrderNo(), []);
-  const [selectedPkg, setSelectedPkg] = useState<typeof info.packages[0] | null>(null);
+  const [selectedPkg, setSelectedPkg] = useState<ShowPkg | null>(null);
   const [quantity, setQuantity] = useState(2);
   const [showDate, setShowDate] = useState('');
   const [nameCn, setNameCn] = useState('');
@@ -60,7 +42,27 @@ export default function ShowDetailPage() {
   const [submitError, setSubmitError] = useState('');
   const supabase = createClient();
 
-  if (!info) return <div className="p-8 text-center">秀场不存在</div>;
+  useEffect(() => {
+    if (!showKey) return;
+    const supabase = createClient();
+    // 先查 show
+    supabase.from('shows').select('*').eq('slug', showKey).single().then(({ data }) => {
+      if (!data) return;
+      setShowInfo(data);
+      // 再查其套餐
+      supabase.from('show_packages').select('*').eq('show_id', data.id).eq('is_active', true).order('sort_order').then(({ data: pkgs }) => {
+        setPackages(pkgs || []);
+        setLoading(false);
+      });
+    });
+  }, [showKey]);
+
+  if (!showInfo && !loading) return <div className="p-8 text-center">秀场不存在</div>;
+  if (loading || !showInfo) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <Loader2 className="w-8 h-8 animate-spin text-ocean-500" />
+    </div>
+  );
 
   const handleSubmit = async () => {
     if (!user) {
@@ -84,7 +86,7 @@ export default function ShowDetailPage() {
       payment_status: 'unpaid',
       travel_date: showDate,
       quantity: quantity,
-      total_price: selectedPkg ? selectedPkg.price * quantity : 0,
+      total_price: selectedPkg ? Number(selectedPkg.price) * quantity : 0,
       contact_name_cn: nameCn,
       contact_name_en: nameEn,
       contact_phone: phone,
@@ -93,7 +95,7 @@ export default function ShowDetailPage() {
       hotel_name: hotel,
       extra_data: {
         show_key: showKey,
-        show_name: info.name,
+        show_name: showInfo.name,
         package: selectedPkg,
       },
     };
@@ -119,32 +121,27 @@ export default function ShowDetailPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Hero */}
       <div className="relative h-48 md:h-64 overflow-hidden">
-        <Image src={info.heroImage} alt={info.name} fill className="object-cover" priority />
+        <Image src={showInfo.image_url || 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1920&q=80'} alt={showInfo.name} fill className="object-cover" priority />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
         <a href="/show" className="absolute top-4 left-4 w-10 h-10 bg-white/80 rounded-full flex items-center justify-center md:hidden">
           <ChevronLeft className="w-5 h-5 text-gray-700" />
         </a>
         <div className="absolute bottom-4 left-4 md:left-8 text-white">
-          <h1 className="text-2xl md:text-4xl font-bold">{info.name}</h1>
-          <p className="text-sm md:text-lg text-white/80">{info.subtitle}</p>
+          <h1 className="text-2xl md:text-4xl font-bold">{showInfo.name}</h1>
         </div>
       </div>
 
       <div className="max-w-xl mx-auto px-4 py-6 pb-10 space-y-4">
         {/* Info */}
         <div className="bg-white rounded-2xl p-5 shadow-sm">
-          <p className="text-sm text-gray-600 leading-relaxed">{info.description}</p>
-          <div className="flex gap-4 mt-4 pt-4 border-t text-sm text-gray-500">
-            <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{info.duration}</span>
-            <span className="flex items-center gap-1"><MapPin className="w-4 h-4" />{info.location}</span>
-          </div>
+          <p className="text-sm text-gray-600 leading-relaxed">{showInfo.description}</p>
         </div>
 
         {/* Packages */}
         <div className="bg-white rounded-2xl p-5 shadow-sm">
           <h2 className="font-bold text-gray-900 mb-4">选择套餐 *</h2>
           <div className="space-y-3">
-            {info.packages.map(pkg => (
+            {packages.map(pkg => (
               <div
                 key={pkg.id}
                 onClick={() => setSelectedPkg(pkg.id === selectedPkg?.id ? null : pkg)}
@@ -153,17 +150,11 @@ export default function ShowDetailPage() {
                 <div className="flex justify-between items-start">
                   <div>
                     <h3 className="font-bold text-gray-900">{pkg.name}</h3>
-                    <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
-                      {pkg.includes.map(inc => (
-                        <span key={inc} className="text-xs text-gray-500 flex items-center gap-0.5">
-                          <CheckCircle className="w-3 h-3 text-ocean-400" />{inc}
-                        </span>
-                      ))}
-                    </div>
+                    <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">{pkg.description}</p>
                   </div>
                   <div className="text-right ml-3 flex-shrink-0">
-                    <div className="text-ocean-600 font-bold text-xl">¥{pkg.price}</div>
-                    <div className="text-xs text-gray-400">/人</div>
+                    <div className="text-ocean-600 font-bold text-xl">฿{Number(pkg.price).toLocaleString()}</div>
+                    <div className="text-xs text-gray-400">¥{Number(pkg.price_cny).toLocaleString()}/人</div>
                   </div>
                 </div>
               </div>
@@ -237,8 +228,8 @@ export default function ShowDetailPage() {
               <div className="flex justify-between items-center mb-4">
                 <div>
                   <div className="text-sm opacity-80">应付总额</div>
-                  <div className="text-3xl font-bold">¥{(selectedPkg.price * quantity).toLocaleString()}</div>
-                  <div className="text-xs opacity-70 mt-1">{selectedPkg.name} × {quantity}人</div>
+                  <div className="text-3xl font-bold">฿{(Number(selectedPkg.price) * quantity).toLocaleString()}</div>
+                  <div className="text-xs opacity-70">约 ¥{(Number(selectedPkg.price_cny) * quantity).toLocaleString()} / {selectedPkg.name} × {quantity}人</div>
                 </div>
                 <div className="text-right text-xs opacity-70">
                   <div>订单号</div>

@@ -54,6 +54,7 @@ CREATE TABLE diving_packages (
     slug VARCHAR(100) UNIQUE NOT NULL,
     description TEXT,
     price DECIMAL(10, 2) NOT NULL,
+    price_cny DECIMAL(10, 2), -- 人民币价格
     type VARCHAR(50) NOT NULL, -- 'experience', 'ow', 'aow', 'free2', 'free3'
     duration VARCHAR(100), -- e.g., '2小时', '3天课程'
     is_active BOOLEAN DEFAULT true,
@@ -83,6 +84,7 @@ CREATE TABLE island_boats (
     description TEXT,
     itinerary TEXT,
     price DECIMAL(10, 2) NOT NULL,
+    price_cny DECIMAL(10, 2), -- 人民币价格
     images TEXT[], -- Array of image URLs
     departure_time VARCHAR(100),
     duration VARCHAR(100),
@@ -113,6 +115,7 @@ CREATE TABLE show_packages (
     name VARCHAR(255) NOT NULL,
     description TEXT,
     price DECIMAL(10, 2) NOT NULL,
+    price_cny DECIMAL(10, 2), -- 人民币价格
     is_active BOOLEAN DEFAULT true,
     sort_order INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -217,6 +220,14 @@ CREATE INDEX idx_show_packages_show_id ON show_packages(show_id);
 CREATE INDEX idx_transactions_order_id ON payment_transactions(order_id);
 CREATE INDEX idx_transactions_created_at ON payment_transactions(created_at DESC);
 CREATE INDEX idx_transactions_status ON payment_transactions(status);
+
+-- =============================================
+-- 字段迁移（已有表新增 price_cny 字段）
+-- =============================================
+
+ALTER TABLE diving_packages ADD COLUMN IF NOT EXISTS price_cny DECIMAL(10, 2);
+ALTER TABLE island_boats ADD COLUMN IF NOT EXISTS price_cny DECIMAL(10, 2);
+ALTER TABLE show_packages ADD COLUMN IF NOT EXISTS price_cny DECIMAL(10, 2);
 
 -- =============================================
 -- Row Level Security (RLS)
@@ -400,12 +411,12 @@ INSERT INTO banners (title, image_url, link_url, sort_order) VALUES
 ('跳岛一日游', 'https://images.unsplash.com/photo-1559128010-7c1ad6e1b6a5?w=1920&q=80', '/island-tour', 3);
 
 -- 深潜套餐
-INSERT INTO diving_packages (name, slug, description, price, type, duration, sort_order) VALUES
-('体验深潜', 'experience', '无需潜水证，专业教练带你体验海底世界的美妙', 680.00, 'experience', '2-3小时', 1),
-('水肺OW考证', 'ow', 'PADI开放水域潜水员课程，全球通用潜水证', 2800.00, 'ow', '3-4天课程', 2),
-('水肺AOW考证', 'aow', 'PADI进阶开放水域潜水员课程，探索更深海域', 2200.00, 'aow', '2-3天课程', 3),
-('自由潜2星', 'free2', 'PADI自由潜基础课程，探索自由潜水的魅力', 1800.00, 'free2', '2天课程', 4),
-('自由潜3星', 'free3', 'PADI自由潜进阶课程，下潜更深更远', 2500.00, 'free3', '3天课程', 5);
+INSERT INTO diving_packages (name, slug, description, price, price_cny, type, duration, sort_order) VALUES
+('体验深潜', 'experience', '无需潜水证，专业教练带你体验海底世界的美妙', 680.00, 135.00, 'experience', '2-3小时', 1),
+('水肺OW考证', 'ow', 'PADI开放水域潜水员课程，全球通用潜水证', 2800.00, 560.00, 'ow', '3-4天课程', 2),
+('水肺AOW考证', 'aow', 'PADI进阶开放水域潜水员课程，探索更深海域', 2200.00, 440.00, 'aow', '2-3天课程', 3),
+('自由潜2星', 'free2', 'PADI自由潜基础课程，探索自由潜水的魅力', 1800.00, 360.00, 'free2', '2天课程', 4),
+('自由潜3星', 'free3', 'PADI自由潜进阶课程，下潜更深更远', 2500.00, 500.00, 'free3', '3天课程', 5);
 
 -- 岛屿
 INSERT INTO islands (name, slug, description, image_url, sort_order) VALUES
@@ -414,54 +425,54 @@ INSERT INTO islands (name, slug, description, image_url, sort_order) VALUES
 ('斯米兰', 'similan', '世界十大潜水圣地之一，每年仅开放半年，错过等一年', 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&q=80', 3);
 
 -- 船只 (皇帝岛)
-INSERT INTO island_boats (island_id, name, description, itinerary, price, images, departure_time, duration, includes, sort_order)
-SELECT id, '豪华双体帆船', '乘坐豪华双体帆船前往皇帝岛，享受私密舒适的海上时光', 
-'07:30 酒店接载\n08:30 码头出发\n10:00 抵达皇帝岛，浮潜\n12:00 船上享用午餐\n13:30 皇帝岛自由活动\n15:30 返回码头\n17:00 送回酒店', 
-780.00, 
+INSERT INTO island_boats (island_id, name, description, itinerary, price, price_cny, images, departure_time, duration, includes, sort_order)
+SELECT id, '豪华双体帆船', '乘坐豪华双体帆船前往皇帝岛，享受私密舒适的海上时光',
+'07:30 酒店接载\n08:30 码头出发\n10:00 抵达皇帝岛，浮潜\n12:00 船上享用午餐\n13:30 皇帝岛自由活动\n15:30 返回码头\n17:00 送回酒店',
+780.00, 156.00,
 ARRAY['https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80', 'https://images.unsplash.com/photo-1559128010-7c1ad6e1b6a5?w=800&q=80'],
-'08:30', '约9小时', 
+'08:30', '约9小时',
 ARRAY['酒店接送', '午餐', '水果饮料', '浮潜装备', '英文导游'],
 1
 FROM islands WHERE slug = 'racha';
 
-INSERT INTO island_boats (island_id, name, description, itinerary, price, images, departure_time, duration, includes, sort_order)
-SELECT id, '快艇经典游', '经济实惠的快艇一日游，适合预算有限的朋友', 
-'08:00 酒店接载\n09:00 码头出发\n10:30 皇帝岛浮潜\n12:00 午餐\n13:30 皇帝岛自由活动\n15:00 返回\n16:30 送回酒店', 
-480.00, 
+INSERT INTO island_boats (island_id, name, description, itinerary, price, price_cny, images, departure_time, duration, includes, sort_order)
+SELECT id, '快艇经典游', '经济实惠的快艇一日游，适合预算有限的朋友',
+'08:00 酒店接载\n09:00 码头出发\n10:30 皇帝岛浮潜\n12:00 午餐\n13:30 皇帝岛自由活动\n15:00 返回\n16:30 送回酒店',
+480.00, 96.00,
 ARRAY['https://images.unsplash.com/photo-1504214208698-ea1916a2195a?w=800&q=80'],
-'09:00', '约8.5小时', 
+'09:00', '约8.5小时',
 ARRAY['酒店接送', '午餐', '浮潜装备'],
 2
 FROM islands WHERE slug = 'racha';
 
 -- 船只 (皮皮岛)
-INSERT INTO island_boats (island_id, name, description, itinerary, price, images, departure_time, duration, includes, sort_order)
-SELECT id, 'VIP私人游艇', '高端私人游艇，最多8人，尊享私密体验', 
-'07:30 酒店接载\n08:30 私人游艇出发\n10:30 抵达小皮皮岛，游览玛雅湾\n12:00 船上精致午餐\n13:30 竹子岛/蚊子岛浮潜\n15:30 返程\n17:00 送回酒店', 
-1280.00, 
+INSERT INTO island_boats (island_id, name, description, itinerary, price, price_cny, images, departure_time, duration, includes, sort_order)
+SELECT id, 'VIP私人游艇', '高端私人游艇，最多8人，尊享私密体验',
+'07:30 酒店接载\n08:30 私人游艇出发\n10:30 抵达小皮皮岛，游览玛雅湾\n12:00 船上精致午餐\n13:30 竹子岛/蚊子岛浮潜\n15:30 返程\n17:00 送回酒店',
+1280.00, 256.00,
 ARRAY['https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&q=80', 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80'],
-'08:30', '约9.5小时', 
+'08:30', '约9.5小时',
 ARRAY['酒店接送', '精致午餐', '水果香槟', '浮潜装备', 'SUP立式划板', '中文导游'],
 1
 FROM islands WHERE slug = 'pp';
 
 INSERT INTO island_boats (island_id, name, description, itinerary, price, images, departure_time, duration, includes, sort_order)
-SELECT id, '经典大船', '大船出行，平稳舒适，适合带老人小孩', 
-'08:00 酒店接载\n08:30 大船出发\n10:30 抵达皮皮岛\n12:00 午餐\n13:30 自由活动/浮潜\n15:30 返程\n17:00 送回酒店', 
-580.00, 
+SELECT id, '经典大船', '大船出行，平稳舒适，适合带老人小孩',
+'08:00 酒店接载\n08:30 大船出发\n10:30 抵达皮皮岛\n12:00 午餐\n13:30 自由活动/浮潜\n15:30 返程\n17:00 送回酒店',
+580.00, 116.00,
 ARRAY['https://images.unsplash.com/photo-1559128010-7c1ad6e1b6a5?w=800&q=80'],
-'08:30', '约9小时', 
+'08:30', '约9小时',
 ARRAY['酒店接送', '午餐', '浮潜装备'],
 2
 FROM islands WHERE slug = 'pp';
 
 -- 船只 (斯米兰)
-INSERT INTO island_boats (island_id, name, description, itinerary, price, images, departure_time, duration, includes, sort_order)
-SELECT id, '精品小团船', '小团体出行，最多20人，深入探索斯米兰', 
-'05:00 酒店接载\n06:00 码头出发\n08:00 抵达斯米兰4号岛，开始第一次浮潜\n10:00 斯米兰9号岛，第二次浮潜\n12:00 船上午餐\n13:30 斯米兰8号岛，主岛游览\n15:00 斯米兰7号岛，第三次浮潜\n16:00 返程\n18:30 送回酒店', 
-980.00, 
+INSERT INTO island_boats (island_id, name, description, itinerary, price, price_cny, images, departure_time, duration, includes, sort_order)
+SELECT id, '精品小团船', '小团体出行，最多20人，深入探索斯米兰',
+'05:00 酒店接载\n06:00 码头出发\n08:00 抵达斯米兰4号岛，开始第一次浮潜\n10:00 斯米兰9号岛，第二次浮潜\n12:00 船上午餐\n13:30 斯米兰8号岛，主岛游览\n15:00 斯米兰7号岛，第三次浮潜\n16:00 返程\n18:30 送回酒店',
+980.00, 196.00,
 ARRAY['https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&q=80', 'https://images.unsplash.com/photo-1504214208698-ea1916a2195a?w=800&q=80'],
-'06:00', '约12.5小时', 
+'06:00', '约12.5小时',
 ARRAY['酒店接送', '午餐', '水果饮料', '浮潜装备', '国家公园费', '中文导游'],
 1
 FROM islands WHERE slug = 'similan';
@@ -472,25 +483,25 @@ INSERT INTO shows (name, slug, description, image_url, sort_order) VALUES
 ('西蒙秀', 'simon', '世界闻名的变装歌舞秀，演员阵容强大，舞台效果震撼', 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800&q=80', 2);
 
 -- 秀场套餐 (天皇秀)
-INSERT INTO show_packages (show_id, name, description, price, sort_order)
-SELECT id, 'VIP座位', '最佳观赏位置，近距离观看表演', 480.00, 1
+INSERT INTO show_packages (show_id, name, description, price, price_cny, sort_order)
+SELECT id, 'VIP座位', '最佳观赏位置，近距离观看表演', 480.00, 96.00, 1
 FROM shows WHERE slug = 'kawaii';
 
-INSERT INTO show_packages (show_id, name, description, price, sort_order)
-SELECT id, '普通座位', '普通观赏区，性价比高', 380.00, 2
+INSERT INTO show_packages (show_id, name, description, price, price_cny, sort_order)
+SELECT id, '普通座位', '普通观赏区，性价比高', 380.00, 76.00, 2
 FROM shows WHERE slug = 'kawaii';
 
 -- 秀场套餐 (西蒙秀)
-INSERT INTO show_packages (show_id, name, description, price, sort_order)
-SELECT id, 'VIP座位+接送', 'VIP座位，含酒店往返接送', 680.00, 1
+INSERT INTO show_packages (show_id, name, description, price, price_cny, sort_order)
+SELECT id, 'VIP座位+接送', 'VIP座位，含酒店往返接送', 680.00, 136.00, 1
 FROM shows WHERE slug = 'simon';
 
-INSERT INTO show_packages (show_id, name, description, price, sort_order)
-SELECT id, 'VIP座位', '最佳观赏位置', 480.00, 2
+INSERT INTO show_packages (show_id, name, description, price, price_cny, sort_order)
+SELECT id, 'VIP座位', '最佳观赏位置', 480.00, 96.00, 2
 FROM shows WHERE slug = 'simon';
 
-INSERT INTO show_packages (show_id, name, description, price, sort_order)
-SELECT id, '普通座位', '普通观赏区', 380.00, 3
+INSERT INTO show_packages (show_id, name, description, price, price_cny, sort_order)
+SELECT id, '普通座位', '普通观赏区', 380.00, 76.00, 3
 FROM shows WHERE slug = 'simon';
 
 -- 系统设置

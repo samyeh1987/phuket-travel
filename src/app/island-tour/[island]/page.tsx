@@ -7,6 +7,11 @@ import { Clock, Users, CheckCircle, ChevronLeft, Plus, MessageCircle } from 'luc
 import { useAuth } from '@/components/AuthProvider'
 import { createClient } from '@/lib/supabase'
 
+interface BoatOption {
+  id: string; name: string; description: string; itinerary: string; price: string; price_cny: string;
+  departure_time: string; duration: string; includes: string[]; images: string[];
+}
+
 const islandData: Record<string, {
   name: string; subtitle: string; description: string;
   heroImage: string; galleryImages: string[];
@@ -44,21 +49,6 @@ const islandData: Record<string, {
   },
 }
 
-const boatData = {
-  racha: [
-    { id: 'speedboat-1', name: '豪华双体帆船', image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&q=80', price: 680, capacity: 25, duration: '8小时', features: ['双体船稳定', '含午餐', '浮潜装备', '水果饮料', '中文导游'] },
-    { id: 'speedboat-2', name: '彩虹号快艇', image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80', price: 580, capacity: 35, duration: '7小时', features: ['快艇直达', '含午餐', '浮潜装备', '水果饮料'] },
-  ],
-  pp: [
-    { id: 'pp-1', name: '皮皮岛专线大船', image: 'https://images.unsplash.com/photo-1519451241324-20b4ea2c4220?w=800&q=80', price: 780, capacity: 50, duration: '10小时', features: ['大船平稳', '含午餐', '浮潜装备', '中文导游', '观景点'] },
-    { id: 'pp-2', name: '皮皮岛VIP快艇', image: 'https://images.unsplash.com/photo-1537953773345-d172ccf13cf4?w=800&q=80', price: 980, capacity: 20, duration: '9小时', features: ['VIP小团', '两次浮潜', '海鲜午餐', '中文导游', '无人机拍摄'] },
-  ],
-  similan: [
-    { id: 'similan-1', name: '斯米兰探索号', image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&q=80', price: 1080, capacity: 30, duration: '11小时', features: ['深潜首选', '含午餐', '浮潜装备', '英文教练', '装备齐全'] },
-    { id: 'similan-2', name: '斯米兰潜水专船', image: 'https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=800&q=80', price: 1280, capacity: 20, duration: '12小时', features: ['专业潜导', '两次深潜', '含午餐', '装备全包', 'PADI认证'] },
-  ],
-}
-
 interface Traveler {
   nameCn: string; nameEn: string; passport: string; birthdate: string;
 }
@@ -71,9 +61,25 @@ export default function IslandDetailPage() {
   const { user } = useAuth()
   const island = params.island as string
 
-  // Island info and boat options
+  // Island info
   const info = islandData[island]
-  const boats = boatData[island as keyof typeof boatData] || []
+  const [boats, setBoats] = useState<BoatOption[]>([])
+
+  useEffect(() => {
+    if (!island) return
+    const supabase = createClient()
+    // 先查岛屿ID
+    supabase.from('islands').select('id').eq('slug', island).single().then(({ data: islandData }) => {
+      if (!islandData) return
+      supabase.from('island_boats').select('*').eq('island_id', islandData.id).eq('is_active', true).order('sort_order').then(({ data }) => {
+        setBoats((data || []).map((b: any) => ({
+          ...b,
+          includes: b.includes || [],
+          images: b.images || [],
+        })))
+      })
+    })
+  }, [island])
 
   const orderNo = useMemo(() => genOrderNo(), [])
   const [selectedBoat, setSelectedBoat] = useState<typeof boats[0] | null>(null)
@@ -122,7 +128,7 @@ export default function IslandDetailPage() {
       `🚢 船只：${selectedBoat?.name ?? '-'}`,
       `📅 出行日期：${travelDate || '待定'}`,
       `👥 人数：${people}人`,
-      `💰 总金额：¥${selectedBoat ? (selectedBoat.price * people).toLocaleString() : '-'}`,
+      `💰 总金额：฿${selectedBoat ? (Number(selectedBoat.price) * people).toLocaleString() : '-'}（¥${selectedBoat ? (Number(selectedBoat.price_cny || selectedBoat.price) * people).toLocaleString() : '-'})`,
       ``,
       `🏨 酒店：${hotelName || '-'}`,
       `📍 地址：${hotelAddress || '-'}`,
@@ -166,7 +172,7 @@ export default function IslandDetailPage() {
       payment_status: 'unpaid',
       travel_date: travelDate,
       quantity: people,
-      total_price: selectedBoat ? selectedBoat.price * people : 0,
+      total_price: selectedBoat ? Number(selectedBoat.price_cny || selectedBoat.price) * people : 0,
       contact_name_cn: contactNameCn,
       contact_name_en: contactNameEn,
       contact_phone: contactPhone,
@@ -271,22 +277,23 @@ export default function IslandDetailPage() {
                   className={`flex gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${selectedBoat?.id === boat.id ? 'border-ocean-500 bg-ocean-50' : 'border-gray-100 bg-gray-50 hover:border-ocean-200'}`}
                 >
                   <div className="relative w-24 h-24 rounded-lg overflow-hidden flex-shrink-0">
-                    <Image src={boat.image} alt={boat.name} fill className="object-cover" />
+                    <Image src={(boat.images && boat.images[0]) || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&q=80'} alt={boat.name} fill className="object-cover" />
                   </div>
                   <div className="flex-1">
                     <div className="flex justify-between items-start">
                       <h3 className="font-bold text-gray-900">{boat.name}</h3>
                       <div className="text-right">
-                        <div className="text-ocean-600 font-bold">¥{boat.price}</div>
+                        <div className="text-ocean-600 font-bold">฿{Number(boat.price).toLocaleString()}</div>
+                        <div className="text-green-600 font-semibold text-sm">¥{Number(boat.price_cny).toLocaleString()}</div>
                         <div className="text-xs text-gray-400">/人</div>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
-                      <span className="flex items-center gap-1"><Users className="w-3 h-3" />{boat.capacity}人</span>
                       <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{boat.duration}</span>
+                      {boat.departure_time && <span className="flex items-center gap-1">⏰ {boat.departure_time}出发</span>}
                     </div>
                     <div className="flex flex-wrap gap-1 mt-2">
-                      {boat.features.map(f => (
+                      {(boat.includes || []).slice(0, 4).map((f: string) => (
                         <span key={f} className="px-1.5 py-0.5 bg-white rounded text-xs text-gray-600">{f}</span>
                       ))}
                     </div>
@@ -466,7 +473,7 @@ export default function IslandDetailPage() {
               <div className="flex justify-between items-center mb-4">
                 <div>
                   <div className="text-sm opacity-80">应付总额</div>
-                  <div className="text-3xl font-bold">¥{(selectedBoat.price * people).toLocaleString()}</div>
+                  <div className="text-3xl font-bold">¥{((Number(selectedBoat.price_cny) || Number(selectedBoat.price)) * people).toLocaleString()}</div>
                   <div className="text-xs opacity-70 mt-1">{selectedBoat.name} × {people}人</div>
                 </div>
                 <div className="text-right text-xs opacity-70">
@@ -497,7 +504,8 @@ export default function IslandDetailPage() {
           <div className="max-w-4xl mx-auto flex items-center justify-between">
             <div>
               <div className="text-sm text-gray-500">已选：{selectedBoat.name}</div>
-              <div className="text-ocean-600 font-bold text-xl">¥{selectedBoat.price}起/人</div>
+              <div className="text-ocean-600 font-bold text-xl">฿{Number(selectedBoat.price).toLocaleString()}</div>
+              <div className="text-green-600 font-semibold text-sm">¥{Number(selectedBoat.price_cny).toLocaleString()}起/人</div>
             </div>
             <button
               onClick={() => {

@@ -9,6 +9,7 @@ interface DivingPackage {
   slug: string;
   description: string;
   price: string;
+  price_cny: string;
   type: string;
   duration: string;
   is_active: boolean;
@@ -32,19 +33,17 @@ export default function AdminDivingPage() {
 
   useEffect(() => { fetchPackages(); }, []);
 
-  const openAdd = () => { setEditItem({ name: '', slug: '', description: '', price: '', type: 'experience', duration: '', is_active: true }); setShowModal(true); };
-  const openEdit = (pkg: any) => { setEditItem({ ...pkg, price: String(pkg.price) }); setShowModal(true); };
+  const openAdd = () => { setEditItem({ name: '', slug: '', description: '', price: '', price_cny: '', type: 'experience', duration: '', is_active: true }); setShowModal(true); };
+  const openEdit = (pkg: any) => { setEditItem({ ...pkg, price: String(pkg.price || ''), price_cny: String(pkg.price_cny || '') }); setShowModal(true); };
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!editItem) return;
     setSaving(true);
-    const { name, slug, description, price, type, duration, is_active } = editItem;
-    const payload = { name, slug, description, price: Number(price), type, duration, is_active };
-    const url = editItem.id ? '/api/admin/diving' : '/api/admin/diving';
-    const method = editItem.id ? 'PUT' : 'POST';
-    await fetch(url, {
-      method,
+    const { name, slug, description, price, price_cny, type, duration, is_active } = editItem;
+    const payload = { name, slug, description, price: Number(price), price_cny: Number(price_cny) || null, type, duration, is_active };
+    await fetch(editItem.id ? '/api/admin/diving' : '/api/admin/diving', {
+      method: editItem.id ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(editItem.id ? { id: editItem.id, ...payload } : payload),
     });
@@ -97,7 +96,8 @@ export default function AdminDivingPage() {
                 <th className="px-5 py-3.5 font-medium">套餐名称</th>
                 <th className="px-5 py-3.5 font-medium">类型</th>
                 <th className="px-5 py-3.5 font-medium">时长</th>
-                <th className="px-5 py-3.5 font-medium">价格</th>
+                <th className="px-5 py-3.5 font-medium">泰铢价格</th>
+                <th className="px-5 py-3.5 font-medium">人民币价格</th>
                 <th className="px-5 py-3.5 font-medium">状态</th>
                 <th className="px-5 py-3.5 font-medium">操作</th>
               </tr>
@@ -109,9 +109,12 @@ export default function AdminDivingPage() {
                     <div className="font-medium text-gray-900">{pkg.name}</div>
                     <div className="text-xs text-gray-400">/{pkg.slug}</div>
                   </td>
-                  <td className="px-5 py-3.5 text-gray-500 text-xs">{pkg.type === 'experience' ? '体验' : pkg.type === 'certification' ? '考证' : pkg.type}</td>
+                  <td className="px-5 py-3.5 text-gray-500 text-xs">
+                    {pkg.type === 'experience' ? '体验' : pkg.type === 'ow' ? 'OW考证' : pkg.type === 'aow' ? 'AOW考证' : pkg.type === 'free2' ? '自由潜2星' : pkg.type === 'free3' ? '自由潜3星' : pkg.type}
+                  </td>
                   <td className="px-5 py-3.5 text-gray-500">{pkg.duration || '—'}</td>
-                  <td className="px-5 py-3.5 text-ocean-600 font-semibold">¥{Number(pkg.price).toLocaleString()}</td>
+                  <td className="px-5 py-3.5 text-ocean-600 font-semibold">฿{Number(pkg.price).toLocaleString()}</td>
+                  <td className="px-5 py-3.5 text-green-600 font-semibold">¥{Number(pkg.price_cny).toLocaleString() || '-'}</td>
                   <td className="px-5 py-3.5">
                     <button onClick={() => handleToggle(pkg)} className={`flex items-center gap-1 text-xs font-medium ${pkg.is_active ? 'text-green-600' : 'text-gray-400'}`}>
                       <div className={`w-2 h-2 rounded-full ${pkg.is_active ? 'bg-green-500' : 'bg-gray-300'}`} />
@@ -133,7 +136,7 @@ export default function AdminDivingPage() {
 
       {showModal && editItem && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-gray-900">{editItem.id ? '编辑套餐' : '添加套餐'}</h2>
               <button onClick={() => setShowModal(false)} className="p-1 text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
@@ -151,19 +154,25 @@ export default function AdminDivingPage() {
                 <label className="text-sm font-medium text-gray-700 mb-1 block">类型</label>
                 <select value={editItem.type} onChange={e => setEditItem({ ...editItem, type: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500">
                   <option value="experience">体验深潜</option>
-                  <option value="certification">考证课程</option>
-                  <option value="freedive">自由潜</option>
+                  <option value="ow">OW水肺考证</option>
+                  <option value="aow">AOW进阶考证</option>
+                  <option value="free2">自由潜2星</option>
+                  <option value="free3">自由潜3星</option>
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-1 block">价格（¥）*</label>
-                  <input type="number" required value={editItem.price} onChange={e => setEditItem({ ...editItem, price: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">泰铢价格（฿）*</label>
+                  <input type="number" required step="0.01" value={editItem.price} onChange={e => setEditItem({ ...editItem, price: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" placeholder="例如：680" />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-1 block">时长</label>
-                  <input type="text" value={editItem.duration} onChange={e => setEditItem({ ...editItem, duration: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" placeholder="例如：半天/全天" />
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">人民币价格（¥）</label>
+                  <input type="number" step="0.01" value={editItem.price_cny} onChange={e => setEditItem({ ...editItem, price_cny: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" placeholder="例如：135" />
                 </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">时长</label>
+                <input type="text" value={editItem.duration} onChange={e => setEditItem({ ...editItem, duration: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" placeholder="例如：2-3小时" />
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">描述</label>

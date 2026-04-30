@@ -77,7 +77,7 @@ export default function AdminOrdersPage() {
       // 检查并提交订单状态修改
       const newStatus = editStatus.status !== (selectedOrder.status || 'pending');
       const newPaymentStatus = editStatus.payment_status !== (selectedOrder.payment_status || 'unpaid');
-      const newContactStatus = selectedOrder.type === 'custom' && editStatus.contact_status !== (selectedOrder.contact_status || 'pending_contact');
+      const newContactStatus = editStatus.contact_status !== (selectedOrder.contact_status || 'pending_contact');
 
       if (newStatus) {
         console.log('>>> 更新订单状态:', selectedOrder.id, '->', editStatus.status);
@@ -257,7 +257,7 @@ export default function AdminOrdersPage() {
   const hasChanges = editStatus && selectedOrder && (
     editStatus.status !== (selectedOrder.status || 'pending') ||
     editStatus.payment_status !== (selectedOrder.payment_status || 'unpaid') ||
-    (selectedOrder.type === 'custom' && editStatus.contact_status !== (selectedOrder.contact_status || 'pending_contact'))
+    editStatus.contact_status !== (selectedOrder.contact_status || 'pending_contact')
   );
 
   return (
@@ -534,14 +534,12 @@ export default function AdminOrdersPage() {
                       {paymentStatusConfig[editStatus?.payment_status]?.label || '未付款'}
                     </div>
                   </div>
-                  {selectedOrder.type === 'custom' && (
-                    <div>
-                      <span className="text-gray-500">联系状态</span>
-                      <div className={`mt-0.5 px-2 py-1 rounded-lg text-xs font-medium ${contactStatusConfig[editStatus?.contact_status]?.color} ${contactStatusConfig[editStatus?.contact_status]?.bg}`}>
-                        {contactStatusConfig[editStatus?.contact_status]?.label || '待联系'}
-                      </div>
+                  <div>
+                    <span className="text-gray-500">联系状态</span>
+                    <div className={`mt-0.5 px-2 py-1 rounded-lg text-xs font-medium ${contactStatusConfig[editStatus?.contact_status]?.color} ${contactStatusConfig[editStatus?.contact_status]?.bg}`}>
+                      {contactStatusConfig[editStatus?.contact_status]?.label || '待联系'}
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
 
@@ -664,34 +662,32 @@ export default function AdminOrdersPage() {
                 </div>
               </div>
 
-              {/* 联系状态修改（仅定制旅行） */}
-              {selectedOrder.type === 'custom' && (
-                <div className="mb-4">
-                  <p className="text-xs text-gray-500 mb-2">联系状态：</p>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => setEditStatus({ ...editStatus, contact_status: 'pending_contact' })}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border-2 transition-colors ${
-                        editStatus?.contact_status === 'pending_contact'
-                          ? 'text-amber-600 border-amber-400 bg-amber-50'
-                          : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                      }`}
-                    >
-                      待联系
-                    </button>
-                    <button
-                      onClick={() => setEditStatus({ ...editStatus, contact_status: 'contacted' })}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border-2 transition-colors ${
-                        editStatus?.contact_status === 'contacted'
-                          ? 'text-green-600 border-green-400 bg-green-50'
-                          : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                      }`}
-                    >
-                      已联系
-                    </button>
-                  </div>
+              {/* 联系状态修改（所有订单类型） */}
+              <div className="mb-4">
+                <p className="text-xs text-gray-500 mb-2">联系状态：</p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setEditStatus({ ...editStatus, contact_status: 'pending_contact' })}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border-2 transition-colors ${
+                      editStatus?.contact_status === 'pending_contact'
+                        ? 'text-amber-600 border-amber-400 bg-amber-50'
+                        : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    待联系
+                  </button>
+                  <button
+                    onClick={() => setEditStatus({ ...editStatus, contact_status: 'contacted' })}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border-2 transition-colors ${
+                      editStatus?.contact_status === 'contacted'
+                        ? 'text-green-600 border-green-400 bg-green-50'
+                        : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    已联系
+                  </button>
                 </div>
-              )}
+              </div>
             </div>
 
             {/* 确认按钮 */}
