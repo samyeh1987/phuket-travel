@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Save, Plus, Trash2, CheckCircle, Image as ImageIcon } from 'lucide-react';
+import { Save, Plus, Trash2, CheckCircle, Image as ImageIcon, Eye, EyeOff } from 'lucide-react';
 import ImageUpload from '@/components/admin/ImageUpload';
 
 interface Setting { key: string; value: string; }
@@ -93,6 +93,9 @@ export default function AdminSettingsPage() {
     fetchData();
   };
 
+  // Helper: check if a setting should be visible (default true if not set)
+  const isVisible = (key: string) => settings[key] !== 'false';
+
   if (loading) {
     return <div className="p-12 text-center text-gray-400"><div className="w-6 h-6 border-2 border-ocean-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" /><p className="text-sm">加载中...</p></div>;
   }
@@ -102,7 +105,7 @@ export default function AdminSettingsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">系统设置</h1>
-          <p className="text-sm text-gray-500 mt-1">管理客服信息和收款方式</p>
+          <p className="text-sm text-gray-500 mt-1">管理客服信息、收款方式及显示设置</p>
         </div>
         <button onClick={saveSettings} disabled={saving} className="flex items-center gap-2 px-5 py-2.5 bg-ocean-500 text-white rounded-xl font-medium hover:bg-ocean-600 disabled:opacity-50 transition-colors">
           {saved ? <CheckCircle className="w-4 h-4" /> : saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
@@ -110,75 +113,113 @@ export default function AdminSettingsPage() {
         </button>
       </div>
 
-      {/* 客服信息 */}
+      {/* 客服联系方式 */}
       <div className="bg-white rounded-2xl p-6 shadow-sm">
-        <h2 className="text-lg font-bold text-gray-900 mb-4">客服信息</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <h2 className="text-lg font-bold text-gray-900 mb-4">客服联系方式</h2>
+        <p className="text-xs text-gray-400 mb-4">开启/关闭各渠道在联系页面和页脚的显示</p>
+        <div className="space-y-4">
           {[
-            { key: 'wechat', label: '客服微信号', placeholder: 'phukettravel' },
+            { key: 'wechat', label: '微信号', placeholder: 'phukettravel' },
             { key: 'whatsapp', label: 'WhatsApp', placeholder: '+66 XX XXX XXXX' },
             { key: 'phone', label: '联系电话', placeholder: '+66 XX XXX XXXX' },
             { key: 'email', label: '邮箱', placeholder: 'contact@phukettravel.com' },
           ].map(f => (
-            <div key={f.key}>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">{f.label}</label>
-              <input
-                type={f.key === 'email' ? 'email' : 'text'}
-                value={settings[f.key] || ''}
-                onChange={e => updateSetting(f.key, e.target.value)}
-                placeholder={f.placeholder}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
-              />
+            <div key={f.key} className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
+              <div className="flex-1">
+                <label className="text-sm font-medium text-gray-700 mb-1 block">{f.label}</label>
+                <input
+                  type={f.key === 'email' ? 'email' : 'text'}
+                  value={settings[f.key] || ''}
+                  onChange={e => updateSetting(f.key, e.target.value)}
+                  placeholder={f.placeholder}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
+                />
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-xs text-gray-500">显示</span>
+                <button
+                  type="button"
+                  onClick={() => updateSetting(`${f.key}_visible`, isVisible(`${f.key}`) ? 'false' : 'true')}
+                  className={`relative w-12 h-7 rounded-full transition-colors ${isVisible(`${f.key}`) ? 'bg-green-500' : 'bg-gray-300'}`}
+                >
+                  <div className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${isVisible(`${f.key}`) ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+              </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* 客服二维码 - 图片上传 */}
+      {/* 客服二维码 */}
       <div className="bg-white rounded-2xl p-6 shadow-sm">
         <h2 className="text-lg font-bold text-gray-900 mb-4">客服二维码</h2>
         <p className="text-xs text-gray-400 mb-4">设置后将在定制旅行提交成功页面显示，方便客户添加客服好友</p>
-        <div className="flex gap-6">
-          <ImageUpload
-            label="微信客服二维码"
-            value={settings['service_wechat_qr'] || ''}
-            onChange={v => updateSetting('service_wechat_qr', v)}
-          />
-          <ImageUpload
-            label="Line 客服二维码"
-            value={settings['service_line_qr'] || ''}
-            onChange={v => updateSetting('service_line_qr', v)}
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {[
+            { key: 'service_wechat_qr', label: '微信客服二维码' },
+            { key: 'service_line_qr', label: 'Line 客服二维码' },
+          ].map(f => (
+            <div key={f.key} className="flex items-start gap-4 p-4 bg-gray-50 rounded-xl">
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-gray-700">{f.label}</label>
+                  <button
+                    type="button"
+                    onClick={() => updateSetting(`${f.key}_visible`, isVisible(`${f.key}`) ? 'false' : 'true')}
+                    className={`relative w-10 h-5 rounded-full transition-colors ${isVisible(`${f.key}`) ? 'bg-green-500' : 'bg-gray-300'}`}
+                  >
+                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${isVisible(`${f.key}`) ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                  </button>
+                </div>
+                <ImageUpload
+                  value={settings[f.key] || ''}
+                  onChange={v => updateSetting(f.key, v)}
+                />
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* 收款码 - 图片上传 */}
+      {/* 收款码 */}
       <div className="bg-white rounded-2xl p-6 shadow-sm">
         <h2 className="text-lg font-bold text-gray-900 mb-4">收款码</h2>
-        <p className="text-xs text-gray-400 mb-4">建议图片尺寸 300x400 像素，背景透明或浅色为佳</p>
-        <div className="flex gap-6">
-          <ImageUpload
-            label="支付宝收款码"
-            value={settings['alipay_qr'] || ''}
-            onChange={v => updateSetting('alipay_qr', v)}
-          />
-          <ImageUpload
-            label="微信收款码"
-            value={settings['wechat_qr'] || ''}
-            onChange={v => updateSetting('wechat_qr', v)}
-          />
-          <ImageUpload
-            label="泰国QR码"
-            value={settings['thai_qr'] || ''}
-            onChange={v => updateSetting('thai_qr', v)}
-          />
+        <p className="text-xs text-gray-400 mb-4">开启/关闭各收款方式在付款页面的显示；建议图片尺寸 300x400 像素</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          {[
+            { key: 'alipay_qr', label: '支付宝收款码' },
+            { key: 'wechat_qr', label: '微信收款码' },
+            { key: 'thai_qr', label: '泰国QR码' },
+          ].map(f => (
+            <div key={f.key} className="flex items-start gap-4 p-4 bg-gray-50 rounded-xl">
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-gray-700">{f.label}</label>
+                  <button
+                    type="button"
+                    onClick={() => updateSetting(`${f.key}_visible`, isVisible(`${f.key}`) ? 'false' : 'true')}
+                    className={`relative w-10 h-5 rounded-full transition-colors ${isVisible(`${f.key}`) ? 'bg-green-500' : 'bg-gray-300'}`}
+                  >
+                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${isVisible(`${f.key}`) ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                  </button>
+                </div>
+                <ImageUpload
+                  value={settings[f.key] || ''}
+                  onChange={v => updateSetting(f.key, v)}
+                />
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
       {/* 首页Banner */}
       <div className="bg-white rounded-2xl p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-gray-900">首页Banner</h2>
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">首页Banner</h2>
+            <p className="text-xs text-gray-400 mt-0.5">管理首页轮播图片</p>
+          </div>
           <button onClick={addBanner} className="flex items-center gap-1.5 px-3 py-1.5 bg-ocean-50 text-ocean-600 rounded-lg text-sm font-medium hover:bg-ocean-100 transition-colors">
             <Plus className="w-4 h-4" /> 添加Banner
           </button>

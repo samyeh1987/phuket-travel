@@ -37,7 +37,11 @@ export default function AdminShowsPage() {
   const openAddShow = () => { setEditShow({ name: '', slug: '', description: '', image_url: '', is_active: true }); setShowShowModal(true); };
   const openEditShow = (show: any) => { setEditShow({ ...show }); setShowShowModal(true); };
   const openAddPkg = (showId: string) => { setEditPkg({ show_id: showId, name: '', description: '', price: '', price_cny: '', is_active: true }); setShowPkgModal(true); };
-  const openEditPkg = (pkg: any) => { setEditPkg({ ...pkg, price: String(pkg.price || ''), price_cny: String(pkg.price_cny || '') }); setShowPkgModal(true); };
+  const openEditPkg = (pkg: any) => {
+    const priceCny = pkg.price_cny != null && !isNaN(Number(pkg.price_cny)) && Number(pkg.price_cny) > 0
+      ? String(pkg.price_cny) : '';
+    setEditPkg({ ...pkg, price: String(pkg.price ?? ''), price_cny: priceCny }); setShowPkgModal(true);
+  };
 
   const saveShow = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,7 +70,11 @@ export default function AdminShowsPage() {
     e.preventDefault();
     setSaving(true);
     setSaveError('');
-    const payload = { table: 'show_packages', show_id: editPkg.show_id, name: editPkg.name, description: editPkg.description, price: Number(editPkg.price), price_cny: Number(editPkg.price_cny) || null, is_active: editPkg.is_active };
+    // Only send price_cny if input has an actual numeric value (to avoid overwriting DB with null)
+    const priceCnyInput = editPkg.price_cny?.trim();
+    const hasPriceCny = priceCnyInput !== '' && !isNaN(Number(priceCnyInput)) && Number(priceCnyInput) > 0;
+    const payload: any = { table: 'show_packages', show_id: editPkg.show_id, name: editPkg.name, description: editPkg.description, price: Number(editPkg.price), is_active: editPkg.is_active };
+    if (hasPriceCny) payload.price_cny = Number(priceCnyInput);
     const method = editPkg.id ? 'PUT' : 'POST';
     const res = await fetch('/api/admin/shows', {
       method,

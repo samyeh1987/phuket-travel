@@ -15,6 +15,12 @@ interface PaymentQR {
   thai_qr: string;
 }
 
+interface PaymentVisibility {
+  alipay: boolean;
+  wechat: boolean;
+  thai_qr: boolean;
+}
+
 const PAYMENT_METHODS = [
   {
     id: 'alipay',
@@ -64,6 +70,11 @@ export function PaymentMethodSelector({ value, onChange }: PaymentMethodSelector
     wechat: '',
     thai_qr: '',
   });
+  const [visibility, setVisibility] = useState<PaymentVisibility>({
+    alipay: true,
+    wechat: true,
+    thai_qr: true,
+  });
 
   useEffect(() => {
     const fetchQrCodes = async () => {
@@ -71,23 +82,29 @@ export function PaymentMethodSelector({ value, onChange }: PaymentMethodSelector
       const { data } = await supabase
         .from('system_settings')
         .select('key, value')
-        .in('key', ['alipay_qr', 'wechat_qr', 'thai_qr']);
+        .in('key', ['alipay_qr', 'wechat_qr', 'thai_qr', 'alipay_qr_visible', 'wechat_qr_visible', 'thai_qr_visible']);
 
       if (data) {
         const codes: PaymentQR = { alipay: '', wechat: '', thai_qr: '' };
+        const vis: PaymentVisibility = { alipay: true, wechat: true, thai_qr: true };
         data.forEach((item: any) => {
           if (item.key === 'alipay_qr') codes.alipay = item.value;
           if (item.key === 'wechat_qr') codes.wechat = item.value;
           if (item.key === 'thai_qr') codes.thai_qr = item.value;
+          if (item.key === 'alipay_qr_visible') vis.alipay = item.value !== 'false';
+          if (item.key === 'wechat_qr_visible') vis.wechat = item.value !== 'false';
+          if (item.key === 'thai_qr_visible') vis.thai_qr = item.value !== 'false';
         });
         setQrCodes(codes);
+        setVisibility(vis);
       }
     };
     fetchQrCodes();
   }, []);
 
+  const visibleMethods = PAYMENT_METHODS.filter((m) => visibility[m.id as keyof PaymentVisibility]);
   const selectedQr = qrCodes[value as keyof PaymentQR] || '';
-  const selectedMethod = PAYMENT_METHODS.find((m) => m.id === value);
+  const selectedMethod = visibleMethods.find((m) => m.id === value);
 
   return (
     <div className="space-y-4">
@@ -96,7 +113,7 @@ export function PaymentMethodSelector({ value, onChange }: PaymentMethodSelector
           请选择付款方式
         </label>
         <div className="grid grid-cols-3 gap-3">
-          {PAYMENT_METHODS.map((method) => (
+          {visibleMethods.map((method) => (
             <button
               key={method.id}
               onClick={() => onChange(method.id)}

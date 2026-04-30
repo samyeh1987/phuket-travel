@@ -84,20 +84,26 @@ export default function CustomTripPage() {
   // 固定一个订单号，整个组件生命周期不变
   const orderNo = useMemo(() => genOrderNo(), []);
 
-  // 获取客服二维码
+  // 获取客服二维码（含可见性）
   useEffect(() => {
     const fetchQrs = async () => {
       const { data } = await supabase
         .from('system_settings')
         .select('key, value')
-        .in('key', ['service_wechat_qr', 'service_line_qr']);
+        .in('key', ['service_wechat_qr', 'service_line_qr', 'service_wechat_qr_visible', 'service_line_qr_visible']);
 
       if (data) {
         const qrs: any = {};
+        const vis: any = {};
         data.forEach((item: any) => {
           if (item.key === 'service_wechat_qr') qrs.wechat = item.value;
           if (item.key === 'service_line_qr') qrs.line = item.value;
+          if (item.key === 'service_wechat_qr_visible') vis.wechat = item.value !== 'false';
+          if (item.key === 'service_line_qr_visible') vis.line = item.value !== 'false';
         });
+        // 只保留可见的二维码
+        if (!vis.wechat) delete qrs.wechat;
+        if (!vis.line) delete qrs.line;
         setServiceQrs(qrs);
       }
     };
