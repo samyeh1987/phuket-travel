@@ -13,7 +13,7 @@ export default function AdminIslandsPage() {
   const [showIslandModal, setShowIslandModal] = useState(false);
   const [showBoatModal, setShowBoatModal] = useState(false);
   const [editIsland, setEditIsland] = useState<any>(null);
-  const [editBoat, setEditBoat] = useState<Boat>({ island_id: '', name: '', description: '', price: '', price_cny: '', duration: '', is_active: true });
+  const [editBoat, setEditBoat] = useState<Boat>({ island_id: '', name: '', description: '', price: '', price_cny: '', duration: '', image_url: '', is_active: true });
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
 
