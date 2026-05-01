@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, X, Save } from 'lucide-react';
+import ImageUpload from '@/components/admin/ImageUpload';
 
 interface ShowPackage { id?: string; show_id: string; name: string; description: string; price: string; price_cny: string; is_active: boolean; }
 
@@ -226,9 +227,12 @@ export default function AdminShowsPage() {
               <div><label className="text-sm font-medium text-gray-700 mb-1 block">描述</label>
                 <textarea value={editShow.description} onChange={e => setEditShow({ ...editShow, description: e.target.value })} rows={2} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500 resize-none" />
               </div>
-              <div><label className="text-sm font-medium text-gray-700 mb-1 block">图片URL</label>
-                <input type="text" value={editShow.image_url} onChange={e => setEditShow({ ...editShow, image_url: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
-              </div>
+              <ImageUpload
+                label="秀场图片"
+                value={editShow.image_url || ''}
+                onChange={url => setEditShow({ ...editShow, image_url: url })}
+                folder="shows"
+              />
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowShowModal(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-gray-600 font-medium hover:bg-gray-50">取消</button>
                 <button type="submit" disabled={saving} className="flex-1 py-2.5 bg-ocean-500 text-white rounded-xl font-medium hover:bg-ocean-600 flex items-center justify-center gap-2 disabled:opacity-50">

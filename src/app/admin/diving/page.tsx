@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2, X, Save } from 'lucide-react';
+import ImageUpload from '@/components/admin/ImageUpload';
 
 interface DivingPackage {
   id?: string;
@@ -12,6 +13,7 @@ interface DivingPackage {
   price_cny: string;
   type: string;
   duration: string;
+  image_url: string;
   is_active: boolean;
 }
 
@@ -33,8 +35,13 @@ export default function AdminDivingPage() {
 
   useEffect(() => { fetchPackages(); }, []);
 
-  const openAdd = () => { setEditItem({ name: '', slug: '', description: '', price: '', price_cny: '', type: 'experience', duration: '', is_active: true }); setShowModal(true); };
-  const openEdit = (pkg: any) => { setEditItem({ ...pkg, price: String(pkg.price || ''), price_cny: String(pkg.price_cny || '') }); setShowModal(true); };
+  const openAdd = () => { setEditItem({ name: '', slug: '', description: '', price: '', price_cny: '', type: 'experience', duration: '', image_url: '', is_active: true }); setShowModal(true); };
+  const openEdit = (pkg: any) => {
+    const priceCny = pkg.price_cny != null && !isNaN(Number(pkg.price_cny)) && Number(pkg.price_cny) > 0
+      ? String(pkg.price_cny) : '';
+    setEditItem({ ...pkg, price: String(pkg.price ?? ''), price_cny: priceCny, image_url: pkg.image_url || '' });
+    setShowModal(true);
+  };
 
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState('');
@@ -44,8 +51,11 @@ export default function AdminDivingPage() {
     setSaving(true);
     setSaveError('');
     setSaveSuccess('');
-    const { name, slug, description, price, price_cny, type, duration, is_active } = editItem;
-    const payload = { name, slug, description, price: Number(price), price_cny: Number(price_cny) || null, type, duration, is_active };
+    const { name, slug, description, price, price_cny, type, duration, image_url, is_active } = editItem;
+    const priceCnyInput = price_cny?.trim();
+    const hasPriceCny = priceCnyInput !== '' && !isNaN(Number(priceCnyInput)) && Number(priceCnyInput) > 0;
+    const payload: any = { name, slug, description, price: Number(price), type, duration, image_url, is_active };
+    if (hasPriceCny) payload.price_cny = Number(priceCnyInput);
     const res = await fetch(editItem.id ? '/api/admin/diving' : '/api/admin/diving', {
       method: editItem.id ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -196,6 +206,12 @@ export default function AdminDivingPage() {
                 <label className="text-sm font-medium text-gray-700 mb-1 block">描述</label>
                 <textarea value={editItem.description} onChange={e => setEditItem({ ...editItem, description: e.target.value })} rows={3} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500 resize-none" />
               </div>
+              <ImageUpload
+                label="套餐图片"
+                value={editItem.image_url}
+                onChange={url => setEditItem({ ...editItem, image_url: url })}
+                folder="diving"
+              />
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-gray-600 font-medium hover:bg-gray-50">取消</button>
                 <button type="submit" disabled={saving} className="flex-1 py-2.5 bg-ocean-500 text-white rounded-xl font-medium hover:bg-ocean-600 flex items-center justify-center gap-2 disabled:opacity-50">

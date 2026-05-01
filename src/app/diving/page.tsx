@@ -89,6 +89,9 @@ export default function DivingPage() {
     free3: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&q=80',
   };
 
+  const getPkgImage = (pkg: DivingPackage) =>
+    (pkg as any).image_url || images[pkg.type] || images['experience'];
+
   return (
     <div className="min-h-screen bg-gray-50 pb-36">
       {/* Hero */}
@@ -141,7 +144,7 @@ export default function DivingPage() {
                   onClick={() => setExpandedId(isExpanded ? null : pkg.id)}
                 >
                   <div className="relative w-28 h-28 sm:w-40 sm:h-32 flex-shrink-0">
-                    <Image src={images[pkg.type] || images['experience']} alt={pkg.name} fill className="object-cover" />
+                    <Image src={getPkgImage(pkg)} alt={pkg.name} fill className="object-cover" />
                   </div>
                   <div className="flex-1 p-4 flex flex-col justify-between">
                     <div>
