@@ -20,6 +20,7 @@ interface DivingPackage {
 export default function AdminDivingPage() {
   const [packages, setPackages] = useState<DivingPackage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState<DivingPackage | null>(null);
   const [saving, setSaving] = useState(false);
@@ -27,9 +28,20 @@ export default function AdminDivingPage() {
 
   const fetchPackages = async () => {
     setLoading(true);
-    const res = await fetch('/api/admin/diving');
-    const json = await res.json();
-    setPackages(json.data || []);
+    setFetchError('');
+    try {
+      const res = await fetch('/api/admin/diving');
+      const json = await res.json();
+      if (!res.ok || json.error) {
+        setFetchError(json.error || `HTTP ${res.status}`);
+        setPackages([]);
+      } else {
+        setPackages(json.data || []);
+      }
+    } catch (err: any) {
+      setFetchError(err.message || '网络错误');
+      setPackages([]);
+    }
     setLoading(false);
   };
 
@@ -109,6 +121,20 @@ export default function AdminDivingPage() {
           <Plus className="w-4 h-4" /> 添加套餐
         </button>
       </div>
+
+      {/* 错误提示 */}
+      {fetchError && (
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-2xl px-5 py-4 flex items-start gap-3">
+          <span className="text-red-400 mt-0.5">⚠️</span>
+          <div>
+            <p className="font-medium">加载失败</p>
+            <p className="mt-1 text-red-600">{fetchError}</p>
+            <p className="mt-2 text-xs text-red-400">
+              请检查 Vercel 环境变量 SUPABASE_SERVICE_ROLE_KEY 是否正确配置。
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         {loading ? (

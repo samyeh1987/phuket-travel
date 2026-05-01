@@ -6,6 +6,7 @@ import { Search, Eye, RefreshCw, X, Calendar, Check, XCircle, Image as ImageIcon
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState('');
   const [filter, setFilter] = useState('全部');
   const [orderStatusFilter, setOrderStatusFilter] = useState('全部');
   const [paymentStatusFilter, setPaymentStatusFilter] = useState('全部');
@@ -18,18 +19,22 @@ export default function AdminOrdersPage() {
 
   const fetchOrders = async () => {
     setLoading(true);
+    setFetchError('');
     try {
-      const res = await fetch('/api/admin/orders', { credentials: 'include' });
+      const res = await fetch('/api/admin/orders');
       const json = await res.json();
       
       if (!res.ok || json.error) {
-        console.error('获取订单失败:', json.error || `HTTP ${res.status}`);
+        const msg = json.error || `HTTP ${res.status}`;
+        console.error('获取订单失败:', msg);
+        setFetchError(msg);
         setOrders([]);
       } else {
         setOrders(json.data || []);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('获取订单网络错误:', err);
+      setFetchError(err.message || '网络错误');
       setOrders([]);
     }
     setLoading(false);
@@ -271,6 +276,20 @@ export default function AdminOrdersPage() {
           <RefreshCw className="w-4 h-4" /> 刷新
         </button>
       </div>
+
+      {/* 错误提示 */}
+      {fetchError && (
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-2xl px-5 py-4 flex items-start gap-3">
+          <span className="text-red-400 mt-0.5">⚠️</span>
+          <div>
+            <p className="font-medium">加载失败</p>
+            <p className="mt-1 text-red-600">{fetchError}</p>
+            <p className="mt-2 text-xs text-red-400">
+              请检查 Vercel 环境变量 SUPABASE_SERVICE_ROLE_KEY 是否正确配置。
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Filter */}
       <div className="bg-white rounded-2xl p-4 shadow-sm space-y-4">

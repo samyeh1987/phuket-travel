@@ -9,6 +9,7 @@ interface Boat { id?: string; island_id: string; name: string; description: stri
 export default function AdminIslandsPage() {
   const [islands, setIslands] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState('');
   const [expanded, setExpanded] = useState<string | null>(null);
   const [showIslandModal, setShowIslandModal] = useState(false);
   const [showBoatModal, setShowBoatModal] = useState(false);
@@ -19,14 +20,23 @@ export default function AdminIslandsPage() {
 
   const fetchAll = async () => {
     setLoading(true);
-    const res = await fetch('/api/admin/islands');
-    const json = await res.json();
-    if (json.data) {
-      const merged = (json.data.islands || []).map((island: any) => ({
-        ...island,
-        boats: (json.data.boats || []).filter((b: any) => b.island_id === island.id),
-      }));
-      setIslands(merged);
+    setFetchError('');
+    try {
+      const res = await fetch('/api/admin/islands');
+      const json = await res.json();
+      if (!res.ok || json.error) {
+        setFetchError(json.error || `HTTP ${res.status}`);
+        setIslands([]);
+      } else if (json.data) {
+        const merged = (json.data.islands || []).map((island: any) => ({
+          ...island,
+          boats: (json.data.boats || []).filter((b: any) => b.island_id === island.id),
+        }));
+        setIslands(merged);
+      }
+    } catch (err: any) {
+      setFetchError(err.message || '网络错误');
+      setIslands([]);
     }
     setLoading(false);
   };
@@ -127,6 +137,20 @@ export default function AdminIslandsPage() {
           <Plus className="w-4 h-4" /> 添加岛屿
         </button>
       </div>
+
+      {/* 错误提示 */}
+      {fetchError && (
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-2xl px-5 py-4 flex items-start gap-3">
+          <span className="text-red-400 mt-0.5">⚠️</span>
+          <div>
+            <p className="font-medium">加载失败</p>
+            <p className="mt-1 text-red-600">{fetchError}</p>
+            <p className="mt-2 text-xs text-red-400">
+              请检查 Vercel 环境变量 SUPABASE_SERVICE_ROLE_KEY 是否正确配置。
+            </p>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="p-12 text-center text-gray-400"><div className="w-6 h-6 border-2 border-ocean-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" /><p className="text-sm">加载中...</p></div>
