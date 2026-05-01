@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase-admin';
 
 export async function GET() {
-  const supabase = createAdminClient();
-
   try {
+    const supabase = createAdminClient();
     const [shows, packages] = await Promise.all([
       supabase.from('shows').select('*').order('sort_order'),
       supabase.from('show_packages').select('*').order('sort_order'),
@@ -18,12 +17,19 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const supabase = createAdminClient();
-
   try {
+    const supabase = createAdminClient();
     const { table, ...payload } = await req.json();
     const { error } = await supabase.from(table).insert(payload);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) {
+      if (error.message?.includes('row-level security')) {
+        return NextResponse.json(
+          { error: 'RLS 错误：SUPABASE_SERVICE_ROLE_KEY 未正确配置，请检查 Vercel 环境变量。Original: ' + error.message },
+          { status: 500 }
+        );
+      }
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
     return NextResponse.json({ success: true });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
@@ -31,12 +37,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  const supabase = createAdminClient();
-
   try {
+    const supabase = createAdminClient();
     const { table, id, ...payload } = await req.json();
-    console.log('[PUT shows] table:', table, 'id:', id);
-    console.log('[PUT shows] payload:', JSON.stringify(payload));
     // Check if record exists
     const { data: existing } = await supabase.from(table).select('id').eq('id', id).maybeSingle();
     if (!existing) return NextResponse.json({ error: '记录不存在' }, { status: 404 });
@@ -45,7 +48,6 @@ export async function PUT(req: NextRequest) {
     if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
     // Fetch updated record
     const { data: updated } = await supabase.from(table).select('*').eq('id', id).single();
-    console.log('[PUT shows] updated record:', JSON.stringify(updated));
     return NextResponse.json({ success: true, data: updated });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
@@ -53,9 +55,8 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const supabase = createAdminClient();
-
   try {
+    const supabase = createAdminClient();
     const { searchParams } = new URL(req.url);
     const table = searchParams.get('table');
     const id = searchParams.get('id');

@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase-admin';
 
 export async function GET() {
-  const supabase = createAdminClient();
-
   try {
+    const supabase = createAdminClient();
     const { data, error } = await supabase
       .from('diving_packages')
       .select('*')
@@ -17,12 +16,19 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const supabase = createAdminClient();
-
   try {
+    const supabase = createAdminClient();
     const payload = await req.json();
     const { error } = await supabase.from('diving_packages').insert(payload);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) {
+      if (error.message?.includes('row-level security')) {
+        return NextResponse.json(
+          { error: 'RLS 错误：SUPABASE_SERVICE_ROLE_KEY 未正确配置，请检查 Vercel 环境变量。Original: ' + error.message },
+          { status: 500 }
+        );
+      }
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
     return NextResponse.json({ success: true });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
@@ -30,44 +36,35 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  const supabase = createAdminClient();
-
   try {
+    const supabase = createAdminClient();
     const { id, ...payload } = await req.json();
-    console.log('[DEBUG PUT] Received payload:', JSON.stringify(payload));
-    // First check if record exists
+    if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });
     const { data: existing } = await supabase
       .from('diving_packages')
       .select('id')
       .eq('id', id)
       .maybeSingle();
     if (!existing) return NextResponse.json({ error: '记录不存在' }, { status: 404 });
-    console.log('[DEBUG PUT] Record exists, updating...');
-    // Update
     const { error: updateError } = await supabase
       .from('diving_packages')
       .update(payload)
       .eq('id', id);
     if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
-    console.log('[DEBUG PUT] Update complete, fetching...');
-    // Fetch updated record
     const { data: updated } = await supabase
       .from('diving_packages')
       .select('*')
       .eq('id', id)
       .single();
-    console.log('[DEBUG PUT] Updated record:', JSON.stringify(updated));
     return NextResponse.json({ success: true, data: updated });
   } catch (e: any) {
-    console.error('[DEBUG PUT] Error:', e.message);
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
 
 export async function DELETE(req: NextRequest) {
-  const supabase = createAdminClient();
-
   try {
+    const supabase = createAdminClient();
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });

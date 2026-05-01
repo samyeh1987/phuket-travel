@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase-admin';
 
 export async function GET() {
-  const supabase = createAdminClient();
-
   try {
+    const supabase = createAdminClient();
     const [islands, boats] = await Promise.all([
       supabase.from('islands').select('*').order('sort_order'),
       supabase.from('island_boats').select('*').order('sort_order'),
@@ -18,12 +17,19 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const supabase = createAdminClient();
-
   try {
+    const supabase = createAdminClient();
     const { table, ...payload } = await req.json();
     const { error } = await supabase.from(table).insert(payload);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) {
+      if (error.message?.includes('row-level security')) {
+        return NextResponse.json(
+          { error: 'RLS 错误：SUPABASE_SERVICE_ROLE_KEY 未正确配置，请检查 Vercel 环境变量。Original: ' + error.message },
+          { status: 500 }
+        );
+      }
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
     return NextResponse.json({ success: true });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
@@ -31,9 +37,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  const supabase = createAdminClient();
-
   try {
+    const supabase = createAdminClient();
     const { table, id, ...payload } = await req.json();
     // Check if record exists
     const { data: existing } = await supabase.from(table).select('id').eq('id', id).maybeSingle();
@@ -50,9 +55,8 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const supabase = createAdminClient();
-
   try {
+    const supabase = createAdminClient();
     const { searchParams } = new URL(req.url);
     const table = searchParams.get('table');
     const id = searchParams.get('id');
