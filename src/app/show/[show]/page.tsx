@@ -59,16 +59,16 @@ export default function ShowDetailPage() {
       try {
         const supabase = createClient();
         
-        // 先查 show
+        // 先查 show - 使用 maybeSingle 避免多条数据报错
         const { data: showData, error: showError } = await supabase
           .from('shows')
           .select('*')
           .eq('slug', showKey)
-          .single();
+          .maybeSingle();
         
         if (showError) {
           console.error('秀場查詢錯誤:', showError);
-          setError(`秀場不存在或查詢失敗: ${showError.message}`);
+          setError(`秀場查詢失敗: ${showError.message}`);
           return;
         }
         
