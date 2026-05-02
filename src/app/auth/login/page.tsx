@@ -37,7 +37,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-3 mb-2">
             <Sailboat className="w-10 h-10 text-white" />
-            <span className="text-3xl font-bold text-white">泰嗨了</span>
+            <span className="text-3xl font-bold text-white">HiGoGo</span>
           </div>
           <p className="text-white/70 text-sm">登录你的会员账号</p>
         </div>

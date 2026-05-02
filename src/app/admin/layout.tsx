@@ -26,7 +26,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="p-6 border-b border-gray-800">
           <Link href="/" className="flex items-center gap-2">
             <SailboatIcon className="w-7 h-7 text-ocean-400" />
-            <span className="text-xl font-bold">泰嗨了</span>
+            <span className="text-xl font-bold">HiGoGo</span>
           </Link>
           <div className="text-xs text-gray-500 mt-1">后台管理系统</div>
         </div>
@@ -62,7 +62,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div className="p-6 border-b border-gray-800 flex items-center justify-between">
               <Link href="/" className="flex items-center gap-2">
                 <SailboatIcon className="w-7 h-7 text-ocean-400" />
-                <span className="text-xl font-bold">泰嗨了</span>
+                <span className="text-xl font-bold">HiGoGo</span>
               </Link>
               <button onClick={() => setSidebarOpen(false)}>
                 <X className="w-6 h-6 text-gray-400" />

@@ -7,7 +7,7 @@ import { AuthProvider } from '@/components/AuthProvider';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: '泰嗨了 - 普吉旅行',
+  title: 'HiGoGo - 普吉旅行',
   description: '普吉高端定制旅行，深潜，跳岛一日游，秀场预订',
 };
 

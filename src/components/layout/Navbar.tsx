@@ -117,8 +117,8 @@ export function Navbar() {
       {/* Mobile Header */}
       <header className="md:hidden fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm shadow-sm">
         <div className="flex items-center justify-between h-14 px-4">
-          <Link href="/" className="flex items-center">
-            <Image src="/images/higogo-logo-transparent.png" alt="HiGOGO Travel" width={110} height={35} className="h-9 w-auto" />
+          <Link href="/" className="flex items-center -ml-2">
+            <Image src="/images/higogo-logo-transparent.png" alt="HiGOGO Travel" width={160} height={50} className="h-12 w-auto" />
           </Link>
           <div className="flex items-center gap-2">
             {user && (
