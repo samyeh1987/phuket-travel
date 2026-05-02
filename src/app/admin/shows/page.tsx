@@ -43,7 +43,16 @@ export default function AdminShowsPage() {
 
   useEffect(() => { fetchAll(); }, []);
 
-  const generateSlug = (name: string) => name.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]/g, '-').replace(/-+/g, '-');
+  // 生成 ASCII 兼容的 slug（移除中文，改為英文名稱或通用前綴）
+  const generateSlug = (name: string) => {
+    // 先嘗試提取英文名稱（如果有的話）
+    const englishPart = name.match(/[a-zA-Z\s]+/);
+    if (englishPart) {
+      return englishPart[0].toLowerCase().replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    }
+    // 如果沒有英文名稱，使用通用前綴 + 時間戳
+    return 'show-' + Date.now().toString(36);
+  };
 
   const openAddShow = () => { setEditShow({ name: '', slug: '', description: '', image_url: '', is_active: true }); setShowShowModal(true); };
   const openEditShow = (show: any) => { setEditShow({ ...show }); setShowShowModal(true); };
