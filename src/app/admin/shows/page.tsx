@@ -105,32 +105,72 @@ export default function AdminShowsPage() {
 
   const deleteShow = async (id: string) => {
     if (!confirm('刪除秀場會連帶刪除所有套餐，確定？')) return;
-    await fetch(`/api/admin/shows?table=shows&id=${id}`, { method: 'DELETE' });
-    await fetchAll();
+    try {
+      const res = await fetch(`/api/admin/shows?table=shows&id=${id}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (!res.ok || json.error) {
+        alert('刪除失敗: ' + (json.error || '未知錯誤'));
+        return;
+      }
+      await fetchAll();
+    } catch (err) {
+      console.error('刪除錯誤:', err);
+      alert('網路錯誤，請重試');
+    }
   };
 
   const deletePkg = async (id: string) => {
     if (!confirm('確定刪除此套餐？')) return;
-    await fetch(`/api/admin/shows?table=show_packages&id=${id}`, { method: 'DELETE' });
-    await fetchAll();
+    try {
+      const res = await fetch(`/api/admin/shows?table=show_packages&id=${id}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (!res.ok || json.error) {
+        alert('刪除失敗: ' + (json.error || '未知錯誤'));
+        return;
+      }
+      await fetchAll();
+    } catch (err) {
+      console.error('刪除錯誤:', err);
+      alert('網路錯誤，請重試');
+    }
   };
 
   const toggleShow = async (show: any) => {
-    await fetch('/api/admin/shows', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ table: 'shows', id: show.id, is_active: !show.is_active }),
-    });
-    fetchAll();
+    try {
+      const res = await fetch('/api/admin/shows', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ table: 'shows', id: show.id, is_active: !show.is_active }),
+      });
+      const json = await res.json();
+      if (!res.ok || json.error) {
+        alert('更新失敗: ' + (json.error || '未知錯誤'));
+        return;
+      }
+      await fetchAll();
+    } catch (err) {
+      console.error('更新錯誤:', err);
+      alert('網路錯誤，請重試');
+    }
   };
 
   const togglePkg = async (pkg: any) => {
-    await fetch('/api/admin/shows', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ table: 'show_packages', id: pkg.id, is_active: !pkg.is_active }),
-    });
-    fetchAll();
+    try {
+      const res = await fetch('/api/admin/shows', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ table: 'show_packages', id: pkg.id, is_active: !pkg.is_active }),
+      });
+      const json = await res.json();
+      if (!res.ok || json.error) {
+        alert('更新失敗: ' + (json.error || '未知錯誤'));
+        return;
+      }
+      await fetchAll();
+    } catch (err) {
+      console.error('更新錯誤:', err);
+      alert('網路錯誤，請重試');
+    }
   };
 
   return (
