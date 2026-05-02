@@ -163,6 +163,8 @@ export default function ShowDetailPage() {
     setSubmitting(true);
     setSubmitError('');
 
+    const supabase = createClient();
+
     // 构建订单数据
     const orderData = {
       order_number: orderNo,
