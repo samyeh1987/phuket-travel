@@ -101,6 +101,19 @@ export default function ShowDetailPage() {
           }
         }
         
+        // 4. 最后尝试按 id 匹配（终极 fallback）
+        if (!showData) {
+          const { data: idData } = await supabase
+            .from('shows')
+            .select('*')
+            .eq('id', showKey)
+            .maybeSingle();
+          
+          if (idData) {
+            showData = idData;
+          }
+        }
+        
         if (!showData) {
           setError('秀場不存在');
           return;

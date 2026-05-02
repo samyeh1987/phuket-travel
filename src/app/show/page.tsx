@@ -78,7 +78,7 @@ export default function ShowPage() {
           shows.filter(s => s.is_active).map(show => (
             <Link
               key={show.id}
-              href={`/show/${show.slug}`}
+              href={`/show/${show.slug || show.id}`}
               className="block bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all group"
             >
               <div className="relative h-48 sm:h-56 overflow-hidden">
