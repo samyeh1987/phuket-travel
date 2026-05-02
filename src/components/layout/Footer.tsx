@@ -52,7 +52,7 @@ export function Footer() {
           {/* Brand */}
           <div className="col-span-1 md:col-span-2">
             <Link href="/" className="flex items-center mb-4">
-              <Image src="/images/higogo-logo.png" alt="HiGOGO Travel" width={120} height={40} className="h-10 w-auto brightness-0 invert" />
+              <Image src="/images/higogo-logo-transparent.png" alt="HiGOGO Travel" width={120} height={38} className="h-10 w-auto" />
             </Link>
             <p className="text-gray-400 mb-6 max-w-md">
               专业普吉旅行服务，提供高端定制旅行、深潜考证、跳岛一日游、秀场表演预订。让你轻松玩转普吉！
