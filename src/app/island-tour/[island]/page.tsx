@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { Clock, Users, CheckCircle, ChevronLeft, Plus, MessageCircle } from 'lucide-react'
 import { useAuth } from '@/components/AuthProvider'
 import { createClient } from '@/lib/supabase'
+// Note: island/boat data is fetched via /api/packages/islands to bypass RLS
 
 interface BoatOption {
   id: string; name: string; description: string; itinerary: string; price: string; price_cny: string;
@@ -72,18 +73,19 @@ export default function IslandDetailPage() {
 
   useEffect(() => {
     if (!island) return
-    const supabase = createClient()
-    // 先查岛屿ID
-    supabase.from('islands').select('id').eq('slug', island).single().then(({ data: islandData }) => {
-      if (!islandData) return
-      supabase.from('island_boats').select('*').eq('island_id', islandData.id).eq('is_active', true).order('sort_order').then(({ data }) => {
-        setBoats((data || []).map((b: any) => ({
-          ...b,
-          includes: b.includes || [],
-          images: b.images || [],
-        })))
+    // 通过 API 路由获取船只套餐（绕过 RLS）
+    fetch(`/api/packages/islands?slug=${encodeURIComponent(island)}`)
+      .then(r => r.json())
+      .then(json => {
+        if (json.data?.boats) {
+          setBoats(json.data.boats.map((b: any) => ({
+            ...b,
+            includes: b.includes || [],
+            images: b.images || [],
+          })))
+        }
       })
-    })
+      .catch(err => console.error('获取船只数据失败:', err))
   }, [island])
 
   const orderNo = useMemo(() => genOrderNo(), [])
@@ -102,7 +104,6 @@ export default function IslandDetailPage() {
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [showBackToTop, setShowBackToTop] = useState(false)
-  const supabase = createClient()
 
   // Track scroll position for back-to-top button
   useEffect(() => {
@@ -193,7 +194,8 @@ export default function IslandDetailPage() {
       },
     }
 
-    // Save to database
+    // Save to database（orders 表用户自己插入，RLS 允许已登录用户写入自己的订单）
+    const supabase = createClient()
     const { data, error } = await supabase.from('orders').insert(orderData).select('id').single()
     if (error) {
       console.error('订单保存失败:', error)
