@@ -59,17 +59,24 @@ export default function ShowDetailPage() {
       try {
         const supabase = createClient();
         
-        // 先查 show - 使用 maybeSingle 避免多条数据报错
-        const { data: showData, error: showError } = await supabase
+        // 先尝试用 slug 查找
+        let { data: showData, error: showError } = await supabase
           .from('shows')
           .select('*')
           .eq('slug', showKey)
           .maybeSingle();
         
-        if (showError) {
-          console.error('秀場查詢錯誤:', showError);
-          setError(`秀場查詢失敗: ${showError.message}`);
-          return;
+        // 如果找不到，尝试用 name 查找（兼容旧数据或中文 URL）
+        if (!showData) {
+          const { data: nameData } = await supabase
+            .from('shows')
+            .select('*')
+            .eq('name', decodeURIComponent(showKey))
+            .maybeSingle();
+          
+          if (nameData) {
+            showData = nameData;
+          }
         }
         
         if (!showData) {
