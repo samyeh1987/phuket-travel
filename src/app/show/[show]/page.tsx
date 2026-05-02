@@ -58,24 +58,46 @@ export default function ShowDetailPage() {
     const fetchData = async () => {
       try {
         const supabase = createClient();
+        let showData = null;
         
-        // 先尝试用 slug 查找
-        let { data: showData, error: showError } = await supabase
+        // 尝试多种匹配方式
+        // 1. 直接匹配 slug
+        let { data } = await supabase
           .from('shows')
           .select('*')
           .eq('slug', showKey)
           .maybeSingle();
         
-        // 如果找不到，尝试用 name 查找（兼容旧数据或中文 URL）
+        if (data) {
+          showData = data;
+        } else {
+          // 2. 尝试匹配 name（兼容中文 URL 或旧数据）
+          try {
+            const decodedKey = decodeURIComponent(showKey);
+            const { data: nameData } = await supabase
+              .from('shows')
+              .select('*')
+              .eq('name', decodedKey)
+              .maybeSingle();
+            
+            if (nameData) {
+              showData = nameData;
+            }
+          } catch (e) {
+            // decodeURIComponent 失败，忽略
+          }
+        }
+        
+        // 3. 如果还是找不到，尝试不区分大小写匹配 slug
         if (!showData) {
-          const { data: nameData } = await supabase
+          const { data: ilikeData } = await supabase
             .from('shows')
             .select('*')
-            .eq('name', decodeURIComponent(showKey))
+            .ilike('slug', showKey)
             .maybeSingle();
           
-          if (nameData) {
-            showData = nameData;
+          if (ilikeData) {
+            showData = ilikeData;
           }
         }
         
