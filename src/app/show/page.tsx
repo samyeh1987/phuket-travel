@@ -91,11 +91,11 @@ export default function ShowPage() {
               </div>
               <div className="p-4">
                 <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900">{show.name}</h3>
-                    <p className="text-sm text-gray-400">{show.description}</p>
+                  <div className="flex-1 pr-4 min-w-0">
+                    <h3 className="text-xl font-bold text-gray-900 mb-1 line-clamp-1">{show.name}</h3>
+                    <p className="text-sm text-gray-400 line-clamp-2">{show.description}</p>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right flex-shrink-0">
                     <div className="text-ocean-600 font-bold text-xl">฿{Number(show.minPrice || 0).toLocaleString()}</div>
                     <div className="text-green-600 font-semibold text-sm">¥{Number(show.minPriceCny || 0).toLocaleString()}</div>
                     <div className="text-xs text-gray-400">/人起</div>
