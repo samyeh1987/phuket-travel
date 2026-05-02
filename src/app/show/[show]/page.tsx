@@ -50,16 +50,45 @@ export default function ShowDetailPage() {
   useEffect(() => {
     if (!showKey) return;
     const supabase = createClient();
-    // 先查 show
-    supabase.from('shows').select('*').eq('slug', showKey).single().then(({ data }) => {
-      if (!data) return;
-      setShowInfo(data);
-      // 再查其套餐
-      supabase.from('show_packages').select('*').eq('show_id', data.id).eq('is_active', true).order('sort_order').then(({ data: pkgs }) => {
-        setPackages(pkgs || []);
+    
+    const fetchData = async () => {
+      try {
+        // 先查 show
+        const { data: showData, error: showError } = await supabase
+          .from('shows')
+          .select('*')
+          .eq('slug', showKey)
+          .single();
+        
+        if (showError || !showData) {
+          console.error('秀场不存在:', showError);
+          setLoading(false);
+          return;
+        }
+        
+        setShowInfo(showData);
+        
+        // 再查其套餐
+        const { data: pkgData, error: pkgError } = await supabase
+          .from('show_packages')
+          .select('*')
+          .eq('show_id', showData.id)
+          .eq('is_active', true)
+          .order('sort_order');
+        
+        if (pkgError) {
+          console.error('套餐讀取失敗:', pkgError);
+        }
+        
+        setPackages(pkgData || []);
+      } catch (err) {
+        console.error('載入錯誤:', err);
+      } finally {
         setLoading(false);
-      });
-    });
+      }
+    };
+    
+    fetchData();
   }, [showKey]);
 
   if (!showInfo && !loading) return <div className="p-8 text-center">秀场不存在</div>;
