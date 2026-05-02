@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { Sailboat, MessageCircle, Mail } from 'lucide-react';
+import Image from 'next/image';
+import { MessageCircle, Mail } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase';
 
@@ -50,9 +51,8 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="col-span-1 md:col-span-2">
-            <Link href="/" className="flex items-center gap-2 mb-4">
-              <Sailboat className="w-8 h-8 text-ocean-400" />
-              <span className="text-2xl font-bold text-white">泰嗨了</span>
+            <Link href="/" className="flex items-center mb-4">
+              <Image src="/images/higogo-logo.png" alt="HiGOGO Travel" width={120} height={40} className="h-10 w-auto brightness-0 invert" />
             </Link>
             <p className="text-gray-400 mb-6 max-w-md">
               专业普吉旅行服务，提供高端定制旅行、深潜考证、跳岛一日游、秀场表演预订。让你轻松玩转普吉！
@@ -95,7 +95,7 @@ export function Footer() {
 
         {/* Bottom */}
         <div className="mt-12 pt-8 border-t border-gray-800 text-center text-gray-500">
-          <p>&copy; {new Date().getFullYear()} 泰嗨了普吉旅行. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} HiGoGo Travel. All rights reserved.</p>
         </div>
       </div>
     </footer>

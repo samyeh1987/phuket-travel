@@ -69,7 +69,7 @@ export async function GET() {
   // Test 3: DNS resolution test
   try {
     const dns = await import('dns').then(m => m.promises);
-    const addresses = await dns.resolve4('jtzqnvnsvcnqmujeadduj.supabase.co');
+    const addresses = await dns.resolve4('jtzqnvnsvcnqmujeaduj.supabase.co');
     results.tests.dnsResolution = {
       success: true,
       addresses,
