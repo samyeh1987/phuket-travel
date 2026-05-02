@@ -3,14 +3,18 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { LayoutDashboard, Anchor, Sailboat, Ticket, ShoppingBag, Settings, Menu, X, Sailboat as SailboatIcon, Wallet } from 'lucide-react';
+import { LayoutDashboard, Anchor, Sailboat, Ticket, ShoppingBag, Settings, Menu, X, Sailboat as SailboatIcon, Wallet, Car, Ship } from 'lucide-react';
 
 const adminNav = [
   { href: '/admin', label: '控制台', icon: LayoutDashboard },
   { href: '/admin/diving', label: '深潜管理', icon: Anchor },
   { href: '/admin/islands', label: '岛屿&船只', icon: Sailboat },
   { href: '/admin/shows', label: '秀场管理', icon: Ticket },
-  { href: '/admin/orders', label: '订单管理', icon: ShoppingBag },
+  { href: '/admin/transport', label: '车型管理', icon: Car },
+  { href: '/admin/yacht', label: '包船管理', icon: Ship },
+  { href: '/admin/orders', label: '深潜/跳岛订单', icon: ShoppingBag },
+  { href: '/admin/transport-orders', label: '交通订单', icon: ShoppingBag },
+  { href: '/admin/yacht-orders', label: '包船订单', icon: ShoppingBag },
   { href: '/admin/finance', label: '财务流水', icon: Wallet },
   { href: '/admin/settings', label: '系统设置', icon: Settings },
 ];

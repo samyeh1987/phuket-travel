@@ -504,6 +504,280 @@ INSERT INTO show_packages (show_id, name, description, price, price_cny, sort_or
 SELECT id, '普通座位', '普通观赏区', 380.00, 76.00, 3
 FROM shows WHERE slug = 'simon';
 
+-- =============================================
+-- 交通服務 - 車型套餐（接機/包車/送機）
+-- =============================================
+CREATE TABLE vehicle_packages (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL, -- '轎車', '商務車', '保姆車'
+    slug VARCHAR(100) UNIQUE NOT NULL,
+    description TEXT,
+    image_url TEXT,
+    capacity INTEGER DEFAULT 4, -- 可乘人數
+    luggage_count INTEGER DEFAULT 2, -- 可帶行李數
+    price_pickup DECIMAL(10, 2), -- 接機/送機價格（泰銖）
+    price_pickup_cny DECIMAL(10, 2), -- 接機/送機價格（人民幣）
+    price_charter_4h DECIMAL(10, 2), -- 4小時包車價格
+    price_charter_6h DECIMAL(10, 2), -- 6小時包車價格
+    price_charter_8h DECIMAL(10, 2), -- 8小時包車價格
+    price_charter_10h DECIMAL(10, 2), -- 10小時包車價格
+    price_charter_full DECIMAL(10, 2), -- 包日價格
+    sort_order INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 包船套餐
+CREATE TABLE yacht_packages (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL, -- '豪華遊艇', '超級遊艇'
+    slug VARCHAR(100) UNIQUE NOT NULL,
+    description TEXT,
+    image_url TEXT,
+    capacity INTEGER DEFAULT 10, -- 最大乘客人數
+    duration VARCHAR(100), -- '4小時', '6小時', '8小時'
+    price DECIMAL(10, 2) NOT NULL, -- 基礎價格（泰銖）
+    price_cny DECIMAL(10, 2), -- 基礎價格（人民幣）
+    price_per_person DECIMAL(10, 2), -- 每人加價
+    includes TEXT[], -- 包含內容
+    sort_order INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 交通訂單（接機/送機/包車）
+CREATE TABLE transport_orders (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    order_number VARCHAR(50) UNIQUE NOT NULL,
+    order_type VARCHAR(20) NOT NULL, -- 'pickup'（接機）, 'dropoff'（送機）, 'charter'（包車）
+    
+    -- 用車信息
+    vehicle_package_id UUID REFERENCES vehicle_packages(id),
+    vehicle_name VARCHAR(255), -- 冗餘存儲車型名稱
+    charter_hours INTEGER, -- 包車時長（僅包車）
+    
+    -- 航班信息（接機/送機）
+    flight_number VARCHAR(50),
+    flight_date DATE,
+    flight_time TIME,
+    
+    -- 包車時間段
+    charter_date DATE,
+    charter_start_time TIME,
+    charter_end_time TIME,
+    
+    -- 價格
+    total_price DECIMAL(10, 2),
+    
+    -- 乘客信息
+    passenger_name VARCHAR(100),
+    passenger_phone VARCHAR(50),
+    passenger_wechat VARCHAR(100),
+    
+    -- 酒店信息
+    hotel_name VARCHAR(255),
+    hotel_address TEXT,
+    
+    -- 接送地點
+    pickup_location VARCHAR(255), -- 接機：機場→酒店；送機：酒店→機場；包車：出發地
+    dropoff_location VARCHAR(255), -- 包車：目的地
+    
+    -- 備註
+    notes TEXT,
+    
+    -- 訂單狀態
+    status VARCHAR(50) DEFAULT 'pending', -- 'pending', 'confirmed', 'cancelled'
+    
+    -- 付款信息
+    payment_status VARCHAR(50) DEFAULT 'unpaid', -- 'unpaid', 'pending_review', 'paid', 'rejected'
+    payment_method VARCHAR(50),
+    payment_proof_url TEXT,
+    
+    -- 用戶關聯
+    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    
+    -- 審核信息
+    reviewed_by UUID,
+    reviewed_at TIMESTAMP WITH TIME ZONE,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 包船訂單
+CREATE TABLE yacht_orders (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    order_number VARCHAR(50) UNIQUE NOT NULL,
+    
+    -- 船型信息
+    yacht_package_id UUID REFERENCES yacht_packages(id),
+    yacht_name VARCHAR(255), -- 冗餘存儲船型名稱
+    
+    -- 預訂信息
+    charter_date DATE,
+    passenger_count INTEGER DEFAULT 1,
+    total_price DECIMAL(10, 2),
+    
+    -- 主乘客信息
+    main_passenger_name VARCHAR(100),
+    main_passenger_phone VARCHAR(50),
+    main_passenger_wechat VARCHAR(100),
+    main_passenger_passport VARCHAR(50),
+    main_passenger_birthday DATE,
+    
+    -- 酒店信息
+    hotel_name VARCHAR(255),
+    hotel_address TEXT,
+    
+    -- 上船地點
+    boarding_location VARCHAR(255),
+    
+    -- 備註
+    notes TEXT,
+    
+    -- 訂單狀態
+    status VARCHAR(50) DEFAULT 'pending', -- 'pending', 'confirmed', 'cancelled'
+    
+    -- 付款信息
+    payment_status VARCHAR(50) DEFAULT 'unpaid',
+    payment_method VARCHAR(50),
+    payment_proof_url TEXT,
+    
+    -- 用戶關聯
+    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    
+    -- 審核信息
+    reviewed_by UUID,
+    reviewed_at TIMESTAMP WITH TIME ZONE,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 包船同行乘客
+CREATE TABLE yacht_passengers (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    yacht_order_id UUID REFERENCES yacht_orders(id) ON DELETE CASCADE,
+    passenger_name VARCHAR(100) NOT NULL,
+    passport_number VARCHAR(50),
+    is_child BOOLEAN DEFAULT false,
+    sort_order INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 交通訂單序號生成
+CREATE OR REPLACE FUNCTION generate_transport_order_number()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.order_number := 'TR' || TO_CHAR(NOW(), 'YYYYMMDD') || '-' || SUBSTRING(NEW.id::TEXT, 1, 8);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER set_transport_order_number
+    BEFORE INSERT ON transport_orders
+    FOR EACH ROW
+    EXECUTE FUNCTION generate_transport_order_number();
+
+-- 包船訂單序號生成
+CREATE OR REPLACE FUNCTION generate_yacht_order_number()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.order_number := 'YT' || TO_CHAR(NOW(), 'YYYYMMDD') || '-' || SUBSTRING(NEW.id::TEXT, 1, 8);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER set_yacht_order_number
+    BEFORE INSERT ON yacht_orders
+    FOR EACH ROW
+    EXECUTE FUNCTION generate_yacht_order_number();
+
+-- 索引
+CREATE INDEX idx_vehicle_packages_active ON vehicle_packages(is_active);
+CREATE INDEX idx_yacht_packages_active ON yacht_packages(is_active);
+CREATE INDEX idx_transport_orders_type ON transport_orders(order_type);
+CREATE INDEX idx_transport_orders_status ON transport_orders(status);
+CREATE INDEX idx_transport_orders_created_at ON transport_orders(created_at DESC);
+CREATE INDEX idx_yacht_orders_status ON yacht_orders(status);
+CREATE INDEX idx_yacht_orders_created_at ON yacht_orders(created_at DESC);
+CREATE INDEX idx_yacht_passengers_order_id ON yacht_passengers(yacht_order_id);
+
+-- RLS
+ALTER TABLE vehicle_packages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE yacht_packages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE transport_orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE yacht_orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE yacht_passengers ENABLE ROW LEVEL SECURITY;
+
+-- 車型套餐：公開讀取，管理員寫入
+CREATE POLICY "Public read vehicle packages" ON vehicle_packages
+    FOR SELECT USING (is_active = true);
+
+CREATE POLICY "Admin manage vehicle packages" ON vehicle_packages
+    FOR ALL USING (auth.role() = 'authenticated');
+
+-- 包船套餐：公開讀取，管理員寫入
+CREATE POLICY "Public read yacht packages" ON yacht_packages
+    FOR SELECT USING (is_active = true);
+
+CREATE POLICY "Admin manage yacht packages" ON yacht_packages
+    FOR ALL USING (auth.role() = 'authenticated');
+
+-- 交通訂單：公開創建和讀取自己的，管理員完全訪問
+CREATE POLICY "Public create transport orders" ON transport_orders
+    FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Public read transport orders" ON transport_orders
+    FOR SELECT USING (true);
+
+CREATE POLICY "Public update transport orders" ON transport_orders
+    FOR UPDATE USING (true);
+
+CREATE POLICY "Admin manage transport orders" ON transport_orders
+    FOR ALL USING (auth.role() = 'authenticated');
+
+-- 包船訂單：公開創建和讀取自己的，管理員完全訪問
+CREATE POLICY "Public create yacht orders" ON yacht_orders
+    FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Public read yacht orders" ON yacht_orders
+    FOR SELECT USING (true);
+
+CREATE POLICY "Public update yacht orders" ON yacht_orders
+    FOR UPDATE USING (true);
+
+CREATE POLICY "Admin manage yacht orders" ON yacht_orders
+    FOR ALL USING (auth.role() = 'authenticated');
+
+-- 包船乘客：與訂單權限一致
+CREATE POLICY "Public create yacht passengers" ON yacht_passengers
+    FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Public read yacht passengers" ON yacht_passengers
+    FOR SELECT USING (true);
+
+CREATE POLICY "Admin manage yacht passengers" ON yacht_passengers
+    FOR ALL USING (auth.role() = 'authenticated');
+
+-- =============================================
+-- Seed Data - 車型套餐
+-- =============================================
+INSERT INTO vehicle_packages (name, slug, description, image_url, capacity, luggage_count, price_pickup, price_pickup_cny, price_charter_4h, price_charter_6h, price_charter_8h, price_charter_10h, price_charter_full, sort_order) VALUES
+('舒適轎車', 'sedan', 'Toyota Camry 或同級，適合1-3人，標準行李2件', 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=800&q=80', 3, 2, 800.00, 160.00, 1600.00, 2200.00, 2800.00, 3400.00, 4000.00, 1),
+('商務車', 'suv', 'Toyota Fortuner 或同級，適合1-4人，大空間行李3件', 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=800&q=80', 4, 3, 1200.00, 240.00, 2400.00, 3200.00, 4000.00, 4800.00, 5800.00, 2),
+('保姆車', 'van', 'Toyota Commuter 或同級，適合成團隊，座位7人', 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80', 7, 5, 1800.00, 360.00, 3500.00, 4500.00, 5500.00, 6500.00, 8000.00, 3);
+
+-- =============================================
+-- Seed Data - 包船套餐
+-- =============================================
+INSERT INTO yacht_packages (name, slug, description, image_url, capacity, duration, price, price_cny, price_per_person, includes, sort_order) VALUES
+('豪華遊艇', 'luxury-yacht', '45尺豪華遊艇，船上設施齊全，適合家庭聚會或朋友派對', 'https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?w=800&q=80', 12, '6小時', 35000.00, 7000.00, 0.00, ARRAY['船長船員', '午餐/晚餐', '水果飲料', '浮潛裝備', '浴巾'], 1),
+('超級遊艇', 'super-yacht', '60尺超級遊艇，奢華配置，適合高端商務接待或特別慶祝', 'https://images.unsplash.com/photo-1605281317010-fe5ffe798166?w=800&q=80', 20, '8小時', 65000.00, 13000.00, 0.00, ARRAY['專業船長船員', '精緻餐飲', '香檳紅酒', '浮潛/潛水裝備', '按摩浴缸', '水上玩具'], 2),
+('私人快艇', 'private-speedboat', '私人快艇，靈活自由，適合小團隊一日遊', 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&q=80', 8, '4小時', 18000.00, 3600.00, 0.00, ARRAY['船長', '簡餐', '水果飲料', '浮潛裝備'], 3);
+
 -- 系统设置
 INSERT INTO system_settings (key, value, description) VALUES
 ('wechat', '', '客服微信号'),

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Menu, X, Home, Sailboat, Anchor, Ticket, MessageCircle, User, LogOut, Package } from 'lucide-react';
+import { Menu, X, Home, Sailboat, Anchor, Ticket, MessageCircle, User, LogOut, Package, Car, Ship } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/components/AuthProvider';
 
@@ -14,6 +14,8 @@ const navItems = [
   { label: '深潜', href: '/diving', icon: Anchor },
   { label: '跳岛游', href: '/island-tour', icon: Sailboat },
   { label: '秀场', href: '/show', icon: Ticket },
+  { label: '包车接机', href: '/transport', icon: Car },
+  { label: '包船服务', href: '/yacht', icon: Ship },
 ];
 
 export function Navbar() {

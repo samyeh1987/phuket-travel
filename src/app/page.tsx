@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Sailboat, Anchor, Ticket, Palmtree, Sparkles, Users, Camera } from 'lucide-react';
+import { Sailboat, Anchor, Ticket, Palmtree, Sparkles, Users, Camera, Car, Ship } from 'lucide-react';
 
 const services = [
   {
@@ -32,6 +32,20 @@ const services = [
     icon: <Ticket className="w-7 h-7" />,
     href: '/show',
     color: 'bg-gradient-to-br from-purple-500 to-purple-600',
+  },
+  {
+    title: '包车接机',
+    description: '机场接送/包车游览',
+    icon: <Car className="w-7 h-7" />,
+    href: '/transport',
+    color: 'bg-gradient-to-br from-green-500 to-green-600',
+  },
+  {
+    title: '包船服务',
+    description: '豪华游艇出海',
+    icon: <Ship className="w-7 h-7" />,
+    href: '/yacht',
+    color: 'bg-gradient-to-br from-teal-500 to-teal-600',
   },
 ];
 
