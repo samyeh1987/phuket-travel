@@ -9,6 +9,16 @@ import { useAuth } from '@/components/AuthProvider';
 import { createClient } from '@/lib/supabase';
 import ErrorBoundary from '@/components/ErrorBoundary';
 
+// 通过后端 API 查询秀场数据（使用 service role key 绕过 RLS）
+async function fetchShowDetail(slug: string) {
+  const res = await fetch(`/api/packages/shows/detail?slug=${encodeURIComponent(slug)}`);
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
 interface ShowPkg {
   id: string; show_id: string; name: string; description: string; price: string; price_cny: string;
 }
@@ -57,91 +67,23 @@ export default function ShowDetailPage() {
 
     const fetchData = async () => {
       try {
-        const supabase = createClient();
-        let showData = null;
-        
-        // 尝试多种匹配方式
-        // 1. 直接匹配 slug
-        let { data } = await supabase
-          .from('shows')
-          .select('*')
-          .eq('slug', showKey)
-          .maybeSingle();
-        
-        if (data) {
-          showData = data;
-        } else {
-          // 2. 尝试匹配 name（兼容中文 URL 或旧数据）
-          try {
-            const decodedKey = decodeURIComponent(showKey);
-            const { data: nameData } = await supabase
-              .from('shows')
-              .select('*')
-              .eq('name', decodedKey)
-              .maybeSingle();
-            
-            if (nameData) {
-              showData = nameData;
-            }
-          } catch (e) {
-            // decodeURIComponent 失败，忽略
-          }
-        }
-        
-        // 3. 如果还是找不到，尝试不区分大小写匹配 slug
-        if (!showData) {
-          const { data: ilikeData } = await supabase
-            .from('shows')
-            .select('*')
-            .ilike('slug', showKey)
-            .maybeSingle();
-          
-          if (ilikeData) {
-            showData = ilikeData;
-          }
-        }
-        
-        // 4. 最后尝试按 id 匹配（终极 fallback）
-        if (!showData) {
-          const { data: idData } = await supabase
-            .from('shows')
-            .select('*')
-            .eq('id', showKey)
-            .maybeSingle();
-          
-          if (idData) {
-            showData = idData;
-          }
-        }
-        
-        if (!showData) {
-          setError('秀場不存在');
-          return;
-        }
-        
-        setShowInfo(showData);
-        
-        // 再查其套餐
-        const { data: pkgData, error: pkgError } = await supabase
-          .from('show_packages')
-          .select('*')
-          .eq('show_id', showData.id)
-          .eq('is_active', true)
-          .order('sort_order');
-        
-        if (pkgError) {
-          console.error('套餐讀取失敗:', pkgError);
-        }
-        
-        setPackages(pkgData || []);
+        // 通过后端 API 查询（绕过 RLS，支持多种 slug 格式）
+        const json = await fetchShowDetail(showKey);
+        const { show, packages: pkgList } = json.data;
+        setShowInfo(show);
+        setPackages(pkgList || []);
       } catch (err: any) {
         console.error('載入錯誤:', err);
-        setError(err.message || '發生未知錯誤');
+        if (err.message === '秀場不存在') {
+          setError('秀場不存在');
+        } else {
+          setError(err.message || '載入失敗，請稍後再試');
+        }
       } finally {
         setLoading(false);
       }
     };
-    
+
     fetchData();
   }, [showKey]);
 
