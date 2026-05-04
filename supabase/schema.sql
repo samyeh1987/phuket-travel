@@ -300,13 +300,15 @@ CREATE POLICY "Admin manage show packages" ON show_packages
 CREATE POLICY "Public create orders" ON orders
     FOR INSERT WITH CHECK (true);
 
--- Public: Read own orders (by order number)
-CREATE POLICY "Public read orders" ON orders
-    FOR SELECT USING (true);
+-- Users: Read own orders
+DROP POLICY IF EXISTS "Public read orders" ON orders;
+CREATE POLICY "Users read own orders" ON orders
+    FOR SELECT USING (auth.uid() = user_id OR auth.uid() IS NULL);
 
--- Public: Update orders (for payment proof upload)
-CREATE POLICY "Public update orders" ON orders
-    FOR UPDATE USING (true);
+-- Users: Update own orders
+DROP POLICY IF EXISTS "Public update orders" ON orders;
+CREATE POLICY "Users update own orders" ON orders
+    FOR UPDATE USING (auth.uid() = user_id);
 
 -- Admin: Full access to orders
 CREATE POLICY "Admin manage orders" ON orders
@@ -316,9 +318,10 @@ CREATE POLICY "Admin manage orders" ON orders
 CREATE POLICY "Public create travelers" ON order_travelers
     FOR INSERT WITH CHECK (true);
 
--- Public: Read travelers
-CREATE POLICY "Public read travelers" ON order_travelers
-    FOR SELECT USING (true);
+-- Users: Read own order travelers
+DROP POLICY IF EXISTS "Public read travelers" ON order_travelers;
+CREATE POLICY "Users read own order travelers" ON order_travelers
+    FOR SELECT USING (auth.uid() = (SELECT user_id FROM orders WHERE id = order_travelers.order_id));
 
 -- Admin: Manage travelers
 CREATE POLICY "Admin manage travelers" ON order_travelers
@@ -332,9 +335,10 @@ CREATE POLICY "Public read settings" ON system_settings
 CREATE POLICY "Admin manage settings" ON system_settings
     FOR ALL USING (auth.role() = 'authenticated');
 
--- Payment transactions: Public can read, Admin can manage
-CREATE POLICY "Public read transactions" ON payment_transactions
-    FOR SELECT USING (true);
+-- Payment transactions: Users read own, Admin manage
+DROP POLICY IF EXISTS "Public read transactions" ON payment_transactions;
+CREATE POLICY "Users read own transactions" ON payment_transactions
+    FOR SELECT USING (auth.uid() = (SELECT user_id FROM orders WHERE id = payment_transactions.order_id));
 
 CREATE POLICY "Admin manage transactions" ON payment_transactions
     FOR ALL USING (auth.role() = 'authenticated');
@@ -726,28 +730,32 @@ CREATE POLICY "Public read yacht packages" ON yacht_packages
 CREATE POLICY "Admin manage yacht packages" ON yacht_packages
     FOR ALL USING (auth.role() = 'authenticated');
 
--- 交通訂單：公開創建和讀取自己的，管理員完全訪問
+-- 交通訂單：公開創建，用戶讀寫自己的，管理員完全訪問
 CREATE POLICY "Public create transport orders" ON transport_orders
     FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "Public read transport orders" ON transport_orders
-    FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public read transport orders" ON transport_orders;
+CREATE POLICY "Users read own transport orders" ON transport_orders
+    FOR SELECT USING (auth.uid() = user_id OR auth.uid() IS NULL);
 
-CREATE POLICY "Public update transport orders" ON transport_orders
-    FOR UPDATE USING (true);
+DROP POLICY IF EXISTS "Public update transport orders" ON transport_orders;
+CREATE POLICY "Users update own transport orders" ON transport_orders
+    FOR UPDATE USING (auth.uid() = user_id);
 
 CREATE POLICY "Admin manage transport orders" ON transport_orders
     FOR ALL USING (auth.role() = 'authenticated');
 
--- 包船訂單：公開創建和讀取自己的，管理員完全訪問
+-- 包船訂單：公開創建，用戶讀寫自己的，管理員完全訪問
 CREATE POLICY "Public create yacht orders" ON yacht_orders
     FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "Public read yacht orders" ON yacht_orders
-    FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public read yacht orders" ON yacht_orders;
+CREATE POLICY "Users read own yacht orders" ON yacht_orders
+    FOR SELECT USING (auth.uid() = user_id OR auth.uid() IS NULL);
 
-CREATE POLICY "Public update yacht orders" ON yacht_orders
-    FOR UPDATE USING (true);
+DROP POLICY IF EXISTS "Public update yacht orders" ON yacht_orders;
+CREATE POLICY "Users update own yacht orders" ON yacht_orders
+    FOR UPDATE USING (auth.uid() = user_id);
 
 CREATE POLICY "Admin manage yacht orders" ON yacht_orders
     FOR ALL USING (auth.role() = 'authenticated');
