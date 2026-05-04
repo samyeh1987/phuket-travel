@@ -29,6 +29,66 @@ interface ShowInfo {
 
 function genOrderNo() { return 'SW' + Date.now().toString().slice(-8); }
 
+// 智能描述排版组件：把长段描述自动分段并高亮标题
+function ShowDescription({ text }: { text: string }) {
+  // 先按换行拆分，再对每个段落做智能切分
+  const rawParts = text.split(/\n+/).filter(s => s.trim());
+
+  // 如果只有1段（无换行），尝试按中文句子结构智能断段
+  const parts = rawParts.length <= 1
+    ? text
+        // 在"第X区："/ "产品简介"/ "园区内"/ 数字列表 前插入换行标记
+        .replace(/(产品简介)/g, '\n$1')
+        .replace(/(第[一二三四五六七八九十]+区[：:：])/g, '\n$1')
+        .replace(/(园区内\d+个[^：\n]+[：:])/g, '\n$1')
+        .replace(/(\d+\.\s)/g, '\n$1')
+        .split(/\n+/)
+        .filter(s => s.trim())
+    : rawParts;
+
+  return (
+    <div className="text-sm text-gray-600 leading-relaxed">
+      {parts.map((para, idx) => {
+        const trimmed = para.trim();
+
+        // 标题类：产品简介 / 第X区 / 园区内X个...
+        const isTitle =
+          /^产品简介/.test(trimmed) ||
+          /^第[一二三四五六七八九十\d]+[区區][：:：]?/.test(trimmed) ||
+          /^园区内\d+个/.test(trimmed);
+
+        // 编号列表项：1. / 1、
+        const isListItem = /^\d+[.、．]\s/.test(trimmed);
+
+        if (isTitle) {
+          return (
+            <h3 key={idx} className="font-bold text-gray-800 text-base mt-5 mb-1.5 first:mt-0 pb-1 border-b border-ocean-100">
+              {trimmed}
+            </h3>
+          );
+        }
+
+        if (isListItem) {
+          return (
+            <div key={idx} className="flex gap-2 mt-2">
+              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-ocean-50 text-ocean-600 text-xs font-bold flex items-center justify-center mt-0.5">
+                {trimmed.match(/^(\d+)/)?.[1]}
+              </span>
+              <p className="flex-1">{trimmed.replace(/^\d+[.、．]\s*/, '')}</p>
+            </div>
+          );
+        }
+
+        return (
+          <p key={idx} className="mt-2 first:mt-0">
+            {trimmed}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
 const fmtCny = (v: string | number | null | undefined) => {
   const n = Number(v);
   return isNaN(n) || n <= 0 ? null : n.toLocaleString();
@@ -207,7 +267,8 @@ export default function ShowDetailPage() {
         <div className="max-w-xl mx-auto px-4 py-6 pb-10 space-y-4">
           {/* Info */}
           <div className="bg-white rounded-2xl p-5 shadow-sm">
-            <p className="text-sm text-gray-600 leading-relaxed">{showInfo?.description || '暂无描述'}</p>
+            <h2 className="font-bold text-gray-900 mb-3">景點介紹</h2>
+            <ShowDescription text={showInfo?.description || '暂无描述'} />
           </div>
 
           {/* Packages */}
