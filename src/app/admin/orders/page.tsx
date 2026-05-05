@@ -571,26 +571,79 @@ export default function AdminOrdersPage() {
                 </div>
               )}
               {selectedOrder.extra_data && (
-                <div>
-                  <span className="text-gray-500">附加信息</span>
-                  <div className="mt-1 p-3 bg-gray-50 rounded-lg text-sm space-y-2">
-                    {Object.entries(selectedOrder.extra_data).map(([key, value]) => {
-                      if (key === 'package_details' && typeof value === 'object') {
-                        return (
-                          <div key={key}>
-                            <span className="text-gray-500 font-medium">套餐详情：</span>
-                            <div className="mt-1 pl-3 space-y-1">
-                              {Object.entries(value as object).map(([k, v]) => (
-                                <div key={k} className="text-gray-700">
-                                  <span className="text-gray-400">{k}：</span>
-                                  <pre className="inline ml-1 text-xs text-gray-700">{typeof v === 'object' ? JSON.stringify(v, null, 1) : String(v)}</pre>
+                <div className="border-t pt-3 mt-3">
+                  {/* 套餐项目 */}
+                  {selectedOrder.extra_data.items && Array.isArray(selectedOrder.extra_data.items) && (
+                    <div className="mb-3">
+                      <span className="text-gray-500 font-medium">套餐项目</span>
+                      <div className="mt-1 p-3 bg-blue-50 rounded-lg space-y-2">
+                        {selectedOrder.extra_data.items.map((item: any, idx: number) => (
+                          <div key={idx} className="flex justify-between items-center text-sm">
+                            <span className="font-medium text-gray-800">{item.title || item.name || item.id}</span>
+                            <span className="text-gray-500">× {item.qty || 1}</span>
+                            <span className="font-semibold text-ocean-600">¥{Number(item.price || 0).toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 出行人详细信息 */}
+                  {selectedOrder.extra_data.details && Array.isArray(selectedOrder.extra_data.details) && selectedOrder.extra_data.details.length > 0 && (
+                    <div className="mb-3">
+                      <span className="text-gray-500 font-medium">出行人信息（{selectedOrder.extra_data.details.length}人）</span>
+                      <div className="mt-1 space-y-3">
+                        {selectedOrder.extra_data.details.map((person: any, idx: number) => (
+                          <div key={idx} className="p-4 bg-green-50 rounded-xl border border-green-100">
+                            <div className="flex items-center gap-2 mb-3">
+                              <span className="w-6 h-6 rounded-full bg-green-500 text-white text-xs font-bold flex items-center justify-center">
+                                {idx + 1}
+                              </span>
+                              <span className="font-bold text-gray-800">{person.name || '未填写姓名'}</span>
+                              <span className="text-xs text-gray-400">{person.passportNo || '无护照号'}</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                              {[
+                                { label: '性别', value: person.gender },
+                                { label: '生日', value: person.birthdate },
+                                { label: '身高', value: person.height ? `${person.height}cm` : null },
+                                { label: '体重', value: person.weight ? `${person.weight}kg` : null },
+                                { label: '鞋码', value: person.shoeSize ? `EU ${person.shoeSize}` : null },
+                                { label: '近视', value: person.vision !== undefined && person.vision !== '' ? `${person.vision}度` : '无' },
+                                { label: '邮箱', value: person.email },
+                                { label: '电话', value: person.phone },
+                                { label: '行程日期', value: person.startDate },
+                                { label: '过敏', value: person.allergy || '无' },
+                              ].filter(f => f.value).map((field, i) => (
+                                <div key={i} className="flex items-center gap-1">
+                                  <span className="text-gray-400 text-xs">{field.label}：</span>
+                                  <span className="text-gray-700 text-xs font-medium">{field.value}</span>
                                 </div>
                               ))}
+                              {person.hotel && (
+                                <div className="col-span-2 flex items-start gap-1">
+                                  <span className="text-gray-400 text-xs">酒店：</span>
+                                  <span className="text-gray-700 text-xs font-medium">
+                                    {person.hotel}
+                                    {person.hotelAddress && <span className="text-gray-400">（{person.hotelAddress}）</span>}
+                                  </span>
+                                </div>
+                              )}
                             </div>
                           </div>
-                        );
-                      }
-                      if (value === null || value === undefined || value === '') return null;
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 其他附加信息 */}
+                  {Object.entries(selectedOrder.extra_data)
+                    .filter(([key, value]) => {
+                      if (key === 'items' || key === 'details') return false;
+                      if (!value || (typeof value === 'object' && Object.keys(value).length === 0)) return false;
+                      return true;
+                    })
+                    .map(([key, value]) => {
                       const labelMap: Record<string, string> = {
                         contact_method: '联系方式',
                         contact_value: '联系账号',
@@ -615,13 +668,12 @@ export default function AdminOrdersPage() {
                         return String(v);
                       };
                       return (
-                        <div key={key} className="text-gray-700">
+                        <div key={key} className="mb-2">
                           <span className="text-gray-500 font-medium">{label}：</span>
-                          <pre className="inline ml-1 text-sm text-gray-700">{displayValue(value)}</pre>
+                          <span className="ml-1 text-gray-700">{displayValue(value)}</span>
                         </div>
                       );
                     })}
-                  </div>
                 </div>
               )}
               {selectedOrder.customer_service_notes && (

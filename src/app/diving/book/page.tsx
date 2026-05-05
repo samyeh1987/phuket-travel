@@ -1,21 +1,35 @@
 'use client';
 
-import { useState, useMemo, Suspense } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
-import { ChevronLeft, MessageCircle, ChevronDown, ChevronUp, Info } from 'lucide-react';
+import { ChevronLeft, MessageCircle, ChevronDown, ChevronUp, Info, Loader2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/components/AuthProvider';
 
-// 所有课程定义
-const divingTypes = [
-  { id: 'experience', title: '体验深潜', price: 1800, needEmail: false },
-  { id: 'ow', title: '水肺OW考证', price: 2800, needEmail: true },
-  { id: 'aow', title: '水肺AOW考证', price: 2500, needEmail: true },
-  { id: 'free2', title: '自由潜2星', price: 2200, needEmail: true },
-  { id: 'free3', title: '自由潜3星', price: 3000, needEmail: true },
-];
+// API 返回的套餐結構
+interface DivingPackage {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  price: string;
+  price_cny: string;
+  type: string;
+  duration: string;
+  is_active: boolean;
+  includes?: string[];
+}
+
+// 解析後的選項
+interface SelectedItem {
+  id: string;       // package id (UUID)
+  name: string;     // 顯示名稱
+  price: number;    // 單價 (CNY)
+  qty: number;      // 數量
+  needEmail: boolean; // 是否需要郵箱
+}
 
 interface DivingPerson {
   startDate: string;
@@ -44,19 +58,32 @@ function genOrderNo() {
   return 'DV' + Date.now().toString().slice(-8);
 }
 
-// 从 URL params 解析选课
-function parseSelectedItems(search: string) {
-  if (!search) return [];
+// 從 URL params 解析選中的套餐 ID 和數量，再從 API 數據中查找
+function parseSelectedItems(search: string, allPackages: DivingPackage[]): SelectedItem[] {
+  if (!search || allPackages.length === 0) return [];
   try {
     const params = new URLSearchParams(search);
     const itemsParam = params.get('items') || '';
     if (!itemsParam) return [];
+
     return itemsParam.split(',').map(token => {
       const [id, qtyStr] = token.split(':');
-      const def = divingTypes.find(d => d.id === id);
-      if (!def) return null;
-      return { id, title: def.title, price: def.price, qty: parseInt(qtyStr) || 1, needEmail: def.needEmail };
-    }).filter(Boolean) as { id: string; title: string; price: number; qty: number; needEmail: boolean }[];
+      const pkg = allPackages.find(p => p.id === id);
+      if (!pkg) return null;
+
+      // 需要郵箱的類型
+      const needEmailTypes = ['ow', 'aow', 'free2', 'free3'];
+      const needEmail = needEmailTypes.includes(pkg.type);
+      const priceCny = Number(pkg.price_cny) || Number(pkg.price) || 0;
+
+      return {
+        id,
+        name: pkg.name,
+        price: priceCny,
+        qty: parseInt(qtyStr) || 1,
+        needEmail,
+      };
+    }).filter(Boolean) as SelectedItem[];
   } catch {
     return [];
   }
@@ -75,7 +102,22 @@ function DivingBookContent() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
   const supabase = createClient();
-  const selectedItems = useMemo(() => parseSelectedItems(searchParams.toString()), [searchParams]);
+
+  // 從 API 獲取套餐
+  const [allPackages, setAllPackages] = useState<DivingPackage[]>([]);
+  const [loadingPkgs, setLoadingPkgs] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/packages/diving')
+      .then(r => r.json())
+      .then(j => setAllPackages(j.data || []))
+      .finally(() => setLoadingPkgs(false));
+  }, []);
+
+  const selectedItems = useMemo(
+    () => parseSelectedItems(searchParams.toString(), allPackages),
+    [searchParams.toString(), allPackages]
+  );
   const orderNo = useMemo(() => genOrderNo(), []);
   const totalPeople = selectedItems.reduce((s, i) => s + i.qty, 0);
   const totalPrice = selectedItems.reduce((s, i) => s + i.price * i.qty, 0);
@@ -87,6 +129,40 @@ function DivingBookContent() {
   const [expanded, setExpanded] = useState<number[]>([0]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+
+  // 當總人數變化時調整 persons 數組
+  useEffect(() => {
+    setPersons(prev => {
+      if (prev.length < totalPeople) {
+        return [...prev, ...Array.from({ length: totalPeople - prev.length }, emptyPerson)];
+      } else if (prev.length > totalPeople) {
+        return prev.slice(0, totalPeople);
+      }
+      return prev;
+    });
+  }, [totalPeople]);
+
+  // 載入中
+  if (loadingPkgs) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 text-gray-400">
+        <Loader2 className="w-8 h-8 animate-spin" />
+        <p className="text-sm">加载套餐数据...</p>
+      </div>
+    );
+  }
+
+  // 無效的套餐
+  if (selectedItems.length === 0 && !loadingPkgs) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 text-gray-400">
+        <p className="text-lg">未選擇套餐</p>
+        <Link href="/diving" className="px-6 py-3 bg-ocean-500 text-white rounded-full hover:bg-ocean-600">
+          返回選擇套餐
+        </Link>
+      </div>
+    );
+  }
 
   const toggleExpand = (i: number) => {
     setExpanded(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i]);
@@ -104,7 +180,7 @@ function DivingBookContent() {
     const lines = [
       `🤿 普吉深潜预订`,
       `📋 订单号：${orderNo}`,
-      `📦 项目：${selectedItems.map(i => `${i.title}×${i.qty}`).join('、')}`,
+      `📦 项目：${selectedItems.map(i => `${i.name}×${i.qty}`).join('、')}`,
       `💰 总价：¥${totalPrice.toLocaleString()}`,
       `👥 共 ${totalPeople} 人`,
       ``,
@@ -200,7 +276,7 @@ function DivingBookContent() {
           </div>
           {selectedItems.map(item => (
             <div key={item.id} className="flex justify-between text-sm py-1">
-              <span className="text-gray-700">{item.title} × {item.qty}人</span>
+              <span className="text-gray-700">{item.name} × {item.qty}人</span>
               <span className="font-medium text-ocean-700">¥{(item.price * item.qty).toLocaleString()}</span>
             </div>
           ))}
@@ -215,7 +291,7 @@ function DivingBookContent() {
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3">
             <Info className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
             <div className="text-sm text-amber-700">
-              <strong>考证课程必须填写本人邮箱</strong>（{needEmailCourses.map(i => i.title).join('、')}），PADI证书将发送到此邮箱。体验潜水无需填写。
+              <strong>考证课程必须填写本人邮箱</strong>（{needEmailCourses.map(i => i.name).join('、')}），PADI证书将发送到此邮箱。体验潜水无需填写。
             </div>
           </div>
         )}
