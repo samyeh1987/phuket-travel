@@ -261,7 +261,7 @@ export default function IslandDetailPage() {
       {/* Hero with Carousel */}
       <div className="relative">
         <ImageCarousel
-          images={islandInfo?.images || islandInfo?.image_url ? [islandInfo?.image_url].filter(Boolean) : ['https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80']}
+          images={islandInfo?.images && islandInfo.images.length > 0 ? islandInfo.images : islandInfo?.image_url ? [islandInfo.image_url] : ['https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80']}
           alt={islandInfo?.name || '岛屿'}
           aspectRatio="hero"
           autoPlay={true}
