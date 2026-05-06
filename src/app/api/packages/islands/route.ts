@@ -22,8 +22,8 @@ export async function GET(req: Request) {
 
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-      // 2. 如果没找到，尝试按 id 匹配
-      if (!data || data.length === 0) {
+      // 2. 如果没找到，尝试按 id 匹配（只有当 slug 看起来像 UUID 时才查询）
+      if (!data || data.length === 0 && slug.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
         ({ data, error } = await supabase
           .from('islands')
           .select('id, name, slug, description, image_url, images')
