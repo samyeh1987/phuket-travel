@@ -9,8 +9,11 @@ import { createClient } from '@/lib/supabase'
 import ImageCarousel from '@/components/ImageCarousel'
 
 // 通过后端 API 查询岛屿数据和船只套餐（使用 service role key 绕过 RLS）
+// 注意：params.slug 已經是解碼後的字串，直接使用；decodeURIComponent 防止雙重編碼
 async function fetchIslandDetail(slug: string) {
-  const url = `/api/packages/islands?slug=${encodeURIComponent(slug)}`
+  // 先解碼再編碼，確保一致性
+  const decodedSlug = decodeURIComponent(slug)
+  const url = `/api/packages/islands?slug=${encodeURIComponent(decodedSlug)}`
   const res = await fetch(url)
   const text = await res.text()
 
