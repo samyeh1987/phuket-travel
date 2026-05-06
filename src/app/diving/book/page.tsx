@@ -106,11 +106,20 @@ function DivingBookContent() {
   // 從 API 獲取套餐
   const [allPackages, setAllPackages] = useState<DivingPackage[]>([]);
   const [loadingPkgs, setLoadingPkgs] = useState(true);
+  const [pkgError, setPkgError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/packages/diving')
-      .then(r => r.json())
+      .then(async r => {
+        const json = await r.json();
+        if (!r.ok) throw new Error(json.error || `HTTP ${r.status}`);
+        return json;
+      })
       .then(j => setAllPackages(j.data || []))
+      .catch(err => {
+        console.error('加载套餐失败:', err);
+        setPkgError(err.message);
+      })
       .finally(() => setLoadingPkgs(false));
   }, []);
 
@@ -148,6 +157,21 @@ function DivingBookContent() {
       <div className="min-h-screen flex flex-col items-center justify-center gap-3 text-gray-400">
         <Loader2 className="w-8 h-8 animate-spin" />
         <p className="text-sm">加载套餐数据...</p>
+      </div>
+    );
+  }
+
+  // 載入失敗
+  if (pkgError) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-4">
+        <div className="text-center text-red-500">
+          <p className="font-medium mb-2">加载失败</p>
+          <p className="text-xs text-red-400 max-w-md">{pkgError}</p>
+        </div>
+        <Link href="/diving" className="px-6 py-3 bg-ocean-500 text-white rounded-full hover:bg-ocean-600">
+          返回深潜页面
+        </Link>
       </div>
     );
   }

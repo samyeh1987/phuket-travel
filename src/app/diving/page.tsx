@@ -22,22 +22,23 @@ export default function DivingPage() {
   const router = useRouter();
   const [packages, setPackages] = useState<DivingPackage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
 
   useEffect(() => {
     fetch('/api/packages/diving')
-      .then(r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
+      .then(async r => {
+        const json = await r.json();
+        if (!r.ok) throw new Error(json.error || `HTTP ${r.status}`);
+        return json;
       })
       .then(j => {
-        if (j.error) throw new Error(j.error);
         setPackages(j.data || []);
       })
       .catch(err => {
         console.error('加载深潜套餐失败:', err);
-        setPackages([]);
+        setError(err.message);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -134,8 +135,16 @@ export default function DivingPage() {
             <div className="w-6 h-6 border-2 border-ocean-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
             <p className="text-sm">加载中...</p>
           </div>
+        ) : error ? (
+          <div className="p-6 text-center bg-red-50 rounded-2xl border border-red-200">
+            <p className="text-red-600 font-medium mb-2">加载失败</p>
+            <p className="text-xs text-red-400">{error}</p>
+          </div>
         ) : packages.length === 0 ? (
-          <div className="p-12 text-center text-gray-400 bg-white rounded-2xl shadow-sm text-sm">暂无套餐</div>
+          <div className="p-8 text-center bg-white rounded-2xl shadow-sm">
+            <p className="text-gray-400 mb-2">暂无套餐</p>
+            <p className="text-xs text-gray-300">请联系客服获取最新信息</p>
+          </div>
         ) : (
           packages.filter(p => p.is_active).map(pkg => {
             const qty = quantities[pkg.id] || 0;
