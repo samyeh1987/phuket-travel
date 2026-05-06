@@ -10,12 +10,27 @@ import ImageCarousel from '@/components/ImageCarousel'
 
 // 通过后端 API 查询岛屿数据和船只套餐（使用 service role key 绕过 RLS）
 async function fetchIslandDetail(slug: string) {
-  const res = await fetch(`/api/packages/islands?slug=${encodeURIComponent(slug)}`)
-  if (!res.ok) {
-    const json = await res.json().catch(() => ({}))
-    throw new Error(json.error || `HTTP ${res.status}`)
+  const url = `/api/packages/islands?slug=${encodeURIComponent(slug)}`
+  const res = await fetch(url)
+  const text = await res.text()
+
+  // 尝试解析 JSON
+  let json;
+  try {
+    json = JSON.parse(text)
+  } catch {
+    throw new Error(`[解析失败] URL: ${url}\n响应: ${text.substring(0, 500)}`)
   }
-  return res.json()
+
+  if (!res.ok) {
+    throw new Error(`[${res.status}] ${json.error || '未知错误'}\nURL: ${url}`)
+  }
+
+  if (!json.data || !json.data.island) {
+    throw new Error(`[数据异常] 未找到岛屿\nURL: ${url}\n响应: ${JSON.stringify(json).substring(0, 200)}`)
+  }
+
+  return json
 }
 
 interface IslandInfo {
@@ -120,20 +135,42 @@ export default function IslandDetailPage() {
     )
   }
 
-  // 错误显示
+  // 错误显示 - 增强调试信息
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center p-8">
-          <div className="text-red-500 text-6xl mb-4">⚠️</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">加载失败</h2>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <a
-            href="/island-tour"
-            className="px-6 py-3 bg-ocean-500 text-white rounded-xl hover:bg-ocean-600 transition-colors"
-          >
-            返回岛屿列表
-          </a>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <div className="max-w-lg w-full bg-white rounded-2xl shadow-lg p-6">
+          <div className="text-red-500 text-5xl mb-4 text-center">⚠️</div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2 text-center">加载失败</h2>
+
+          <div className="bg-gray-100 rounded-xl p-4 mt-4">
+            <div className="text-xs text-gray-500 mb-1">当前访问的 Slug：</div>
+            <div className="font-mono text-sm bg-gray-200 rounded px-2 py-1 break-all">{island}</div>
+          </div>
+
+          <div className="bg-red-50 rounded-xl p-4 mt-4">
+            <div className="text-xs text-red-600 mb-1 font-semibold">错误详情：</div>
+            <pre className="text-xs text-red-700 whitespace-pre-wrap break-all font-mono bg-red-100 rounded p-2 max-h-48 overflow-auto">{error}</pre>
+          </div>
+
+          <div className="flex gap-2 mt-6">
+            <a
+              href="/island-tour"
+              className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl text-center font-medium hover:bg-gray-200 transition-colors"
+            >
+              返回列表
+            </a>
+            <button
+              onClick={() => window.location.reload()}
+              className="flex-1 px-4 py-3 bg-ocean-500 text-white rounded-xl text-center font-medium hover:bg-ocean-600 transition-colors"
+            >
+              重试
+            </button>
+          </div>
+
+          <p className="text-xs text-gray-400 mt-4 text-center">
+            请复制错误信息反馈给开发人员
+          </p>
         </div>
       </div>
     )
