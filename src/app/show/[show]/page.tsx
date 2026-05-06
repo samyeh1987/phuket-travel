@@ -10,8 +10,10 @@ import { createClient } from '@/lib/supabase';
 import ErrorBoundary from '@/components/ErrorBoundary';
 
 // 通过后端 API 查询秀场数据（使用 service role key 绕过 RLS）
+// 注意：先解碼再編碼，防止雙重編碼
 async function fetchShowDetail(slug: string) {
-  const res = await fetch(`/api/packages/shows/detail?slug=${encodeURIComponent(slug)}`);
+  const decodedSlug = decodeURIComponent(slug);
+  const res = await fetch(`/api/packages/shows/detail?slug=${encodeURIComponent(decodedSlug)}`);
   if (!res.ok) {
     const json = await res.json().catch(() => ({}));
     throw new Error(json.error || `HTTP ${res.status}`);
