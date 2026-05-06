@@ -60,7 +60,41 @@ export async function POST(request: NextRequest) {
       user_id
     } = body;
 
-    // 先創建訂單
+    // 1. 先寫入主 orders 表（供付款頁使用）
+    const { data: mainOrder, error: mainOrderError } = await supabase
+      .from('orders')
+      .insert({
+        type: 'yacht',
+        travel_date: charter_date,
+        quantity: passenger_count,
+        total_price,
+        contact_name_cn: main_passenger_name,
+        contact_phone: main_passenger_phone,
+        contact_wechat: main_passenger_wechat,
+        hotel_name,
+        hotel_address,
+        notes,
+        user_id,
+        payment_status: 'unpaid',
+        extra_data: {
+          yacht_name,
+          yacht_package_id,
+          passenger_count,
+          boarding_location,
+          main_passenger_passport,
+          main_passenger_birthday,
+          passengers: passengers || [],
+        }
+      })
+      .select()
+      .single();
+
+    if (mainOrderError) {
+      console.error('Error creating main order for yacht:', mainOrderError);
+      // 繼續寫獨立表
+    }
+
+    // 2. 寫入 yacht_orders 獨立表（後台管理用）
     const { data: order, error: orderError } = await supabase
       .from('yacht_orders')
       .insert({
@@ -88,7 +122,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: orderError.message }, { status: 500 });
     }
 
-    // 如果有同行乘客，一併創建
+    // 3. 如果有同行乘客，一併創建
     if (passengers && passengers.length > 0) {
       const passengerRecords = passengers.map((p: any, index: number) => ({
         yacht_order_id: order.id,
@@ -107,7 +141,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ data: order });
+    // 回傳主表 ID（供付款頁跳轉），若主表失敗則回傳獨立表 ID
+    const responseData = {
+      ...order,
+      id: mainOrder?.id || order.id,
+      order_number: mainOrder?.order_number || order.order_number,
+    };
+
+    return NextResponse.json({ data: responseData });
   } catch (err: any) {
     console.error('Server error:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });

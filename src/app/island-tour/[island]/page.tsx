@@ -3,56 +3,33 @@
 import { useState, useMemo, useEffect } from 'react'
 import Image from 'next/image'
 import { useParams, useRouter } from 'next/navigation'
-import { Clock, Users, CheckCircle, ChevronLeft, Plus, MessageCircle } from 'lucide-react'
+import { Clock, Users, CheckCircle, ChevronLeft, Plus, MessageCircle, Loader2 } from 'lucide-react'
 import { useAuth } from '@/components/AuthProvider'
 import { createClient } from '@/lib/supabase'
-// Note: island/boat data is fetched via /api/packages/islands to bypass RLS
+import ImageCarousel from '@/components/ImageCarousel'
+
+// 通过后端 API 查询岛屿数据和船只套餐（使用 service role key 绕过 RLS）
+async function fetchIslandDetail(slug: string) {
+  const res = await fetch(`/api/packages/islands?slug=${encodeURIComponent(slug)}`)
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}))
+    throw new Error(json.error || `HTTP ${res.status}`)
+  }
+  return res.json()
+}
+
+interface IslandInfo {
+  id: string
+  name: string
+  slug: string
+  description: string
+  image_url: string
+  images: string[]
+}
 
 interface BoatOption {
   id: string; name: string; description: string; itinerary: string; price: string; price_cny: string;
   departure_time: string; duration: string; includes: string[]; images: string[];
-}
-
-const fmtCny = (v: string | number | null | undefined) => {
-  const n = Number(v);
-  return isNaN(n) || n <= 0 ? null : n.toLocaleString();
-};
-
-const islandData: Record<string, {
-  name: string; subtitle: string; description: string;
-  heroImage: string; galleryImages: string[];
-  highlights: string[];
-}> = {
-  racha: {
-    name: '皇帝岛', subtitle: 'Racha Island',
-    description: '皇帝岛以其澄澈见底的玻璃海水闻名，是普吉周边最受欢迎的跳岛目的地之一。海水清澈见底，珊瑚礁保存完好，浮潜体验绝佳。',
-    heroImage: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80',
-    galleryImages: [
-      'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80',
-      'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&q=80',
-    ],
-    highlights: ['玻璃海水', '白沙滩', '浮潜胜地', '深潜天堂', '快艇直达'],
-  },
-  pp: {
-    name: '皮皮岛', subtitle: 'Phi Phi Island',
-    description: '皮皮岛因好莱坞电影《海滩》在此取景而闻名世界，拥有壮观的石灰岩悬崖和清澈的泻湖水，是摄影爱好者和自然探索者的必去之地。',
-    heroImage: 'https://images.unsplash.com/photo-1598971457999-ca4ef48a9a71?w=1920&q=80',
-    galleryImages: [
-      'https://images.unsplash.com/photo-1519451241324-20b4ea2c4220?w=800&q=80',
-      'https://images.unsplash.com/photo-1537953773345-d172ccf13cf4?w=800&q=80',
-    ],
-    highlights: ['玛雅湾', '猴子沙滩', '维京洞穴', '天然泳池', '观景台'],
-  },
-  similan: {
-    name: '斯米兰群岛', subtitle: 'Similan Islands',
-    description: '斯米兰群岛被《国家地理》评为世界十大潜水圣地之一，每年仅开放约6个月（11月-次年4月），原始的海洋生态和珊瑚礁保存完好，是潜水爱好者的朝圣之地。',
-    heroImage: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=1920&q=80',
-    galleryImages: [
-      'https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=800&q=80',
-      'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&q=80',
-    ],
-    highlights: ['世界级潜点', '海龟栖息地', '珊瑚花园', '每年限时开放', '原始生态'],
-  },
 }
 
 interface Traveler {
@@ -61,31 +38,51 @@ interface Traveler {
 
 function genOrderNo() { return 'IS' + Date.now().toString().slice(-8); }
 
+const fmtCny = (v: string | number | null | undefined) => {
+  const n = Number(v);
+  return isNaN(n) || n <= 0 ? null : n.toLocaleString();
+};
+
 export default function IslandDetailPage() {
   const params = useParams()
   const router = useRouter()
   const { user } = useAuth()
   const island = params.island as string
 
-  // Island info
-  const info = islandData[island]
+  const [islandInfo, setIslandInfo] = useState<IslandInfo | null>(null)
   const [boats, setBoats] = useState<BoatOption[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!island) return
-    // 通过 API 路由获取船只套餐（绕过 RLS）
-    fetch(`/api/packages/islands?slug=${encodeURIComponent(island)}`)
-      .then(r => r.json())
+    setLoading(true)
+    setError(null)
+
+    fetchIslandDetail(island)
       .then(json => {
-        if (json.data?.boats) {
-          setBoats(json.data.boats.map((b: any) => ({
-            ...b,
-            includes: b.includes || [],
-            images: b.images || [],
-          })))
+        const { island: islandData, boats: boatList } = json.data
+        // 确保 images 是数组，如果没有则用 image_url 作为第一个元素
+        const processedIsland = {
+          ...islandData,
+          images: islandData.images && islandData.images.length > 0
+            ? islandData.images
+            : islandData.image_url
+              ? [islandData.image_url]
+              : ['https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80']
         }
+        setIslandInfo(processedIsland)
+        setBoats((boatList || []).map((b: any) => ({
+          ...b,
+          includes: b.includes || [],
+          images: b.images || [],
+        })))
       })
-      .catch(err => console.error('获取船只数据失败:', err))
+      .catch(err => {
+        console.error('获取岛屿数据失败:', err)
+        setError(err.message || '加载失败')
+      })
+      .finally(() => setLoading(false))
   }, [island])
 
   const orderNo = useMemo(() => genOrderNo(), [])
@@ -114,7 +111,52 @@ export default function IslandDetailPage() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  if (!info) return <div className="p-8 text-center">岛屿不存在</div>
+  // 加载中
+  if (loading || !islandInfo) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-ocean-500" />
+      </div>
+    )
+  }
+
+  // 错误显示
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center p-8">
+          <div className="text-red-500 text-6xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">加载失败</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <a
+            href="/island-tour"
+            className="px-6 py-3 bg-ocean-500 text-white rounded-xl hover:bg-ocean-600 transition-colors"
+          >
+            返回岛屿列表
+          </a>
+        </div>
+      </div>
+    )
+  }
+
+  // 岛屿不存在
+  if (!islandInfo) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center p-8">
+          <div className="text-gray-400 text-6xl mb-4">🏝️</div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">岛屿不存在</h2>
+          <p className="text-gray-600 mb-6">该岛屿可能已被删除或网址不正确</p>
+          <a
+            href="/island-tour"
+            className="px-6 py-3 bg-ocean-500 text-white rounded-xl hover:bg-ocean-600 transition-colors"
+          >
+            返回岛屿列表
+          </a>
+        </div>
+      </div>
+    )
+  }
 
   const addTraveler = () => {
     setTravelers([...travelers, { nameCn: '', nameEn: '', passport: '', birthdate: '' }])
@@ -130,7 +172,7 @@ export default function IslandDetailPage() {
     const lines = [
       `🏝️ 跳岛游预订`,
       `📋 订单号：${orderNo}`,
-      `📍 目的地：${info.name}`,
+      `📍 目的地：${islandInfo?.name || '-'}`,
       `🚢 船只：${selectedBoat?.name ?? '-'}`,
       `📅 出行日期：${travelDate || '待定'}`,
       `👥 人数：${people}人`,
@@ -188,7 +230,7 @@ export default function IslandDetailPage() {
       hotel_address: hotelAddress,
       extra_data: {
         island: island,
-        island_name: info.name,
+        island_name: islandInfo?.name || '',
         boat: selectedBoat,
         travelers: travelers,
       },
@@ -216,16 +258,23 @@ export default function IslandDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero */}
-      <div className="relative h-48 md:h-64 overflow-hidden">
-        <Image src={info.heroImage} alt={info.name} fill className="object-cover" priority />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-        <a href="/island-tour" className="absolute top-4 left-4 w-10 h-10 bg-white/80 rounded-full flex items-center justify-center md:hidden">
-          <ChevronLeft className="w-5 h-5 text-gray-700" />
-        </a>
-        <div className="absolute bottom-4 left-4 md:left-8 text-white">
-          <h1 className="text-2xl md:text-4xl font-bold">{info.name}</h1>
-          <p className="text-sm md:text-lg text-white/80">{info.subtitle}</p>
+      {/* Hero with Carousel */}
+      <div className="relative">
+        <ImageCarousel
+          images={islandInfo?.images || islandInfo?.image_url ? [islandInfo?.image_url].filter(Boolean) : ['https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80']}
+          alt={islandInfo?.name || '岛屿'}
+          aspectRatio="hero"
+          autoPlay={true}
+          autoPlayInterval={5000}
+          className="h-48 md:h-64"
+        />
+        <div className="absolute top-4 left-4 z-20 md:hidden">
+          <a href="/island-tour" className="w-10 h-10 bg-white/80 rounded-full flex items-center justify-center">
+            <ChevronLeft className="w-5 h-5 text-gray-700" />
+          </a>
+        </div>
+        <div className="absolute bottom-4 left-4 md:left-8 text-white z-20">
+          <h1 className="text-2xl md:text-4xl font-bold drop-shadow-lg">{islandInfo?.name}</h1>
         </div>
       </div>
 
@@ -253,26 +302,8 @@ export default function IslandDetailPage() {
       {tab === 'detail' && (
         <div className="max-w-4xl mx-auto px-4 py-6 pb-36 space-y-6">
           <div className="bg-white rounded-2xl p-5 shadow-sm">
-            <h2 className="text-lg font-bold text-gray-900 mb-2">关于{info.name}</h2>
-            <p className="text-sm text-gray-600 leading-relaxed">{info.description}</p>
-          </div>
-          <div className="bg-white rounded-2xl p-5 shadow-sm">
-            <h2 className="text-lg font-bold text-gray-900 mb-3">行程亮点</h2>
-            <div className="flex flex-wrap gap-2">
-              {info.highlights.map(h => (
-                <span key={h} className="px-3 py-1.5 bg-ocean-50 text-ocean-700 rounded-full text-sm font-medium">{h}</span>
-              ))}
-            </div>
-          </div>
-          <div className="bg-white rounded-2xl p-5 shadow-sm">
-            <h2 className="text-lg font-bold text-gray-900 mb-3">实拍图片</h2>
-            <div className="grid grid-cols-2 gap-3">
-              {info.galleryImages.map((img, i) => (
-                <div key={i} className="relative h-40 rounded-xl overflow-hidden">
-                  <Image src={img} alt="" fill className="object-cover" />
-                </div>
-              ))}
-            </div>
+            <h2 className="text-lg font-bold text-gray-900 mb-2">关于{islandInfo?.name}</h2>
+            <p className="text-sm text-gray-600 leading-relaxed">{islandInfo?.description || '暂无描述'}</p>
           </div>
           <div className="bg-white rounded-2xl p-5 shadow-sm">
             <h2 className="text-lg font-bold text-gray-900 mb-3">选择船只</h2>
@@ -284,7 +315,15 @@ export default function IslandDetailPage() {
                   className={`flex gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${selectedBoat?.id === boat.id ? 'border-ocean-500 bg-ocean-50' : 'border-gray-100 bg-gray-50 hover:border-ocean-200'}`}
                 >
                   <div className="relative w-24 h-24 rounded-lg overflow-hidden flex-shrink-0">
-                    <Image src={(boat.images && boat.images[0]) || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&q=80'} alt={boat.name} fill className="object-cover" />
+                    <ImageCarousel
+                      images={boat.images && boat.images.length > 0 ? boat.images : ['https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&q=80']}
+                      alt={boat.name}
+                      aspectRatio="square"
+                      showArrows={boat.images && boat.images.length > 1}
+                      showDots={false}
+                      autoPlay={false}
+                      className="w-full h-full"
+                    />
                   </div>
                   <div className="flex-1">
                     <div className="flex justify-between items-start">
@@ -326,7 +365,7 @@ export default function IslandDetailPage() {
             <div className="bg-ocean-50 border border-ocean-200 rounded-2xl p-4">
               <div className="flex justify-between items-center">
                 <div>
-                  <div className="text-sm text-ocean-700 font-medium">{info.name} · {selectedBoat.name}</div>
+                  <div className="text-sm text-ocean-700 font-medium">{islandInfo?.name} · {selectedBoat.name}</div>
                   <div className="text-xs text-gray-500 mt-0.5">{selectedBoat.duration}</div>
                 </div>
                 <span className="font-mono text-xs text-ocean-600 bg-ocean-100 px-2 py-1 rounded-full">{orderNo}</span>

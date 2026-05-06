@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/components/AuthProvider';
 import { PaymentMethodSelector } from '@/components/PaymentMethodSelector';
 import { PaymentProofUpload } from '@/components/PaymentProofUpload';
@@ -14,7 +13,6 @@ export default function PaymentPage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
-  const supabase = createClient();
   const orderId = params.orderId as string;
 
   const [order, setOrder] = useState<any>(null);
@@ -23,28 +21,33 @@ export default function PaymentPage() {
   const [paymentMethod, setPaymentMethod] = useState('');
   const [proofUrl, setProofUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   useEffect(() => {
     const fetchOrder = async () => {
       if (!orderId) return;
-      const { data } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('id', orderId)
-        .single();
-      setOrder(data);
-      
-      // 如果已有付款信息，恢复到对应步骤
-      if (data?.payment_proof_url) {
-        setProofUrl(data.payment_proof_url);
-        if (data.payment_status === 'pending_review') {
-          setCurrentStep(3);
+      try {
+        // 使用後端 API 查詢訂單（繞過 RLS，確保能查到所有訂單）
+        const res = await fetch(`/api/payment/status/${orderId}`);
+        const json = await res.json();
+        const data = json.data;
+        setOrder(data);
+
+        // 如果已有付款信息，恢复到对应步骤
+        if (data?.payment_proof_url) {
+          setProofUrl(data.payment_proof_url);
+          if (data.payment_status === 'pending_review') {
+            setCurrentStep(3);
+          }
         }
+        if (data?.payment_method) {
+          setPaymentMethod(data.payment_method);
+        }
+      } catch (e) {
+        console.error('Failed to fetch order:', e);
+      } finally {
+        setLoading(false);
       }
-      if (data?.payment_method) {
-        setPaymentMethod(data.payment_method);
-      }
-      setLoading(false);
     };
     fetchOrder();
   }, [orderId]);
@@ -57,21 +60,35 @@ export default function PaymentPage() {
   const handleProofUpload = async (url: string) => {
     setProofUrl(url);
     setSubmitting(true);
+    setSubmitError('');
 
-    // 更新订单
-    const { error } = await supabase
-      .from('orders')
-      .update({
-        payment_method: paymentMethod,
-        payment_proof_url: url,
-        payment_status: 'pending_review',
-      })
-      .eq('id', orderId);
+    try {
+      // 使用安全的後端 API 提交付款信息
+      const res = await fetch('/api/payment/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          orderId,
+          paymentMethod,
+          paymentProofUrl: url,
+        }),
+      });
 
-    if (!error) {
+      const data = await res.json();
+
+      if (!res.ok) {
+        setSubmitError(data.error || '提交失敗');
+        setSubmitting(false);
+        return;
+      }
+
       setCurrentStep(3);
+    } catch (err: any) {
+      setSubmitError(err.message || '提交失敗，請重試');
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   if (loading) {
@@ -105,6 +122,8 @@ export default function PaymentPage() {
     diving_cert: '潜水考证',
     island: '跳岛游',
     show: '秀场',
+    transport: order?.extra_data?.service_label || '包车/接送机',
+    yacht: '包船服务',
   };
 
   return (
@@ -209,6 +228,11 @@ export default function PaymentPage() {
                 orderId={orderId}
                 onUploadComplete={handleProofUpload}
               />
+              {submitError && (
+                <div className="mt-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm">
+                  {submitError}
+                </div>
+              )}
               <button
                 onClick={() => setCurrentStep(1)}
                 className="w-full mt-4 py-2.5 border border-gray-200 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition-colors"

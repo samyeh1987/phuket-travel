@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, X, Save } from 'lucide-react';
 import ImageUpload from '@/components/admin/ImageUpload';
+import MultiImageUpload from '@/components/admin/MultiImageUpload';
 
-interface Boat { id?: string; island_id: string; name: string; description: string; price: string; price_cny: string; duration: string; image_url: string; is_active: boolean; }
+interface Boat { id?: string; island_id: string; name: string; description: string; price: string; price_cny: string; duration: string; image_url: string; images: string[]; is_active: boolean; }
 
 export default function AdminIslandsPage() {
   const [islands, setIslands] = useState<any[]>([]);
@@ -14,7 +15,7 @@ export default function AdminIslandsPage() {
   const [showIslandModal, setShowIslandModal] = useState(false);
   const [showBoatModal, setShowBoatModal] = useState(false);
   const [editIsland, setEditIsland] = useState<any>(null);
-  const [editBoat, setEditBoat] = useState<Boat>({ island_id: '', name: '', description: '', price: '', price_cny: '', duration: '', image_url: '', is_active: true });
+  const [editBoat, setEditBoat] = useState<Boat>({ island_id: '', name: '', description: '', price: '', price_cny: '', duration: '', image_url: '', images: [], is_active: true });
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
 
@@ -43,13 +44,20 @@ export default function AdminIslandsPage() {
 
   useEffect(() => { fetchAll(); }, []);
 
-  const openAddIsland = () => { setEditIsland({ name: '', slug: '', description: '', image_url: '', is_active: true }); setShowIslandModal(true); };
-  const openEditIsland = (island: any) => { setEditIsland({ ...island }); setShowIslandModal(true); };
-  const openAddBoat = (islandId: string) => { setEditBoat({ island_id: islandId, name: '', description: '', price: '', price_cny: '', duration: '', image_url: '', is_active: true }); setShowBoatModal(true); };
+  const openAddIsland = () => { setEditIsland({ name: '', slug: '', description: '', image_url: '', images: [], is_active: true }); setShowIslandModal(true); };
+  const openEditIsland = (island: any) => { 
+    // 确保 images 是数组
+    const images = Array.isArray(island.images) ? island.images : (island.image_url ? [island.image_url] : []);
+    setEditIsland({ ...island, images }); 
+    setShowIslandModal(true); 
+  };
+  const openAddBoat = (islandId: string) => { setEditBoat({ island_id: islandId, name: '', description: '', price: '', price_cny: '', duration: '', image_url: '', images: [], is_active: true }); setShowBoatModal(true); };
   const openEditBoat = (boat: any) => {
     const priceCny = boat.price_cny != null && !isNaN(Number(boat.price_cny)) && Number(boat.price_cny) > 0
       ? String(boat.price_cny) : '';
-    setEditBoat({ ...boat, price: String(boat.price ?? ''), price_cny: priceCny, image_url: boat.image_url || '' });
+    // 确保 images 是数组
+    const images = Array.isArray(boat.images) ? boat.images : (boat.image_url ? [boat.image_url] : []);
+    setEditBoat({ ...boat, price: String(boat.price ?? ''), price_cny: priceCny, image_url: boat.image_url || '', images });
     setShowBoatModal(true);
   };
 
@@ -59,7 +67,15 @@ export default function AdminIslandsPage() {
     e.preventDefault();
     if (!editIsland) return;
     setSaving(true);
-    const payload = { table: 'islands', name: editIsland.name, slug: editIsland.slug || generateSlug(editIsland.name), description: editIsland.description, image_url: editIsland.image_url, is_active: editIsland.is_active };
+    const payload: any = { 
+      table: 'islands', 
+      name: editIsland.name, 
+      slug: editIsland.slug || generateSlug(editIsland.name), 
+      description: editIsland.description, 
+      image_url: editIsland.images && editIsland.images.length > 0 ? editIsland.images[0] : editIsland.image_url,
+      images: editIsland.images || [], 
+      is_active: editIsland.is_active 
+    };
     const method = editIsland.id ? 'PUT' : 'POST';
     await fetch('/api/admin/islands', {
       method,
@@ -77,7 +93,17 @@ export default function AdminIslandsPage() {
     setSaveError('');
     const priceCnyInput = editBoat.price_cny?.trim();
     const hasPriceCny = priceCnyInput !== '' && !isNaN(Number(priceCnyInput)) && Number(priceCnyInput) > 0;
-    const payload: any = { table: 'island_boats', island_id: editBoat.island_id, name: editBoat.name, description: editBoat.description, price: Number(editBoat.price), duration: editBoat.duration, image_url: editBoat.image_url, is_active: editBoat.is_active };
+    const payload: any = { 
+      table: 'island_boats', 
+      island_id: editBoat.island_id, 
+      name: editBoat.name, 
+      description: editBoat.description, 
+      price: Number(editBoat.price), 
+      duration: editBoat.duration, 
+      image_url: editBoat.images && editBoat.images.length > 0 ? editBoat.images[0] : editBoat.image_url,
+      images: editBoat.images || [], 
+      is_active: editBoat.is_active 
+    };
     if (hasPriceCny) payload.price_cny = Number(priceCnyInput);
     const method = editBoat.id ? 'PUT' : 'POST';
     const res = await fetch('/api/admin/islands', {
@@ -245,11 +271,12 @@ export default function AdminIslandsPage() {
               <div><label className="text-sm font-medium text-gray-700 mb-1 block">描述</label>
                 <textarea value={editIsland.description} onChange={e => setEditIsland({ ...editIsland, description: e.target.value })} rows={2} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500 resize-none" />
               </div>
-              <ImageUpload
-                label="岛屿图片"
-                value={editIsland.image_url || ''}
-                onChange={url => setEditIsland({ ...editIsland, image_url: url })}
+              <MultiImageUpload
+                label="岛屿图片（可上传多张）"
+                values={editIsland.images || []}
+                onChange={images => setEditIsland({ ...editIsland, images })}
                 folder="islands"
+                maxImages={10}
               />
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowIslandModal(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-gray-600 font-medium hover:bg-gray-50">取消</button>
@@ -291,11 +318,12 @@ export default function AdminIslandsPage() {
                 <label className="text-sm font-medium text-gray-700 mb-1 block">时长</label>
                 <input type="text" value={editBoat.duration} onChange={e => setEditBoat({ ...editBoat, duration: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
               </div>
-              <ImageUpload
-                label="船只/行程图片"
-                value={editBoat.image_url}
-                onChange={url => setEditBoat({ ...editBoat, image_url: url })}
+              <MultiImageUpload
+                label="船只/行程图片（可上传多张）"
+                values={editBoat.images || []}
+                onChange={images => setEditBoat({ ...editBoat, images })}
                 folder="boats"
+                maxImages={10}
               />
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowBoatModal(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-gray-600 font-medium hover:bg-gray-50">取消</button>

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Ship, Users, Clock, CheckCircle, Anchor } from 'lucide-react';
+import ImageCarousel from '@/components/ImageCarousel';
 
 interface YachtPackage {
   id: string;
@@ -11,6 +12,7 @@ interface YachtPackage {
   slug: string;
   description: string;
   image_url: string;
+  images: string[];
   capacity: number;
   duration: string;
   price: number;
@@ -30,7 +32,16 @@ export default function YachtPage() {
         const res = await fetch('/api/packages/yacht');
         const data = await res.json();
         if (data.data) {
-          setPackages(data.data);
+          // 处理多图数组，确保每個套餐都有 images 数组
+          const processedPackages = data.data.map((pkg: any) => ({
+            ...pkg,
+            images: pkg.images && pkg.images.length > 0
+              ? pkg.images
+              : pkg.image_url
+                ? [pkg.image_url]
+                : ['https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?w=800&q=80']
+          }));
+          setPackages(processedPackages);
         }
       } catch (err) {
         setError('Failed to load yacht packages');
@@ -128,19 +139,22 @@ export default function YachtPage() {
           <div className="grid md:grid-cols-3 gap-6">
             {packages.map((pkg) => (
               <div key={pkg.id} className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow">
-                {pkg.image_url && (
-                  <div className="relative h-56">
-                    <Image
-                      src={pkg.image_url}
-                      alt={pkg.name}
-                      fill
-                      className="object-cover"
-                    />
-                    <div className="absolute top-4 right-4 bg-ocean-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-                      {pkg.duration}
-                    </div>
+                {/* Image Carousel with duration badge */}
+                <div className="relative">
+                  <ImageCarousel
+                    images={pkg.images}
+                    alt={pkg.name}
+                    aspectRatio="portrait"
+                    autoPlay={false}
+                    showArrows={true}
+                    showDots={true}
+                    className="h-56"
+                  />
+                  {/* Duration badge overlay */}
+                  <div className="absolute top-3 right-3 bg-ocean-500 text-white px-3 py-1 rounded-full text-sm font-medium z-30 shadow-md">
+                    {pkg.duration}
                   </div>
-                )}
+                </div>
                 <div className="p-6">
                   <h3 className="text-xl font-bold text-gray-800 mb-2">{pkg.name}</h3>
                   <p className="text-gray-500 text-sm mb-4">{pkg.description}</p>

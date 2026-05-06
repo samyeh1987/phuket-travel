@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2, X, Save } from 'lucide-react';
+import MultiImageUpload from '@/components/admin/MultiImageUpload';
 
 interface YachtPackage {
   id?: string;
@@ -9,6 +10,7 @@ interface YachtPackage {
   slug: string;
   description: string;
   image_url: string;
+  images: string[];
   capacity: number;
   duration: string;
   price: string;
@@ -54,6 +56,7 @@ export default function AdminYachtPage() {
   const openAdd = () => {
     setEditItem({
       name: '', slug: '', description: '', image_url: '',
+      images: [],
       capacity: 10, duration: '6小時',
       price: '', price_cny: '', price_per_person: '',
       includes: [],
@@ -63,12 +66,15 @@ export default function AdminYachtPage() {
   };
 
   const openEdit = (pkg: any) => {
+    // 确保 images 是数组
+    const images = Array.isArray(pkg.images) ? pkg.images : (pkg.image_url ? [pkg.image_url] : []);
     setEditItem({
       ...pkg,
       price: pkg.price != null ? String(pkg.price) : '',
       price_cny: pkg.price_cny != null ? String(pkg.price_cny) : '',
       price_per_person: pkg.price_per_person != null ? String(pkg.price_per_person) : '',
       includes: pkg.includes || [],
+      images,
     });
     setShowModal(true);
   };
@@ -82,6 +88,8 @@ export default function AdminYachtPage() {
 
     const payload = {
       ...editItem,
+      image_url: editItem.images && editItem.images.length > 0 ? editItem.images[0] : editItem.image_url,
+      images: editItem.images || [],
       price: editItem.price ? Number(editItem.price) : null,
       price_cny: editItem.price_cny ? Number(editItem.price_cny) : null,
       price_per_person: editItem.price_per_person ? Number(editItem.price_per_person) : null,
@@ -213,10 +221,13 @@ export default function AdminYachtPage() {
                 <textarea value={editItem.description} onChange={e => setEditItem({...editItem, description: e.target.value})} rows={2} className="w-full px-3 py-2 border rounded-lg" />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">圖片URL</label>
-                <input type="url" value={editItem.image_url} onChange={e => setEditItem({...editItem, image_url: e.target.value})} className="w-full px-3 py-2 border rounded-lg" placeholder="https://..." />
-              </div>
+              <MultiImageUpload
+                label="船型图片（可上传多张）"
+                values={editItem.images || []}
+                onChange={images => setEditItem({...editItem, images})}
+                folder="yachts"
+                maxImages={10}
+              />
 
               <div className="grid grid-cols-3 gap-4">
                 <div>

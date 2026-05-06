@@ -186,9 +186,9 @@ export default function AdminOrdersPage() {
     setUpdating(false);
   };
 
-  const types = ['全部', 'diving', 'island', 'show', 'custom'];
+  const types = ['全部', 'diving', 'island', 'show', 'custom', 'transport', 'yacht'];
   const typeLabels: Record<string, string> = {
-    diving: '深潜', island: '跳岛游', show: '秀场', custom: '定制旅行',
+    diving: '深潜', island: '跳岛游', show: '秀场', custom: '定制旅行', transport: '包车', yacht: '包船',
   };
 
   // 订单状态筛选
@@ -227,6 +227,8 @@ export default function AdminOrdersPage() {
     island: 'bg-cyan-50 text-cyan-600',
     show: 'bg-purple-50 text-purple-600',
     custom: 'bg-orange-50 text-orange-600',
+    transport: 'bg-green-50 text-green-600',
+    yacht: 'bg-indigo-50 text-indigo-600',
   };
 
   const statusOptions = [
