@@ -27,8 +27,18 @@ export default function DivingPage() {
 
   useEffect(() => {
     fetch('/api/packages/diving')
-      .then(r => r.json())
-      .then(j => setPackages(j.data || []))
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then(j => {
+        if (j.error) throw new Error(j.error);
+        setPackages(j.data || []);
+      })
+      .catch(err => {
+        console.error('加载深潜套餐失败:', err);
+        setPackages([]);
+      })
       .finally(() => setLoading(false));
   }, []);
 

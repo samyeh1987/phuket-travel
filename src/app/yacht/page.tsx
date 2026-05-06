@@ -30,7 +30,9 @@ export default function YachtPage() {
     const fetchPackages = async () => {
       try {
         const res = await fetch('/api/packages/yacht');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
+        if (data.error) throw new Error(data.error);
         if (data.data) {
           // 处理多图数组，确保每個套餐都有 images 数组
           const processedPackages = data.data.map((pkg: any) => ({

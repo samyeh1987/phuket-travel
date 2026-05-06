@@ -21,12 +21,19 @@ export default function IslandTourPage() {
 
   useEffect(() => {
     fetch('/api/packages/islands')
-      .then(r => r.json())
-      .then(json => {
-        setIslands(json.data || []);
-        setLoading(false);
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
       })
-      .catch(() => setLoading(false));
+      .then(json => {
+        if (json.error) throw new Error(json.error);
+        setIslands(json.data || []);
+      })
+      .catch(err => {
+        console.error('加载岛屿数据失败:', err);
+        setIslands([]);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   return (

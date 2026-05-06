@@ -29,8 +29,12 @@ export default function ShowPage() {
 
   useEffect(() => {
     fetch('/api/packages/shows')
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then(j => {
+        if (j.error) throw new Error(j.error);
         const showList = j.data?.shows || [];
         const packageList = j.data?.packages || [];
         const merged = showList.map((s: ShowItem) => {
@@ -44,6 +48,10 @@ export default function ShowPage() {
           };
         });
         setShows(merged);
+      })
+      .catch(err => {
+        console.error('加载秀场失败:', err);
+        setShows([]);
       })
       .finally(() => setLoading(false));
   }, []);

@@ -2,7 +2,9 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Sailboat, Anchor, Ticket, Palmtree, Sparkles, Users, Camera, Car, Ship } from 'lucide-react';
+import { Sailboat, Anchor, Ticket, Palmtree, Sparkles, Users, Camera, Car, Ship, Phone, MessageCircle, Mail } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { createClient } from '@/lib/supabase';
 
 const services = [
   {
@@ -50,6 +52,28 @@ const services = [
 ];
 
 export default function HomePage() {
+  const [contact, setContact] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const fetchContact = async () => {
+      try {
+        const supabase = createClient();
+        const { data } = await supabase
+          .from('system_settings')
+          .select('key, value')
+          .in('key', ['whatsapp', 'phone', 'email', 'whatsapp_visible', 'phone_visible', 'email_visible']);
+        if (data) {
+          const map: Record<string, string> = {};
+          data.forEach((item: any) => { map[item.key] = item.value || ''; });
+          setContact(map);
+        }
+      } catch {}
+    };
+    fetchContact();
+  }, []);
+
+  const isVisible = (key: string) => contact[`${key}_visible`] !== 'false';
+
   return (
     <div className="flex flex-col pb-20 md:pb-0">
       {/* Hero Section */}
@@ -147,6 +171,62 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Contact Section */}
+      {(isVisible('whatsapp') || isVisible('phone') || isVisible('email')) && (
+        <section className="py-12 sm:py-16 md:py-20 px-4 bg-white">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-10 sm:mb-12">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3">立即联系我们</h2>
+              <p className="text-base sm:text-lg text-gray-600">多种联系方式，随时随地为您服务</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+              {isVisible('whatsapp') && contact.whatsapp && (
+                <a
+                  href={`https://wa.me/${contact.whatsapp.replace(/\D/g, '')}`}
+                  className="flex items-center gap-4 bg-green-50 rounded-2xl p-6 hover:bg-green-100 transition-colors group"
+                >
+                  <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center text-white flex-shrink-0">
+                    <MessageCircle className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-900 group-hover:text-green-700">WhatsApp</p>
+                    <p className="text-sm text-gray-600">{contact.whatsapp}</p>
+                  </div>
+                </a>
+              )}
+              {isVisible('phone') && contact.phone && (
+                <a
+                  href={`tel:${contact.phone}`}
+                  className="flex items-center gap-4 bg-blue-50 rounded-2xl p-6 hover:bg-blue-100 transition-colors group"
+                >
+                  <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center text-white flex-shrink-0">
+                    <Phone className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-900 group-hover:text-blue-700">电话咨询</p>
+                    <p className="text-sm text-gray-600">{contact.phone}</p>
+                  </div>
+                </a>
+              )}
+              {isVisible('email') && contact.email && (
+                <a
+                  href={`mailto:${contact.email}`}
+                  className="flex items-center gap-4 bg-orange-50 rounded-2xl p-6 hover:bg-orange-100 transition-colors group"
+                >
+                  <div className="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center text-white flex-shrink-0">
+                    <Mail className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-900 group-hover:text-orange-700">邮件联系</p>
+                    <p className="text-sm text-gray-600">{contact.email}</p>
+                  </div>
+                </a>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* CTA Section */}
       <section className="py-12 sm:py-16 md:py-20 px-4 bg-gradient-to-r from-ocean-600 to-blue-600">

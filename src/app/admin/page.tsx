@@ -17,11 +17,15 @@ export default function AdminDashboard() {
     const fetchData = async () => {
       try {
         const res = await fetch('/api/admin/dashboard', { credentials: 'include' });
-        const json = await res.json();
-        if (json.error) {
-          console.error('获取数据失败:', json.error);
+        if (!res.ok) {
+          console.error('获取数据失败: HTTP', res.status);
         } else {
-          setStats(json.data || {});
+          const json = await res.json();
+          if (json.error) {
+            console.error('获取数据失败:', json.error);
+          } else {
+            setStats(json.data || {});
+          }
         }
       } catch (e) {
         console.error('获取数据失败:', e);
