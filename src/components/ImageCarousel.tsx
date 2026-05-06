@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight, Maximize2, X } from 'lucide-react';
 
@@ -39,11 +39,44 @@ export default function ImageCarousel({
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
-  // Filter valid images
-  const validImages = images.filter(img => img && img.trim() !== '');
+  // Filter valid images - use useMemo to ensure consistent reference
+  const validImages = useMemo(() => 
+    images.filter(img => img && img.trim() !== ''),
+    [images]
+  );
+  const imageCount = validImages.length;
 
-  // Don't render if no valid images
-  if (validImages.length === 0) {
+  // Hooks: Auto play
+  useEffect(() => {
+    if (!autoPlay || imageCount <= 1) return;
+    
+    const timer = setInterval(() => {
+      setCurrentIndex(prev => (prev + 1) % imageCount);
+    }, autoPlayInterval);
+
+    return () => clearInterval(timer);
+  }, [autoPlay, autoPlayInterval, imageCount]);
+
+  // Hooks: Reset index when images change
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [images]);
+
+  // Hooks: Navigation callbacks
+  const goToNext = useCallback(() => {
+    setCurrentIndex(prev => (prev + 1) % imageCount);
+  }, [imageCount]);
+
+  const goToPrev = useCallback(() => {
+    setCurrentIndex(prev => (prev - 1 + imageCount) % imageCount);
+  }, [imageCount]);
+
+  const goToIndex = useCallback((index: number) => {
+    setCurrentIndex(index);
+  }, []);
+
+  // Don't render if no valid images - render placeholder after all hooks
+  if (imageCount === 0) {
     return (
       <div className={`relative ${aspectRatioClasses[aspectRatio]} bg-gray-100 rounded-lg overflow-hidden ${className}`}>
         <div className="absolute inset-0 flex items-center justify-center text-gray-400">
@@ -52,34 +85,6 @@ export default function ImageCarousel({
       </div>
     );
   }
-
-  // Auto play
-  useEffect(() => {
-    if (!autoPlay || validImages.length <= 1) return;
-    
-    const timer = setInterval(() => {
-      setCurrentIndex(prev => (prev + 1) % validImages.length);
-    }, autoPlayInterval);
-
-    return () => clearInterval(timer);
-  }, [autoPlay, autoPlayInterval, validImages.length]);
-
-  // Reset index when images change
-  useEffect(() => {
-    setCurrentIndex(0);
-  }, [images]);
-
-  const goToNext = useCallback(() => {
-    setCurrentIndex(prev => (prev + 1) % validImages.length);
-  }, [validImages.length]);
-
-  const goToPrev = useCallback(() => {
-    setCurrentIndex(prev => (prev - 1 + validImages.length) % validImages.length);
-  }, [validImages.length]);
-
-  const goToIndex = (index: number) => {
-    setCurrentIndex(index);
-  };
 
   // Touch handlers for swipe
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -144,7 +149,7 @@ export default function ImageCarousel({
 
       {/* Image counter */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white text-sm">
-        {currentIndex + 1} / {validImages.length}
+        {currentIndex + 1} / {imageCount}
       </div>
 
       {/* Thumbnail strip */}
@@ -152,7 +157,7 @@ export default function ImageCarousel({
         {validImages.map((img, idx) => (
           <button
             key={idx}
-            onClick={() => setCurrentIndex(idx)}
+            onClick={() => goToIndex(idx)}
             className={`relative w-16 h-12 rounded overflow-hidden flex-shrink-0 border-2 transition-all ${
               idx === currentIndex ? 'border-white opacity-100' : 'border-transparent opacity-60 hover:opacity-80'
             }`}
@@ -203,7 +208,7 @@ export default function ImageCarousel({
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none z-20" />
 
         {/* Arrows */}
-        {showArrows && validImages.length > 1 && (
+        {showArrows && imageCount > 1 && (
           <>
             <button
               onClick={goToPrev}
@@ -231,7 +236,7 @@ export default function ImageCarousel({
         </button>
 
         {/* Dots */}
-        {showDots && validImages.length > 1 && (
+        {showDots && imageCount > 1 && (
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-30">
             {validImages.map((_, idx) => (
               <button
@@ -248,7 +253,7 @@ export default function ImageCarousel({
         )}
 
         {/* Image counter (mobile) */}
-        {validImages.length > 1 && (
+        {imageCount > 1 && (
           <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/50 text-white text-xs rounded-full z-30 md:hidden">
             {currentIndex + 1}/{validImages.length}
           </div>
