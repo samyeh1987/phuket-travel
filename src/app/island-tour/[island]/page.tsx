@@ -162,6 +162,11 @@ export default function IslandDetailPage() {
   const [showBackToTop, setShowBackToTop] = useState(false)
 
   const orderNo = useMemo(() => genOrderNo(), [])
+  const islandImages = useMemo(() => {
+    if (islandInfo?.images && islandInfo.images.length > 0) return islandInfo.images
+    if (islandInfo?.image_url) return [islandInfo.image_url]
+    return ['https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80']
+  }, [islandInfo])
   const [tab, setTab] = useState<'detail' | 'book'>('detail')
   const [people, setPeople] = useState(2)
   const [travelDate, setTravelDate] = useState('')
@@ -356,12 +361,6 @@ export default function IslandDetailPage() {
     router.push(`/payment/${data.id}`)
     setSubmitting(false)
   }
-
-  const islandImages = useMemo(() => {
-    if (islandInfo.images && islandInfo.images.length > 0) return islandInfo.images
-    if (islandInfo.image_url) return [islandInfo.image_url]
-    return ['https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80']
-  }, [islandInfo])
 
   return (
     <div className="min-h-screen bg-gray-50 pb-28 md:pb-0">
