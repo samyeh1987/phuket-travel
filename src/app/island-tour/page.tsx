@@ -11,6 +11,7 @@ interface Island {
   slug: string;
   description: string | null;
   image_url: string | null;
+  images?: string[];
   is_active: boolean;
   sort_order: number;
 }

@@ -196,7 +196,12 @@ export default function IslandDetailPage() {
         setBoats((boatList || []).map((b: any) => ({
           ...b,
           includes: b.includes || [],
-          images: b.images || [],
+          // 優先使用 images 陣列，否則 fallback 到 image_url
+          images: b.images && b.images.length > 0
+            ? b.images
+            : b.image_url
+              ? [b.image_url]
+              : ['https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80'],
         })))
       })
       .catch(err => {
