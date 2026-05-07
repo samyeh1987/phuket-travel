@@ -217,6 +217,13 @@ export default function IslandDetailPage() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
+  // 切換到預訂頁時滾動到頂部
+  useEffect(() => {
+    if (tab === 'book') {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [tab])
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -370,20 +377,24 @@ export default function IslandDetailPage() {
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 py-4 space-y-4">
-        {/* Image Gallery */}
-        <ImageGallery images={islandImages} alt={islandInfo.name} />
+        {/* Image Gallery - 預訂模式下隱藏 */}
+        {tab !== 'book' && (
+          <ImageGallery images={islandImages} alt={islandInfo.name} />
+        )}
 
-        {/* Island Title & Description */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm">
-          <h2 className="text-xl font-bold text-gray-900 mb-2">{islandInfo.name}</h2>
-          <p className="text-sm text-gray-600 leading-relaxed">{islandInfo.description || '暂无描述'}</p>
-        </div>
+        {/* Island Title & Description - 預訂模式下隱藏 */}
+        {tab !== 'book' && (
+        <>
+          <div className="bg-white rounded-2xl p-5 shadow-sm">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">{islandInfo.name}</h2>
+            <p className="text-sm text-gray-600 leading-relaxed">{islandInfo.description || '暂无描述'}</p>
+          </div>
 
-        {/* Boat Selection */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm">
-          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <span>🚤</span> 选择船只套餐
-          </h2>
+          {/* Boat Selection */}
+          <div className="bg-white rounded-2xl p-5 shadow-sm">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <span>🚤</span> 选择船只套餐
+            </h2>
           <div className="space-y-3">
             {boats.length === 0 ? (
               <div className="text-center py-8 text-gray-400">
@@ -456,9 +467,11 @@ export default function IslandDetailPage() {
             ))}
           </div>
         </div>
+        </>
+        </div>
 
-        {/* Desktop Floating Booking Panel */}
-        {selectedBoat && (
+        {/* Desktop Floating Booking Panel - 預訂模式下隱藏 */}
+        {selectedBoat && tab !== 'book' && (
           <div className="hidden md:block bg-white rounded-2xl p-5 shadow-lg sticky bottom-4 z-40">
             <div className="flex items-center justify-between gap-4">
               <div>
@@ -482,6 +495,7 @@ export default function IslandDetailPage() {
       </div>
 
       {/* Fixed Bottom Bar - Mobile */}
+      {tab !== 'book' && (
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg md:hidden z-50">
         <div className="max-w-4xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between gap-4">
@@ -512,6 +526,7 @@ export default function IslandDetailPage() {
           </div>
         </div>
       </div>
+      )}
 
       {/* Booking Section - Desktop */}
       {tab === 'book' && (
