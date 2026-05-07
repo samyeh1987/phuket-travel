@@ -357,255 +357,250 @@ export default function IslandDetailPage() {
     setSubmitting(false)
   }
 
-  const islandImages = islandInfo.images && islandInfo.images.length > 0
-    ? islandInfo.images
-    : islandInfo.image_url ? [islandInfo.image_url] : ['https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80']
+  const islandImages = useMemo(() => {
+    if (islandInfo.images && islandInfo.images.length > 0) return islandInfo.images
+    if (islandInfo.image_url) return [islandInfo.image_url]
+    return ['https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80']
+  }, [islandInfo])
 
   return (
     <div className="min-h-screen bg-gray-50 pb-28 md:pb-0">
-      {/* Header */}
-      <div className="sticky top-0 z-50 bg-white border-b">
-        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
-          <a href="/island-tour" className="flex items-center gap-2 text-gray-700 hover:text-ocean-600">
-            <ChevronLeft className="w-5 h-5" />
-            <span className="font-medium">返回</span>
-          </a>
-          <h1 className="font-bold text-gray-900 truncate max-w-[60%]">{islandInfo.name}</h1>
-          <div className="w-16" />
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 py-4 space-y-4">
-        {/* Image Gallery - 預訂模式下隱藏 */}
-        {tab !== 'book' && (
-          <ImageGallery images={islandImages} alt={islandInfo.name} />
-        )}
-
-        {/* Island Title & Description - 預訂模式下隱藏 */}
-        {tab !== 'book' && (
+      {tab === 'detail' ? (
         <>
-          <div className="bg-white rounded-2xl p-5 shadow-sm">
-            <h2 className="text-xl font-bold text-gray-900 mb-2">{islandInfo.name}</h2>
-            <p className="text-sm text-gray-600 leading-relaxed">{islandInfo.description || '暂无描述'}</p>
-          </div>
-
-          {/* Boat Selection */}
-          <div className="bg-white rounded-2xl p-5 shadow-sm">
-            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <span>🚤</span> 选择船只套餐
-            </h2>
-          <div className="space-y-3">
-            {boats.length === 0 ? (
-              <div className="text-center py-8 text-gray-400">
-                <p>暂无船只套餐</p>
-              </div>
-            ) : boats.map(boat => (
-              <div
-                key={boat.id}
-                onClick={() => setSelectedBoat(selectedBoat?.id === boat.id ? null : boat)}
-                className={`relative rounded-2xl overflow-hidden cursor-pointer transition-all ${
-                  selectedBoat?.id === boat.id
-                    ? 'ring-2 ring-ocean-500 shadow-lg'
-                    : 'border border-gray-200 hover:border-ocean-300 hover:shadow-md'
-                }`}
-              >
-                {/* Selected Badge */}
-                {selectedBoat?.id === boat.id && (
-                  <div className="absolute top-3 right-3 z-10 bg-ocean-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-                    ✓ 已选择
-                  </div>
-                )}
-                {/* Image */}
-                <div className="relative h-40 md:h-48">
-                  <Image
-                    src={boat.images && boat.images.length > 0 ? boat.images[0] : 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80'}
-                    alt={boat.name}
-                    fill
-                    className="object-cover"
-                    unoptimized
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                  <div className="absolute bottom-3 left-3 text-white">
-                    <h3 className="font-bold text-lg drop-shadow">{boat.name}</h3>
-                  </div>
-                </div>
-                {/* Info */}
-                <div className="p-4">
-                  <div className="flex items-end justify-between">
-                    <div className="flex items-center gap-3 text-sm text-gray-600">
-                      {boat.duration && (
-                        <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-lg">
-                          <Clock className="w-4 h-4" />
-                          {boat.duration}
-                        </span>
-                      )}
-                      {boat.departure_time && (
-                        <span className="bg-gray-100 px-2 py-1 rounded-lg">⏰ {boat.departure_time}</span>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xl font-bold text-ocean-600">฿{Number(boat.price).toLocaleString()}</div>
-                      <div className="text-sm text-green-600 font-medium">¥{fmtCny(boat.price_cny) || '-'}</div>
-                    </div>
-                  </div>
-                  {boat.description && (
-                    <p className="text-sm text-gray-500 mt-2 line-clamp-2">{boat.description}</p>
-                  )}
-                  {(boat.includes && boat.includes.length > 0) && (
-                    <div className="flex flex-wrap gap-1.5 mt-3">
-                      {boat.includes.slice(0, 4).map((item, i) => (
-                        <span key={i} className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full flex items-center gap-1">
-                          <CheckCircle className="w-3 h-3" />
-                          {item}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        </>
-        </div>
-
-        {/* Desktop Floating Booking Panel - 預訂模式下隱藏 */}
-        {selectedBoat && tab !== 'book' && (
-          <div className="hidden md:block bg-white rounded-2xl p-5 shadow-lg sticky bottom-4 z-40">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm text-gray-500">已选船只</p>
-                <p className="font-bold text-gray-900">{selectedBoat.name}</p>
-                <p className="text-sm text-gray-400">{selectedBoat.duration} · {selectedBoat.departure_time}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold text-ocean-600">¥{fmtCny((Number(selectedBoat.price_cny) || Number(selectedBoat.price)) * people)}</p>
-                <p className="text-xs text-gray-400">共 {people} 人</p>
-              </div>
-              <button
-                onClick={() => setTab('book')}
-                className="px-8 py-4 bg-ocean-500 text-white rounded-full font-bold text-lg hover:bg-ocean-600 transition-colors shadow-lg"
-              >
-                立即预订
-              </button>
+          {/* Header */}
+          <div className="sticky top-0 z-50 bg-white border-b">
+            <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
+              <a href="/island-tour" className="flex items-center gap-2 text-gray-700 hover:text-ocean-600">
+                <ChevronLeft className="w-5 h-5" />
+                <span className="font-medium">返回</span>
+              </a>
+              <h1 className="font-bold text-gray-900 truncate max-w-[60%]">{islandInfo.name}</h1>
+              <div className="w-16" />
             </div>
           </div>
-        )}
-      </div>
 
-      {/* Fixed Bottom Bar - Mobile */}
-      {tab !== 'book' && (
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg md:hidden z-50">
-        <div className="max-w-4xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              {selectedBoat ? (
-                <>
-                  <p className="text-xs text-gray-500">{selectedBoat.name}</p>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-xl font-bold text-ocean-600">¥{fmtCny((Number(selectedBoat.price_cny) || Number(selectedBoat.price)) * people) || '-'}</span>
-                    <span className="text-xs text-gray-400">/{people}人</span>
+          {/* Main Content */}
+          <div className="max-w-4xl mx-auto px-4 py-4 space-y-4">
+            {/* Image Gallery */}
+            <ImageGallery images={islandImages} alt={islandInfo.name} />
+
+            {/* Island Title & Description */}
+            <div className="bg-white rounded-2xl p-5 shadow-sm">
+              <h2 className="text-xl font-bold text-gray-900 mb-2">{islandInfo.name}</h2>
+              <p className="text-sm text-gray-600 leading-relaxed">{islandInfo.description || '暂无描述'}</p>
+            </div>
+
+            {/* Boat Selection */}
+            <div className="bg-white rounded-2xl p-5 shadow-sm">
+              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <span>🚤</span> 选择船只套餐
+              </h2>
+              <div className="space-y-3">
+                {boats.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400">
+                    <p>暂无船只套餐</p>
                   </div>
-                </>
-              ) : (
-                <p className="text-gray-400">请选择船只</p>
+                ) : boats.map(boat => (
+                  <div
+                    key={boat.id}
+                    onClick={() => setSelectedBoat(selectedBoat?.id === boat.id ? null : boat)}
+                    className={`relative rounded-2xl overflow-hidden cursor-pointer transition-all ${
+                      selectedBoat?.id === boat.id
+                        ? 'ring-2 ring-ocean-500 shadow-lg'
+                        : 'border border-gray-200 hover:border-ocean-300 hover:shadow-md'
+                    }`}
+                  >
+                    {selectedBoat?.id === boat.id && (
+                      <div className="absolute top-3 right-3 z-10 bg-ocean-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                        ✓ 已选择
+                      </div>
+                    )}
+                    <div className="relative h-40 md:h-48">
+                      <Image
+                        src={boat.images && boat.images.length > 0 ? boat.images[0] : 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80'}
+                        alt={boat.name}
+                        fill
+                        className="object-cover"
+                        unoptimized
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                      <div className="absolute bottom-3 left-3 text-white">
+                        <h3 className="font-bold text-lg drop-shadow">{boat.name}</h3>
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <div className="flex items-end justify-between">
+                        <div className="flex items-center gap-3 text-sm text-gray-600">
+                          {boat.duration && (
+                            <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-lg">
+                              <Clock className="w-4 h-4" />
+                              {boat.duration}
+                            </span>
+                          )}
+                          {boat.departure_time && (
+                            <span className="bg-gray-100 px-2 py-1 rounded-lg">⏰ {boat.departure_time}</span>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xl font-bold text-ocean-600">฿{Number(boat.price).toLocaleString()}</div>
+                          <div className="text-sm text-green-600 font-medium">¥{fmtCny(boat.price_cny) || '-'}</div>
+                        </div>
+                      </div>
+                      {boat.description && (
+                        <p className="text-sm text-gray-500 mt-2 line-clamp-2">{boat.description}</p>
+                      )}
+                      {(boat.includes && boat.includes.length > 0) && (
+                        <div className="flex flex-wrap gap-1.5 mt-3">
+                          {boat.includes.slice(0, 4).map((item, i) => (
+                            <span key={i} className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <CheckCircle className="w-3 h-3" />
+                              {item}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop Floating Booking Panel */}
+          {selectedBoat && (
+            <div className="hidden md:block bg-white rounded-2xl p-5 shadow-lg sticky bottom-4 z-40 mx-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm text-gray-500">已选船只</p>
+                  <p className="font-bold text-gray-900">{selectedBoat.name}</p>
+                  <p className="text-sm text-gray-400">{selectedBoat.duration} · {selectedBoat.departure_time}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-bold text-ocean-600">¥{fmtCny((Number(selectedBoat.price_cny) || Number(selectedBoat.price)) * people)}</p>
+                  <p className="text-xs text-gray-400">共 {people} 人</p>
+                </div>
+                <button
+                  onClick={() => setTab('book')}
+                  className="px-8 py-4 bg-ocean-500 text-white rounded-full font-bold text-lg hover:bg-ocean-600 transition-colors shadow-lg"
+                >
+                  立即预订
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Fixed Bottom Bar - Mobile */}
+          <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg md:hidden z-50">
+            <div className="max-w-4xl mx-auto px-4 py-3">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  {selectedBoat ? (
+                    <>
+                      <p className="text-xs text-gray-500">{selectedBoat.name}</p>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-xl font-bold text-ocean-600">¥{fmtCny((Number(selectedBoat.price_cny) || Number(selectedBoat.price)) * people) || '-'}</span>
+                        <span className="text-xs text-gray-400">/{people}人</span>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-gray-400">请选择船只</p>
+                  )}
+                </div>
+                <button
+                  onClick={() => setTab('book')}
+                  disabled={!selectedBoat}
+                  className={`px-6 py-3 rounded-full font-bold text-base transition-colors ${
+                    selectedBoat
+                      ? 'bg-ocean-500 text-white hover:bg-ocean-600'
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  立即预订
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Booking Form - Clean View */}
+          <div className="max-w-xl mx-auto px-4 py-6 space-y-4">
+            {/* Back to detail hint */}
+            <div className="flex items-center justify-between">
+              <button onClick={() => setTab('detail')} className="flex items-center gap-1 text-ocean-600 hover:text-ocean-700">
+                <ChevronLeft className="w-4 h-4" /> 返回详情
+              </button>
+              {selectedBoat && (
+                <div className="bg-ocean-50 border border-ocean-200 rounded-xl px-4 py-2">
+                  <p className="text-sm text-ocean-700 font-medium">{selectedBoat.name}</p>
+                </div>
               )}
             </div>
-            <button
-              onClick={() => setTab('book')}
-              disabled={!selectedBoat}
-              className={`px-6 py-3 rounded-full font-bold text-base transition-colors ${
-                selectedBoat
-                  ? 'bg-ocean-500 text-white hover:bg-ocean-600'
-                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-              }`}
-            >
-              立即预订
-            </button>
-          </div>
-        </div>
-      </div>
-      )}
 
-      {/* Booking Section - Desktop */}
-      {tab === 'book' && (
-        <div className="max-w-xl mx-auto px-4 py-6 space-y-4">
-          {/* Back to detail hint */}
-          <div className="flex items-center justify-between">
-            <button onClick={() => setTab('detail')} className="flex items-center gap-1 text-ocean-600 hover:text-ocean-700">
-              <ChevronLeft className="w-4 h-4" /> 返回详情
-            </button>
+            {/* Order Summary */}
             {selectedBoat && (
-              <div className="bg-ocean-50 border border-ocean-200 rounded-xl px-4 py-2">
-                <p className="text-sm text-ocean-700 font-medium">{selectedBoat.name}</p>
+              <div className="bg-gradient-to-r from-ocean-500 to-ocean-600 rounded-2xl p-5 text-white">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-sm opacity-80">应付总额</p>
+                    <p className="text-3xl font-bold">¥{fmtCny((Number(selectedBoat.price_cny) || Number(selectedBoat.price)) * people) || '-'}</p>
+                  </div>
+                  <div className="text-right text-sm opacity-80">
+                    <p>单价 ¥{fmtCny(selectedBoat.price_cny) || Number(selectedBoat.price).toLocaleString()}</p>
+                    <p>{people}人</p>
+                  </div>
+                </div>
               </div>
             )}
-          </div>
 
-          {/* Order Summary */}
-          {selectedBoat && (
-            <div className="bg-gradient-to-r from-ocean-500 to-ocean-600 rounded-2xl p-5 text-white">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-sm opacity-80">应付总额</p>
-                  <p className="text-3xl font-bold">¥{fmtCny((Number(selectedBoat.price_cny) || Number(selectedBoat.price)) * people) || '-'}</p>
-                </div>
-                <div className="text-right text-sm opacity-80">
-                  <p>单价 ¥{fmtCny(selectedBoat.price_cny) || Number(selectedBoat.price).toLocaleString()}</p>
-                  <p>{people}人</p>
+            {/* Booking Form */}
+            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
+              <h3 className="font-bold text-gray-900">预订信息</h3>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">出行日期 *</label>
+                <input
+                  type="date"
+                  value={travelDate}
+                  onChange={e => setTravelDate(e.target.value)}
+                  className="w-full px-3 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-ocean-500 bg-white"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">人数</label>
+                <div className="flex items-center gap-3">
+                  <button onClick={() => setPeople(Math.max(1, people - 1))} className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-600 hover:bg-gray-200">−</button>
+                  <span className="w-12 text-center font-semibold text-xl">{people}</span>
+                  <button onClick={() => setPeople(people + 1)} className="w-10 h-10 rounded-full bg-ocean-500 text-white flex items-center justify-center font-bold hover:bg-ocean-600">+</button>
                 </div>
               </div>
             </div>
-          )}
 
-          {/* Booking Form */}
-          <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
-            <h3 className="font-bold text-gray-900">预订信息</h3>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">出行日期 *</label>
-              <input
-                type="date"
-                value={travelDate}
-                onChange={e => setTravelDate(e.target.value)}
-                className="w-full px-3 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-ocean-500 bg-white"
-              />
+            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-3">
+              <h3 className="font-bold text-gray-900">酒店信息</h3>
+              <input type="text" placeholder="入住酒店名称" value={hotelName} onChange={e => setHotelName(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
+              <input type="text" placeholder="地址或链接" value={hotelAddress} onChange={e => setHotelAddress(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
             </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">人数</label>
-              <div className="flex items-center gap-3">
-                <button onClick={() => setPeople(Math.max(1, people - 1))} className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-600 hover:bg-gray-200">−</button>
-                <span className="w-12 text-center font-semibold text-xl">{people}</span>
-                <button onClick={() => setPeople(people + 1)} className="w-10 h-10 rounded-full bg-ocean-500 text-white flex items-center justify-center font-bold hover:bg-ocean-600">+</button>
-              </div>
+
+            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-3">
+              <h3 className="font-bold text-gray-900">联系人 *</h3>
+              <input type="text" placeholder="姓名（中文）*" value={contactNameCn} onChange={e => setContactNameCn(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
+              <input type="tel" placeholder="联系电话 *" value={contactPhone} onChange={e => setContactPhone(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
+              <input type="text" placeholder="微信号（选填）" value={contactWechat} onChange={e => setContactWechat(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
             </div>
-          </div>
 
-          <div className="bg-white rounded-2xl p-5 shadow-sm space-y-3">
-            <h3 className="font-bold text-gray-900">酒店信息</h3>
-            <input type="text" placeholder="入住酒店名称" value={hotelName} onChange={e => setHotelName(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
-            <input type="text" placeholder="地址或链接" value={hotelAddress} onChange={e => setHotelAddress(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
+            {selectedBoat && (
+              <button
+                onClick={handleSubmit}
+                disabled={submitting}
+                className="w-full py-4 bg-ocean-500 text-white rounded-2xl font-bold text-lg hover:bg-ocean-600 flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                <MessageCircle className="w-5 h-5" />
+                {submitting ? '提交中...' : '提交订单 · 前往支付'}
+              </button>
+            )}
+            {submitError && <p className="text-red-500 text-sm text-center">{submitError}</p>}
           </div>
-
-          <div className="bg-white rounded-2xl p-5 shadow-sm space-y-3">
-            <h3 className="font-bold text-gray-900">联系人 *</h3>
-            <input type="text" placeholder="姓名（中文）*" value={contactNameCn} onChange={e => setContactNameCn(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
-            <input type="tel" placeholder="联系电话 *" value={contactPhone} onChange={e => setContactPhone(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
-            <input type="text" placeholder="微信号（选填）" value={contactWechat} onChange={e => setContactWechat(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500" />
-          </div>
-
-          {selectedBoat && (
-            <button
-              onClick={handleSubmit}
-              disabled={submitting}
-              className="w-full py-4 bg-ocean-500 text-white rounded-2xl font-bold text-lg hover:bg-ocean-600 flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              <MessageCircle className="w-5 h-5" />
-              {submitting ? '提交中...' : '提交订单 · 前往支付'}
-            </button>
-          )}
-          {submitError && <p className="text-red-500 text-sm text-center">{submitError}</p>}
-        </div>
+        </>
       )}
 
       {/* Back to Top */}
