@@ -456,6 +456,29 @@ export default function IslandDetailPage() {
             ))}
           </div>
         </div>
+
+        {/* Desktop Floating Booking Panel */}
+        {selectedBoat && (
+          <div className="hidden md:block bg-white rounded-2xl p-5 shadow-lg sticky bottom-4 z-40">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm text-gray-500">已选船只</p>
+                <p className="font-bold text-gray-900">{selectedBoat.name}</p>
+                <p className="text-sm text-gray-400">{selectedBoat.duration} · {selectedBoat.departure_time}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-2xl font-bold text-ocean-600">¥{fmtCny((Number(selectedBoat.price_cny) || Number(selectedBoat.price)) * people)}</p>
+                <p className="text-xs text-gray-400">共 {people} 人</p>
+              </div>
+              <button
+                onClick={() => setTab('book')}
+                className="px-8 py-4 bg-ocean-500 text-white rounded-full font-bold text-lg hover:bg-ocean-600 transition-colors shadow-lg"
+              >
+                立即预订
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Fixed Bottom Bar - Mobile */}
